@@ -1,20 +1,24 @@
 <?php
 
-require_once __DIR__ . '/../models/AccountsModel.php';
+require_once __DIR__ . '/../models/UsersModel.php';
+require_once __DIR__ . '/../models/AuditLogModel.php';
+require_once __DIR__ . '/../core/Loader.php';
 
 class Auth
 {
-    private $model;
+    private $userModel;
+    private $auditModel;
     private $load;
 
     public function __construct()
     {
-        $this->model = new AccountsModel();
-        $this->load  = new Loader();
+        $this->userModel  = new UsersModel();
+        $this->auditModel = new AuditLogModel();
+        $this->load       = new Loader();
     }
 
     /**
-     * Menampilkan form login (GET) atau memproses kredensial pengguna (POST)
+     * Menampilkan formulir login (GET) atau memproses kredensial pengguna (POST)
      */
     public function login()
     {
@@ -24,7 +28,7 @@ class Auth
             $errors   = [];
 
             if (empty($email)) {
-                $errors['email'] = 'Email wajib diisi.';
+                $errors['email'] = 'Email institusi wajib diisi.';
             }
             if (empty($password)) {
                 $errors['password'] = 'Password wajib diisi.';
@@ -38,10 +42,17 @@ class Auth
                 return;
             }
 
-            $user = $this->model->getByEmail($email);
+            $user = $this->userModel->getByEmail($email);
 
             if (!$user || !password_verify($password, $user['password'])) {
-                $errors['general'] = 'Email atau password salah.';
+                // Catat kegagalan login ke audit trail
+                $this->auditModel->log(
+                    $user['id'] ?? null,
+                    'user.login_failed',
+                    ['attempted_email' => $email]
+                );
+
+                $errors['general'] = 'Email atau password yang Anda masukkan tidak sesuai.';
                 $this->load->view('views/auth/login.php', [
                     'errors' => $errors,
                     'old'    => ['email' => $email],
@@ -49,35 +60,64 @@ class Auth
                 return;
             }
 
-            // Simpan data autentikasi ke dalam session
+            // Simpan data kredensial dan profil civitas ke dalam sesi
             $_SESSION['user'] = [
-                'id'                    => $user['id'],
-                'name'                  => $user['name'],
-                'email'                 => $user['email'],
-                'account_type_id'       => $user['account_type_id'],
-                'account_type_name'     => $user['account_type_name'],
-                'status'                => $user['status'],
-                'identification_number' => $user['identification_number'],
-                'identification_type'   => $user['identification_type'],
+                'id'                 => $user['id'],
+                'civitas_id'         => $user['civitas_id'],
+                'name'               => $user['name'],
+                'email'              => $user['email'],
+                'role'               => $user['role'], // 'admin' atau 'user'
+                'avatar_path'        => $user['avatar_path'],
+                'identifier'         => $user['civitas_identifier'] ?? null,
+                'civitas_name'       => $user['civitas_name'] ?? $user['name'],
+                'civitas_type'       => $user['civitas_type'] ?? null, // 'dosen', 'mahasiswa', 'tendik'
+                'department'         => $user['civitas_department'] ?? null,
+                'position'           => $user['civitas_position'] ?? null,
+                'phone'              => $user['civitas_phone'] ?? null,
             ];
 
-            header('Location: ' . BASE_URL . '/accounts');
+            // Catat keberhasilan login ke audit trail
+            $this->auditModel->log(
+                $user['id'],
+                'user.login',
+                [
+                    'role'       => $user['role'],
+                    'identifier' => $user['civitas_identifier'] ?? null,
+                ]
+            );
+
+            // Berikan flash message selamat datang
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Selamat datang kembali, ' . htmlspecialchars($user['name']) . '!'
+            ];
+
+            header('Location: ' . BASE_URL . '/documents');
             exit;
         }
 
-        // Tampilan form login (GET)
+        // Tampilan formulir login (GET)
         $this->load->view('views/auth/login.php');
     }
 
     /**
-     * Mengakhiri sesi login pengguna
+     * Mengakhiri sesi pengguna
      */
     public function logout()
     {
-        if (session_status() === PHP_SESSION_ACTIVE) {
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['user'])) {
+            $userId = $_SESSION['user']['id'];
+            $this->auditModel->log($userId, 'user.logout');
+
             unset($_SESSION['user']);
             session_destroy();
         }
+
+        session_start();
+        $_SESSION['flash'] = [
+            'type'    => 'info',
+            'message' => 'Anda telah berhasil keluar dari sistem.'
+        ];
 
         header('Location: ' . BASE_URL . '/auth');
         exit;
