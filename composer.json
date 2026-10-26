@@ -1,9 +1,14 @@
 {
+    "config": {
+        "process-timeout": 0
+    },
     "require": {
         "ramsey/uuid": "^4.9"
     },
     "scripts": {
         "serve": "php -S localhost:5000 index.php",
-        "makeMVC": "php tools/make-mvc.php"
+        "makeMVC": "php tools/make-mvc.php",
+        "migrate": "php tools/migrate.php",
+        "seed": "php tools/seed.php"
     }
 }
