@@ -3,199 +3,152 @@ require_once __DIR__ . '/../layout/header.php';
 
 $isAdmin = ($user['role'] ?? '') === 'admin';
 $civitasType = $user['civitas_type'] ?? 'civitas';
-$civitasBadgeColor = [
-    'dosen'     => 'bg-primary-subtle text-primary border-primary-subtle',
-    'mahasiswa' => 'bg-info-subtle text-info-emphasis border-info-subtle',
-    'tendik'    => 'bg-secondary-subtle text-secondary border-secondary-subtle',
-][$civitasType] ?? 'bg-light text-dark';
 ?>
 
-<!-- Welcome Banner -->
-<div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%); color: #fff; border-radius: 14px;">
-    <div class="card-body p-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge <?= $isAdmin ? 'bg-warning text-dark' : 'bg-white text-primary' ?> px-2.5 py-1.5 fw-semibold text-uppercase" style="font-size: 0.75rem;">
-                        <i class="bi <?= $isAdmin ? 'bi-shield-check' : 'bi-person-check-fill' ?> me-1"></i>
-                        <?= $isAdmin ? 'Administrator' : ucfirst($civitasType) ?>
-                    </span>
-                    <?php if (!empty($user['identifier'])): ?>
-                        <span class="badge bg-white bg-opacity-25 text-white px-2 py-1" style="font-size: 0.75rem;">
-                            <?= htmlspecialchars($user['identifier']) ?>
-                        </span>
-                    <?php endif; ?>
-                </div>
-                <h3 class="fw-bold mb-1">Halo, <?= htmlspecialchars($user['name'] ?? 'Pengguna') ?>!</h3>
-                <p class="mb-0 text-white-50" style="font-size: 0.95rem;">
-                    <?= htmlspecialchars($user['position'] ?? ($isAdmin ? 'Pengelola Sistem SIGMA' : 'Civitas Politeknik Negeri Jakarta')) ?>
-                    <?php if (!empty($user['department'])): ?>
-                        &bull; <?= htmlspecialchars($user['department']) ?>
-                    <?php endif; ?>
-                </p>
-            </div>
-            <div class="d-flex gap-2">
-                <?php if ($isAdmin): ?>
-                    <a href="<?= BASE_URL ?>/civitas" class="btn btn-light text-primary fw-semibold d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm" style="border-radius: 8px;">
-                        <i class="bi bi-people-fill"></i>
-                        <span>Kelola Civitas</span>
-                    </a>
-                <?php else: ?>
-                    <a href="<?= BASE_URL ?>/documents/create" class="btn btn-light text-primary fw-semibold d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm" style="border-radius: 8px;">
-                        <i class="bi bi-cloud-arrow-up-fill"></i>
-                        <span>Ajukan Dokumen</span>
-                    </a>
-                <?php endif; ?>
-            </div>
-        </div>
+<!-- Header Section (Clean & Minimalist) -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-1">
+            <?= $isAdmin ? 'Dashboard Dokumen — Administrator' : 'Dokumen Digital Saya' ?>
+        </h4>
+        <p class="text-muted small mb-0">
+            Selamat datang di portal tanda tangan digital resmi Politeknik Negeri Jakarta.
+        </p>
+    </div>
+
+    <div>
+        <?php if ($isAdmin): ?>
+            <a href="<?= BASE_URL ?>/civitas" class="btn btn-subtle">
+                <i class="bi bi-people-fill me-1 text-success"></i> Kelola Civitas
+            </a>
+        <?php else: ?>
+            <a href="<?= BASE_URL ?>/documents/create" class="btn btn-pnj-primary">
+                <i class="bi bi-cloud-arrow-up me-1"></i> Ajukan Dokumen Baru
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 
-<!-- Quick Statistics Cards -->
+<!-- Compact Stat Summary Cards -->
 <div class="row g-3 mb-4">
     <?php if ($isAdmin): ?>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Antrean Review</span>
-                        <div class="rounded-3 bg-warning-subtle text-warning p-2">
-                            <i class="bi bi-hourglass-split fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">0</h3>
-                    <div class="text-muted small">Dokumen menunggu review</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--status-amber-bg); color: var(--status-amber-text);">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div>
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">Menunggu Review</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Master Civitas</span>
-                        <div class="rounded-3 bg-primary-subtle text-primary p-2">
-                            <i class="bi bi-person-badge-fill fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">5</h3>
-                    <div class="text-muted small">Data civitas terdaftar</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--pnj-green-50); color: var(--pnj-green-800);">
+                    <i class="bi bi-person-vcard"></i>
+                </div>
+                <div>
+                    <div class="stat-val">5</div>
+                    <div class="stat-label">Civitas Terdaftar</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Sedang Berjalan</span>
-                        <div class="rounded-3 bg-info-subtle text-info p-2">
-                            <i class="bi bi-arrow-repeat fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">0</h3>
-                    <div class="text-muted small">Proses tanda tangan</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--status-blue-bg); color: var(--status-blue-text);">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <div>
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">Proses Tanda Tangan</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Dokumen Selesai</span>
-                        <div class="rounded-3 bg-success-subtle text-success p-2">
-                            <i class="bi bi-check-circle-fill fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">0</h3>
-                    <div class="text-muted small">Telah ditandatangani final</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--status-green-bg); color: var(--status-green-text);">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">Dokumen Selesai</div>
                 </div>
             </div>
         </div>
     <?php else: ?>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Perlu TTD Anda</span>
-                        <div class="rounded-3 bg-warning-subtle text-warning p-2">
-                            <i class="bi bi-pen-fill fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">0</h3>
-                    <div class="text-muted small">Giliran aktif saat ini</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--status-amber-bg); color: var(--status-amber-text);">
+                    <i class="bi bi-pen"></i>
+                </div>
+                <div>
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">Perlu TTD Anda</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Dokumen Saya</span>
-                        <div class="rounded-3 bg-primary-subtle text-primary p-2">
-                            <i class="bi bi-file-earmark-text-fill fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">0</h3>
-                    <div class="text-muted small">Total pengajuan saya</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--pnj-green-50); color: var(--pnj-green-800);">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <div>
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">Pengajuan Saya</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Dalam Proses</span>
-                        <div class="rounded-3 bg-info-subtle text-info p-2">
-                            <i class="bi bi-hourglass-split fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">0</h3>
-                    <div class="text-muted small">Menunggu pihak lain</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--status-blue-bg); color: var(--status-blue-text);">
+                    <i class="bi bi-hourglass"></i>
+                </div>
+                <div>
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">Dalam Proses</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-body p-3.5">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-secondary small fw-medium">Dokumen Selesai</span>
-                        <div class="rounded-3 bg-success-subtle text-success p-2">
-                            <i class="bi bi-file-earmark-check-fill fs-5"></i>
-                        </div>
-                    </div>
-                    <h3 class="fw-bold mb-1 text-dark">0</h3>
-                    <div class="text-muted small">Siap diunduh / sah</div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--status-green-bg); color: var(--status-green-text);">
+                    <i class="bi bi-file-earmark-check"></i>
+                </div>
+                <div>
+                    <div class="stat-val">0</div>
+                    <div class="stat-label">Dokumen Selesai</div>
                 </div>
             </div>
         </div>
     <?php endif; ?>
 </div>
 
-<!-- Main Table Card / Empty State -->
-<div class="card border-0 shadow-sm" style="border-radius: 12px;">
-    <div class="card-header bg-white border-bottom border-light-subtle py-3 px-4 d-flex justify-content-between align-items-center">
-        <h5 class="fw-bold mb-0 text-dark">
-            <i class="bi bi-folder2-open me-2 text-primary"></i>
-            <?= $isAdmin ? 'Antrean Dokumen Kampus' : 'Daftar Dokumen Anda' ?>
-        </h5>
+<!-- Main Table / Document Queue Card -->
+<div class="card-clean mb-4">
+    <div class="card-clean-header">
+        <span class="fw-semibold text-dark">
+            <i class="bi bi-table me-1.5 text-muted"></i>
+            <?= $isAdmin ? 'Antrean Dokumen Masuk' : 'Daftar Dokumen' ?>
+        </span>
     </div>
-    <div class="card-body p-5 text-center">
-        <div class="py-4">
-            <div class="mb-3">
-                <i class="bi bi-inbox text-secondary text-opacity-50" style="font-size: 3.5rem;"></i>
-            </div>
-            <h5 class="fw-semibold text-dark mb-1">Belum Ada Dokumen</h5>
-            <p class="text-muted small mb-3">
-                <?= $isAdmin 
-                    ? 'Belum ada pengajuan dokumen baru dari mahasiswa atau sivitas akademika.' 
-                    : 'Anda belum memiliki dokumen yang sedang diproses atau perlu ditandatangani.' ?>
-            </p>
-            <?php if (!$isAdmin): ?>
-                <a href="<?= BASE_URL ?>/documents/create" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3.5 py-2 shadow-sm" style="border-radius: 8px;">
-                    <i class="bi bi-plus-circle-fill"></i>
-                    <span>Ajukan Dokumen Sekarang</span>
-                </a>
-            <?php endif; ?>
+
+    <!-- Empty State Content -->
+    <div class="p-5 text-center">
+        <div class="text-muted mb-2" style="font-size: 2.5rem; opacity: 0.4;">
+            <i class="bi bi-inbox"></i>
         </div>
+        <h6 class="fw-semibold text-dark mb-1">Belum Ada Dokumen Aktif</h6>
+        <p class="text-muted small mb-3" style="max-width: 480px; margin: 0 auto;">
+            <?= $isAdmin 
+                ? 'Seluruh pengajuan berkas dari mahasiswa atau staf akan muncul di antrean ini untuk diverifikasi.' 
+                : 'Mulai dengan mengunggah berkas PDF untuk ditandatangani mandiri atau diajukan secara berjenjang.' ?>
+        </p>
+        <?php if (!$isAdmin): ?>
+            <a href="<?= BASE_URL ?>/documents/create" class="btn btn-pnj-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Buat Pengajuan Baru
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 

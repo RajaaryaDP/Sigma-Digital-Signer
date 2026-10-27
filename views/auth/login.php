@@ -3,142 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Masuk — SIGMA Digital Signer</title>
+    <title>Masuk — SIGMA Politeknik Negeri Jakarta</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary: #1d4ed8;
-            --primary-dark: #1e3a8a;
-            --surface: #ffffff;
-            --bg-page: #f1f5f9;
+            --pnj-green: #064e3b;
+            --pnj-green-hover: #043e2e;
+            --bg-canvas: #f1f5f9;
         }
 
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background-color: var(--bg-canvas);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            color: #1e293b;
             padding: 1.5rem;
-            color: #334155;
         }
 
-        .login-wrapper {
+        .login-box {
             width: 100%;
-            max-width: 440px;
-        }
-
-        .brand-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 0.4rem 0.9rem;
-            border-radius: 999px;
-            color: #93c5fd;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-bottom: 1.25rem;
+            max-width: 420px;
         }
 
         .login-card {
-            background: var(--surface);
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 2.25rem 2rem;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            padding: 2.25rem 2rem 2rem;
         }
 
-        .app-logo-box {
-            width: 52px;
-            height: 52px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #1d4ed8, #2563eb);
-            color: #fff;
+        .brand-logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .brand-icon-box {
+            width: 44px;
+            height: 44px;
+            background: var(--pnj-green);
+            color: #ffffff;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(29, 78, 216, 0.35);
+            font-size: 1.35rem;
+        }
+
+        .form-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.35rem;
         }
 
         .form-control {
             border-radius: 8px;
-            padding: 0.65rem 0.9rem;
+            padding: 0.65rem 0.85rem;
             border: 1px solid #cbd5e1;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
         }
 
         .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 0.25rem rgba(29, 78, 216, 0.15);
+            border-color: var(--pnj-green);
+            box-shadow: 0 0 0 0.2rem rgba(6, 78, 59, 0.15);
         }
 
-        .btn-primary-action {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            padding: 0.75rem;
+        .btn-submit {
+            background-color: var(--pnj-green);
+            border-color: var(--pnj-green);
+            color: #ffffff;
             font-weight: 600;
+            padding: 0.7rem;
             border-radius: 8px;
-            transition: all 0.2s ease;
+            font-size: 0.92rem;
+            transition: background-color 0.15s ease;
         }
 
-        .btn-primary-action:hover {
-            background-color: var(--primary-dark);
-            border-color: var(--primary-dark);
+        .btn-submit:hover {
+            background-color: var(--pnj-green-hover);
+            border-color: var(--pnj-green-hover);
+            color: #ffffff;
         }
 
-        .test-accounts-box {
+        /* Clean Accordion for Test Accounts */
+        .test-account-details {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 1rem;
-            margin-top: 1.5rem;
+            border-radius: 8px;
+            padding: 0.6rem 0.85rem;
+            margin-top: 1.25rem;
+            font-size: 0.8rem;
+        }
+
+        .test-account-details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #475569;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .test-account-details summary::-webkit-details-marker {
+            display: none;
         }
 
         .account-chip {
             cursor: pointer;
-            border-radius: 6px;
             border: 1px solid #cbd5e1;
-            background: #fff;
-            padding: 0.35rem 0.6rem;
+            background: #ffffff;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
             font-size: 0.75rem;
-            transition: all 0.15s;
+            transition: all 0.15s ease;
         }
 
         .account-chip:hover {
-            border-color: var(--primary);
-            background: #eff6ff;
-            color: var(--primary);
+            border-color: var(--pnj-green);
+            background: #ecfdf5;
+            color: var(--pnj-green);
         }
     </style>
 </head>
 <body>
 
-    <div class="login-wrapper">
-        <!-- Header / Logo Institusi -->
-        <div class="text-center">
-            <div class="brand-badge">
-                <i class="bi bi-shield-lock-fill"></i>
-                <span>Politeknik Negeri Jakarta</span>
-            </div>
-        </div>
-
+    <div class="login-box">
         <div class="login-card">
-            <!-- App Identity -->
-            <div class="d-flex align-items-center gap-3 mb-4">
-                <div class="app-logo-box">
+            <!-- Brand Identity -->
+            <div class="brand-logo-area">
+                <div class="brand-icon-box">
                     <i class="bi bi-shield-shaded"></i>
                 </div>
                 <div>
-                    <h4 class="fw-bold mb-0 text-dark">SIGMA</h4>
-                    <p class="text-muted small mb-0">Sistem Tanda Tangan Digital Resmi</p>
+                    <h5 class="fw-bold text-dark mb-0">SIGMA</h5>
+                    <small class="text-muted">Politeknik Negeri Jakarta (PNJ)</small>
                 </div>
             </div>
 
@@ -165,10 +173,10 @@
                 </div>
             <?php endif; ?>
 
-            <!-- Form Login -->
+            <!-- Login Form -->
             <form action="<?= BASE_URL ?>/auth/login" method="POST">
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold text-secondary">Email Institusi</label>
+                    <label class="form-label">Email Institusi</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-envelope"></i></span>
                         <input type="email" id="inputEmail" name="email" 
@@ -182,7 +190,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label small fw-semibold text-secondary">Password</label>
+                    <label class="form-label">Password</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-lock"></i></span>
                         <input type="password" id="inputPassword" name="password" 
@@ -197,50 +205,43 @@
                     <?php endif; ?>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-primary-action w-100 text-white shadow-sm d-flex align-items-center justify-content-center gap-2">
+                <button type="submit" class="btn btn-submit w-100 shadow-sm d-flex align-items-center justify-content-center gap-2">
                     <i class="bi bi-box-arrow-in-right"></i>
-                    <span>Masuk ke Sistem</span>
+                    <span>Masuk ke Akun</span>
                 </button>
             </form>
 
-            <!-- Quick Account Switcher (Khusus Pengujian / Seeder) -->
-            <div class="test-accounts-box">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="fw-semibold text-dark" style="font-size: 0.8rem;">
-                        <i class="bi bi-person-badge text-primary me-1"></i> Pilih Akun Pengujian:
-                    </span>
-                    <small class="text-muted" style="font-size: 0.72rem;">Klik untuk isi form</small>
+            <!-- Test Accounts Drawer (Discreet & Minimalist) -->
+            <details class="test-account-details">
+                <summary>
+                    <span><i class="bi bi-key-fill text-muted me-1"></i> Akun Pengujian (Seed)</span>
+                    <i class="bi bi-chevron-down text-muted" style="font-size: 0.75rem;"></i>
+                </summary>
+                <div class="pt-2">
+                    <div class="d-flex flex-wrap gap-1.5 mb-1.5">
+                        <span class="account-chip" onclick="fillAccount('admin@sigma.local', 'password')">Admin</span>
+                        <span class="account-chip" onclick="fillAccount('mahasiswa@sigma.local', 'password')">Mahasiswa</span>
+                        <span class="account-chip" onclick="fillAccount('dosen@sigma.local', 'password')">Dosen</span>
+                        <span class="account-chip" onclick="fillAccount('kajur@sigma.local', 'password')">Kajur</span>
+                        <span class="account-chip" onclick="fillAccount('tendik@sigma.local', 'password')">Tendik</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.72rem;">
+                        Password: <code>password</code> (Klik chip untuk mengisi otomatis)
+                    </div>
                 </div>
-                <div class="d-flex flex-wrap gap-1.5">
-                    <span class="account-chip" onclick="fillAccount('admin@sigma.local', 'password')">
-                        <strong>Admin</strong>
-                    </span>
-                    <span class="account-chip" onclick="fillAccount('mahasiswa@sigma.local', 'password')">
-                        <strong>Mahasiswa</strong> (Pengaju)
-                    </span>
-                    <span class="account-chip" onclick="fillAccount('dosen@sigma.local', 'password')">
-                        <strong>Dosen</strong> (Step 1)
-                    </span>
-                    <span class="account-chip" onclick="fillAccount('kajur@sigma.local', 'password')">
-                        <strong>Kajur</strong> (Step 2)
-                    </span>
-                </div>
-                <div class="text-muted mt-2" style="font-size: 0.75rem;">
-                    Default password: <code class="text-primary">password</code>
-                </div>
-            </div>
+            </details>
 
-            <!-- Tautan Verifikasi Terbuka -->
-            <div class="text-center mt-3 pt-2 border-top border-light-subtle">
-                <a href="<?= BASE_URL ?>/verify" target="_blank" class="text-decoration-none small text-secondary d-inline-flex align-items-center gap-1">
-                    <i class="bi bi-qr-code-scan text-primary"></i>
-                    <span>Verifikasi Keaslian Dokumen Tanpa Login</span>
+            <!-- Public Verification Link -->
+            <div class="text-center mt-3 pt-2">
+                <a href="<?= BASE_URL ?>/verify" target="_blank" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-qr-code-scan"></i>
+                    <span>Verifikasi Keaslian Dokumen</span>
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Script toggle password & quick fill -->
+    <!-- Script toggle password & fill account -->
     <script>
         function fillAccount(email, password) {
             document.getElementById('inputEmail').value = email;
