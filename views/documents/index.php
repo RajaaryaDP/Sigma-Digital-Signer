@@ -49,7 +49,7 @@ $civitasType = $user['civitas_type'] ?? 'civitas';
                     <i class="bi bi-person-vcard"></i>
                 </div>
                 <div>
-                    <div class="stat-val">5</div>
+                    <div class="stat-val"><?= (int) ($civitasCount ?? 0) ?></div>
                     <div class="stat-label">Civitas Terdaftar</div>
                 </div>
             </div>
