@@ -50,14 +50,14 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                                 <span>Master Data Civitas</span>
                             </a>
                         </li>
-                    <?php else: ?>
-                        <li>
-                            <a href="<?= BASE_URL ?>/user-signatures" class="pnj-nav-link <?= ($page === 'user-signatures') ? 'active' : '' ?>">
-                                <i class="bi bi-pen"></i>
-                                <span>Template TTD</span>
-                            </a>
-                        </li>
                     <?php endif; ?>
+
+                    <li>
+                        <a href="<?= BASE_URL ?>/user-signatures" class="pnj-nav-link <?= ($page === 'user-signatures') ? 'active' : '' ?>">
+                            <i class="bi bi-pen"></i>
+                            <span>Template TTD</span>
+                        </a>
+                    </li>
 
                     <li>
                         <a href="<?= BASE_URL ?>/verify" class="pnj-nav-link <?= ($page === 'verify') ? 'active' : '' ?>" target="_blank">
