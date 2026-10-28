@@ -131,8 +131,50 @@ class UserSignatures
                     if ($mime !== 'image/png') {
                         $errors['signature'] = 'Berkas tanda tangan wajib berformat gambar PNG transparan (.png).';
                     } else {
-                        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-                            $errors['signature'] = 'Gagal memindahkan berkas tanda tangan ke penyimpanan privat.';
+                        // Verifikasi bahwa gambar PNG memiliki latar belakang transparan (alpha channel)
+                        $im = @imagecreatefrompng($file['tmp_name']);
+                        if ($im === false) {
+                            $errors['signature'] = 'Berkas gambar PNG tanda tangan rusak atau tidak dapat diproses.';
+                        } else {
+                            $w = imagesx($im);
+                            $h = imagesy($im);
+                            $hasAlpha = false;
+
+                            // Sampling cepat pada titik-titik sudut dan tepi
+                            $sampleCoords = [
+                                [0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1],
+                                [intdiv($w, 2), 0], [intdiv($w, 2), $h - 1],
+                                [0, intdiv($h, 2)], [$w - 1, intdiv($h, 2)]
+                            ];
+                            foreach ($sampleCoords as $coord) {
+                                $rgba = imagecolorsforindex($im, imagecolorat($im, $coord[0], $coord[1]));
+                                if ($rgba['alpha'] > 10) {
+                                    $hasAlpha = true;
+                                    break;
+                                }
+                            }
+
+                            // Jika titik tepi belum mendeteksi alpha, jalankan grid sampling melompat
+                            if (!$hasAlpha) {
+                                $stepX = max(1, intdiv($w, 50));
+                                $stepY = max(1, intdiv($h, 50));
+                                for ($y = 0; $y < $h && !$hasAlpha; $y += $stepY) {
+                                    for ($x = 0; $x < $w; $x += $stepX) {
+                                        $rgba = imagecolorsforindex($im, imagecolorat($im, $x, $y));
+                                        if ($rgba['alpha'] > 10) {
+                                            $hasAlpha = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            imagedestroy($im);
+
+                            if (!$hasAlpha) {
+                                $errors['signature'] = 'Gambar PNG tidak memiliki latar belakang transparan. Harap gunakan gambar tanda tangan berlatar transparan agar tidak menutupi teks dokumen.';
+                            } elseif (!move_uploaded_file($file['tmp_name'], $destPath)) {
+                                $errors['signature'] = 'Gagal memindahkan berkas tanda tangan ke penyimpanan privat.';
+                            }
                         }
                     }
                 }

@@ -221,11 +221,24 @@ document.addEventListener('DOMContentLoaded', function () {
     // HiDPI Scaling for Ultra-Sharp Canvas Strokes
     function resizeCanvas() {
         const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
         const dpr = window.devicePixelRatio || 1;
-        
-        // Save current canvas content if already drawn
+        const targetWidth = Math.round(rect.width * dpr);
+        const targetHeight = Math.round(rect.height * dpr);
+
+        // Jangan resize atau reset ulang jika dimensi fisik tidak berubah
+        if (canvas.width === targetWidth && canvas.height === targetHeight) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentWidth;
+            return;
+        }
+
+        // Simpan goresan kanvas saat ini jika pengguna sudah menggambar
         let tempCanvas = null;
-        if (hasDrawn) {
+        if (hasDrawn && canvas.width > 0 && canvas.height > 0) {
             tempCanvas = document.createElement('canvas');
             tempCanvas.width = canvas.width;
             tempCanvas.height = canvas.height;
@@ -233,14 +246,15 @@ document.addEventListener('DOMContentLoaded', function () {
             tempCtx.drawImage(canvas, 0, 0);
         }
 
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
 
+        // Kembalikan gambar pada koordinat fisik 1:1 SEBELUM penskalaan transform DPR
         if (tempCanvas) {
-            ctx.drawImage(tempCanvas, 0, 0, rect.width, rect.height);
+            ctx.drawImage(tempCanvas, 0, 0, targetWidth, targetHeight);
         }
 
+        ctx.scale(dpr, dpr);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = currentColor;
@@ -321,8 +335,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Clear Canvas Action
     btnClear.addEventListener('click', function () {
-        const rect = canvas.getBoundingClientRect();
-        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
         hasDrawn = false;
         sigInput.value = '';
     });
