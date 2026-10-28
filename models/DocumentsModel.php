@@ -70,9 +70,10 @@ class DocumentsModel
      */
     public function getAll(?string $status = null): array
     {
-        $sql = "SELECT d.*, u.name AS uploader_name
+        $sql = "SELECT d.*, u.name AS uploader_name, rev.name AS reviewer_name
                 FROM documents d
                 JOIN users u ON d.uploader_id = u.id
+                LEFT JOIN users rev ON d.reviewed_by = rev.id
                 WHERE d.deleted_at IS NULL";
         $params = [];
 
@@ -89,14 +90,19 @@ class DocumentsModel
 
     /**
      * Ambil satu dokumen berdasarkan ID (aktif, belum dihapus).
-     * Menyertakan JOIN ke user pengaju.
+     * Menyertakan JOIN ke user pengaju dan reviewer admin.
      */
     public function getById(string $id): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT d.*, u.name AS uploader_name, u.email AS uploader_email
+            "SELECT d.*, 
+                    u.name AS uploader_name, 
+                    u.email AS uploader_email,
+                    rev.name AS reviewer_name,
+                    rev.email AS reviewer_email
              FROM documents d
              JOIN users u ON d.uploader_id = u.id
+             LEFT JOIN users rev ON d.reviewed_by = rev.id
              WHERE d.id = ? AND d.deleted_at IS NULL
              LIMIT 1"
         );
@@ -448,6 +454,74 @@ class DocumentsModel
         );
         $stmt->execute([$documentId]);
         return (int) $stmt->fetchColumn();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // ADMIN REVIEW ACTIONS (Task 6)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Menyetujui dokumen berjenjang oleh Administrator.
+     * Mengubah status dokumen dari pending_review -> signing,
+     * mencatat reviewed_by & reviewed_at, serta mengaktifkan
+     * penandatangan urutan pertama (step_order = 1) menjadi status 'pending'.
+     */
+    public function approveDocument(string $documentId, string $adminId): bool
+    {
+        $this->db->beginTransaction();
+        try {
+            // Update status dokumen menjadi signing dan catat reviewer
+            $stmt = $this->db->prepare(
+                "UPDATE documents
+                 SET status = 'signing',
+                     current_step = 1,
+                     reviewed_by = ?,
+                     reviewed_at = NOW()
+                 WHERE id = ? AND status = 'pending_review' AND deleted_at IS NULL"
+            );
+            $stmt->execute([$adminId, $documentId]);
+
+            if ($stmt->rowCount() === 0) {
+                throw new \Exception('Dokumen tidak ditemukan atau sudah tidak berstatus Menunggu Review.');
+            }
+
+            // Aktifkan signer giliran pertama (step_order = 1) menjadi status 'pending'
+            $stmtSigner = $this->db->prepare(
+                "UPDATE document_signers
+                 SET status = 'pending'
+                 WHERE document_id = ? AND step_order = 1 AND deleted_at IS NULL"
+            );
+            $stmtSigner->execute([$documentId]);
+
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Menolak dokumen berjenjang oleh Administrator dengan alasan penolakan resmi.
+     * Mengubah status dokumen menjadi 'rejected' (arsip permanen sesuai ADR-08).
+     */
+    public function rejectDocument(string $documentId, string $adminId, string $rejectionReason): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE documents
+             SET status = 'rejected',
+                 rejection_reason = ?,
+                 reviewed_by = ?,
+                 reviewed_at = NOW()
+             WHERE id = ? AND status = 'pending_review' AND deleted_at IS NULL"
+        );
+        $stmt->execute([$rejectionReason, $adminId, $documentId]);
+
+        if ($stmt->rowCount() === 0) {
+            throw new \Exception('Dokumen tidak ditemukan atau sudah tidak berstatus Menunggu Review.');
+        }
+
+        return true;
     }
 }
 

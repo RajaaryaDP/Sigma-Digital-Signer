@@ -377,11 +377,12 @@ class Documents
         $auditLog = $this->auditModel->getByDocumentId($id);
 
         $this->load->view('views/documents/detail.php', [
-            'title'   => 'Detail Dokumen — ' . $doc['title'],
-            'doc'     => $doc,
-            'signers' => $signers,
+            'title'    => 'Detail Dokumen — ' . $doc['title'],
+            'doc'      => $doc,
+            'signers'  => $signers,
             'auditLog' => $auditLog,
-            'isOwner' => ($doc['uploader_id'] === $this->userId),
+            'isOwner'  => ($doc['uploader_id'] === $this->userId),
+            'isAdmin'  => $this->isAdmin,
         ]);
     }
 
@@ -534,8 +535,141 @@ class Documents
             }
         }
 
+        // Dukungan approve & reject via method update
+        if ($actionType === 'approve') {
+            $this->approve($id);
+            return;
+        }
+        if ($actionType === 'reject') {
+            $this->reject($id);
+            return;
+        }
+
         // Aksi tidak dikenal
         $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Aksi tidak dikenali.'];
+        header('Location: ' . BASE_URL . '/documents/' . $id);
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // POST /documents/{id}/approve — Setujui Dokumen (Admin Only) (Task 6)
+    // ─────────────────────────────────────────────────────────────
+    public function approve($id)
+    {
+        // Guard: Hanya Administrator
+        if (!$this->isAdmin) {
+            http_response_code(403);
+            echo '<h1>403 — Akses Ditolak</h1><p>Hanya Administrator yang memiliki wewenang untuk menyetujui dokumen.</p>';
+            return;
+        }
+
+        $doc = $this->model->getById($id);
+        if (!$doc) {
+            http_response_code(404);
+            echo '<h1>404 — Dokumen Tidak Ditemukan</h1>';
+            return;
+        }
+
+        // Status harus pending_review
+        if ($doc['status'] !== 'pending_review') {
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Hanya dokumen yang berstatus "Menunggu Review" yang dapat disetujui.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        try {
+            $this->model->approveDocument($id, $this->userId);
+
+            // Audit log persetujuan dokumen
+            $this->auditModel->log($this->userId, 'document.approve', [
+                'document_id' => $id,
+                'title'       => $doc['title'],
+                'reviewer_id' => $this->userId,
+                'status_from' => 'pending_review',
+                'status_to'   => 'signing',
+            ], $id);
+
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Dokumen "' . $doc['title'] . '" berhasil disetujui. Berkas kini diteruskan ke penandatangan urutan pertama.'
+            ];
+        } catch (\Throwable $e) {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Terjadi kesalahan saat menyetujui dokumen: ' . $e->getMessage()
+            ];
+        }
+
+        header('Location: ' . BASE_URL . '/documents/' . $id);
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // POST /documents/{id}/reject — Tolak Dokumen (Admin Only) (Task 6)
+    // ─────────────────────────────────────────────────────────────
+    public function reject($id)
+    {
+        // Guard: Hanya Administrator
+        if (!$this->isAdmin) {
+            http_response_code(403);
+            echo '<h1>403 — Akses Ditolak</h1><p>Hanya Administrator yang memiliki wewenang untuk menolak dokumen.</p>';
+            return;
+        }
+
+        $doc = $this->model->getById($id);
+        if (!$doc) {
+            http_response_code(404);
+            echo '<h1>404 — Dokumen Tidak Ditemukan</h1>';
+            return;
+        }
+
+        // Status harus pending_review
+        if ($doc['status'] !== 'pending_review') {
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Hanya dokumen yang berstatus "Menunggu Review" yang dapat ditolak.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        $rejectionReason = trim($_POST['rejection_reason'] ?? '');
+        if ($rejectionReason === '') {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Alasan penolakan dokumen wajib diisi.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        try {
+            $this->model->rejectDocument($id, $this->userId, $rejectionReason);
+
+            // Audit log penolakan dokumen
+            $this->auditModel->log($this->userId, 'document.reject', [
+                'document_id' => $id,
+                'title'       => $doc['title'],
+                'reviewer_id' => $this->userId,
+                'reason'      => $rejectionReason,
+                'status_from' => 'pending_review',
+                'status_to'   => 'rejected',
+            ], $id);
+
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Dokumen "' . $doc['title'] . '" telah ditolak. Alasan penolakan dicatat permanen pada berkas arsip.'
+            ];
+        } catch (\Throwable $e) {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage()
+            ];
+        }
+
         header('Location: ' . BASE_URL . '/documents/' . $id);
         exit;
     }

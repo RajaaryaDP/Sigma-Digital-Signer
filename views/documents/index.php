@@ -71,7 +71,7 @@ $statusBadges = [
                     <i class="bi bi-arrow-repeat"></i>
                 </div>
                 <div>
-                    <div class="stat-val"><?= (int) ($docCounts['signing'] ?? 0) ?></div>
+                    <div class="stat-val"><?= (int) (($docCounts['signing'] ?? 0) + ($docCounts['approved'] ?? 0)) ?></div>
                     <div class="stat-label">Proses Tanda Tangan</div>
                 </div>
             </div>
@@ -137,6 +137,24 @@ $statusBadges = [
         </div>
     <?php endif; ?>
 </div>
+
+<!-- Alert Antrean Verifikasi Admin (Jika Ada Dokumen pending_review) -->
+<?php if ($isAdmin && ($docCounts['pending_review'] ?? 0) > 0 && ($statusFilter !== 'pending_review')): ?>
+<div class="alert alert-warning py-3 px-3 mb-4 d-flex align-items-center justify-content-between gap-2.5" style="border-radius: var(--radius-md);">
+    <div class="d-flex align-items-center gap-2.5">
+        <i class="bi bi-shield-exclamation text-warning fs-4"></i>
+        <div>
+            <h6 class="fw-bold mb-0.5 text-dark">Terdapat <?= (int)$docCounts['pending_review'] ?> Pengajuan Dokumen Menunggu Review Admin</h6>
+            <p class="mb-0 small text-dark">
+                Periksa kelayakan berkas PDF dan susunan slot tanda tangan civitas sebelum memberikan persetujuan.
+            </p>
+        </div>
+    </div>
+    <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn btn-warning btn-sm text-dark fw-semibold px-3 flex-shrink-0">
+        <i class="bi bi-list-check me-1"></i> Buka Antrean Review
+    </a>
+</div>
+<?php endif; ?>
 
 <!-- Alert Tugas Penandatanganan Aktif (Jika Ada Dokumen Perlu TTD User) -->
 <?php if (!$isAdmin && !empty($pendingSignDocs)): ?>
@@ -241,8 +259,9 @@ $statusBadges = [
                     <?php foreach ($documents as $idx => $doc): ?>
                         <?php 
                             $badge = $statusBadges[$doc['status']] ?? ['class' => 'bg-secondary', 'label' => ucfirst($doc['status']), 'icon' => 'bi-circle'];
+                            $isPendingReviewAdmin = ($isAdmin && $doc['status'] === 'pending_review');
                         ?>
-                        <tr>
+                        <tr class="<?= $isPendingReviewAdmin ? 'table-warning' : '' ?>">
                             <td class="text-center text-muted small"><?= $idx + 1 ?></td>
                             <td>
                                 <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" class="fw-bold text-dark text-decoration-none d-block">
@@ -282,10 +301,17 @@ $statusBadges = [
                             </td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
-                                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
-                                       class="btn btn-subtle btn-sm py-1 px-2" title="Lihat detail dokumen">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
+                                    <?php if ($isPendingReviewAdmin): ?>
+                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
+                                           class="btn btn-warning btn-sm py-1 px-2.5 text-dark fw-semibold" title="Tinjau & Verifikasi Dokumen">
+                                            <i class="bi bi-shield-check me-1"></i> Tinjau
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
+                                           class="btn btn-subtle btn-sm py-1 px-2" title="Lihat detail dokumen">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    <?php endif; ?>
                                     <?php if ($doc['status'] === 'draft' && !$isAdmin): ?>
                                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" 
                                            class="btn btn-pnj-primary btn-sm py-1 px-2" title="Atur slot tanda tangan">

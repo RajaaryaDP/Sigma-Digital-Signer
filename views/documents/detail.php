@@ -19,6 +19,15 @@ $signerBadges = [
     'signed'   => ['class' => 'bg-success', 'label' => 'Sudah Ditandatangani', 'icon' => 'bi-check-circle-fill'],
     'declined' => ['class' => 'bg-danger', 'label' => 'Menolak Tanda Tangan', 'icon' => 'bi-x-circle-fill'],
 ];
+
+// Deteksi jika ada signer yang menolak (untuk akurasi stepper & banner penolakan)
+$declinedSigner = null;
+foreach ($signers as $s) {
+    if (($s['status'] ?? '') === 'declined') {
+        $declinedSigner = $s;
+        break;
+    }
+}
 ?>
 
 <!-- Back Link -->
@@ -70,6 +79,15 @@ $signerBadges = [
                     </form>
                 <?php endif; ?>
 
+                <?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalReject">
+                        <i class="bi bi-x-circle me-1"></i> Tolak Dokumen
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalApprove">
+                        <i class="bi bi-check-circle me-1"></i> Setujui Dokumen
+                    </button>
+                <?php endif; ?>
+
                 <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-subtle btn-sm">
                     <i class="bi bi-download me-1"></i> Unduh Berkas PDF
                 </a>
@@ -82,9 +100,18 @@ $signerBadges = [
                 <i class="bi bi-x-circle-fill fs-5 mt-0.5"></i>
                 <div>
                     <h6 class="fw-bold mb-1">Pengajuan Dokumen Ini Ditolak (Arsip Batal)</h6>
-                    <p class="mb-2 small">
-                        <strong>Alasan Penolakan:</strong> <?= htmlspecialchars($doc['rejection_reason'] ?: 'Tidak ada keterangan spesifik.') ?>
+                    <p class="mb-1 small">
+                        <strong>Alasan Penolakan:</strong> <?= nl2br(htmlspecialchars($doc['rejection_reason'] ?: 'Tidak ada keterangan spesifik.')) ?>
                     </p>
+                    <?php if ($declinedSigner): ?>
+                        <small class="text-muted d-block mb-1">
+                            Ditolak oleh penandatangan: <strong><?= htmlspecialchars($declinedSigner['signer_name']) ?></strong> (<?= htmlspecialchars($declinedSigner['role_title'] ?: ($declinedSigner['signer_position'] ?: 'Penandatangan')) ?>)
+                        </small>
+                    <?php elseif (!empty($doc['reviewed_at'])): ?>
+                        <small class="text-muted d-block mb-1">
+                            Ditolak saat review oleh: <strong><?= htmlspecialchars($doc['reviewer_name'] ?? 'Administrator') ?></strong> pada <?= date('d F Y, H:i', strtotime($doc['reviewed_at'])) ?> WIB
+                        </small>
+                    <?php endif; ?>
                     <small class="text-muted d-block mb-2">
                         Sesuai regulasi kampus, dokumen yang ditolak tidak dapat diedit kembali. Silakan ajukan berkas baru dengan perbaikan yang diperlukan.
                     </small>
@@ -124,10 +151,10 @@ $signerBadges = [
                         if ($doc['status'] === 'pending_review') {
                             $step2Bg = 'bg-warning text-dark';
                             $step2Icon = 'bi-hourglass-split';
-                        } elseif (in_array($doc['status'], ['approved', 'signing', 'completed'])) {
+                        } elseif (in_array($doc['status'], ['approved', 'signing', 'completed']) || ($doc['status'] === 'rejected' && $declinedSigner)) {
                             $step2Bg = 'bg-success text-white';
                             $step2Icon = 'bi-check-lg';
-                        } elseif ($doc['status'] === 'rejected' && empty($doc['reviewed_at'])) {
+                        } elseif ($doc['status'] === 'rejected' && !$declinedSigner) {
                             $step2Bg = 'bg-danger text-white';
                             $step2Icon = 'bi-x-lg';
                         }
@@ -151,7 +178,7 @@ $signerBadges = [
                         } elseif ($doc['status'] === 'completed') {
                             $step3Bg = 'bg-success text-white';
                             $step3Icon = 'bi-check-lg';
-                        } elseif ($doc['status'] === 'rejected' && !empty($doc['reviewed_at'])) {
+                        } elseif ($doc['status'] === 'rejected' && $declinedSigner) {
                             $step3Bg = 'bg-danger text-white';
                             $step3Icon = 'bi-x-lg';
                         }
@@ -178,6 +205,37 @@ $signerBadges = [
     </div>
     <?php endif; ?>
 </div>
+
+<!-- Panel Verifikasi Dokumen oleh Admin (Task 6) -->
+<?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
+<div class="card-clean mb-4" style="border: 1px solid #f59e0b; background: #fffdf5;">
+    <div class="card-clean-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-warning text-dark py-1 px-2.5 fs-7 fw-semibold d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-shield-check"></i>
+                        Verifikasi Administrator Diperlukan
+                    </span>
+                    <span class="text-muted small">&bull; Menunggu Keputusan Anda</span>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">Persetujuan Kelayakan Dokumen</h5>
+                <p class="text-muted small mb-0" style="max-width: 650px;">
+                    Silakan telaah lembar berkas PDF dan tata letak slot tanda tangan penandatangan berjenjang di bawah. Setelah disetujui, berkas akan diteruskan ke penandatangan urutan pertama (Step 1).
+                </p>
+            </div>
+            <div class="d-flex gap-2 flex-shrink-0">
+                <button type="button" class="btn btn-outline-danger px-3 py-2 btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalReject">
+                    <i class="bi bi-x-circle me-1"></i> Tolak Berkas
+                </button>
+                <button type="button" class="btn btn-success px-3 py-2 btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalApprove">
+                    <i class="bi bi-check-circle me-1"></i> Setujui Berkas
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="row g-4">
     <!-- Kolom Kiri: Penandatangan & Pratinjau Dokumen -->
@@ -305,6 +363,27 @@ $signerBadges = [
                             <?= htmlspecialchars($doc['file_hash']) ?>
                         </code>
                     </li>
+                    <?php if (!empty($doc['reviewed_at'])): ?>
+                    <li class="border-top pt-2">
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">Status Review Admin</span>
+                        <?php $isAdminRejected = ($doc['status'] === 'rejected' && !$declinedSigner); ?>
+                        <span class="fw-semibold <?= $isAdminRejected ? 'text-danger' : 'text-success' ?>">
+                            <i class="bi <?= $isAdminRejected ? 'bi-x-circle' : 'bi-check2-circle' ?> me-1"></i>
+                            <?= $isAdminRejected ? 'Ditolak' : 'Disetujui' ?>
+                        </span>
+                        <div class="text-muted mt-0.5" style="font-size: 0.7rem;">
+                            Oleh: <strong><?= htmlspecialchars($doc['reviewer_name'] ?? 'Administrator') ?></strong>
+                            <br><?= date('d F Y, H:i', strtotime($doc['reviewed_at'])) ?> WIB
+                        </div>
+                    </li>
+                    <?php elseif ($doc['status'] === 'pending_review'): ?>
+                    <li class="border-top pt-2">
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">Status Review Admin</span>
+                        <span class="fw-semibold text-warning">
+                            <i class="bi bi-hourglass-split me-1"></i> Menunggu Peninjauan Admin
+                        </span>
+                    </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>
@@ -351,6 +430,78 @@ $signerBadges = [
         </div>
     </div>
 </div>
+
+<?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
+<!-- Modal Konfirmasi Persetujuan Dokumen -->
+<div class="modal fade" id="modalApprove" tabindex="-1" aria-labelledby="modalApproveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fs-6 fw-bold" id="modalApproveLabel">
+                    <i class="bi bi-check2-circle me-1.5"></i> Konfirmasi Persetujuan Dokumen
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/approve" method="POST">
+                <div class="modal-body p-4">
+                    <p class="mb-3 text-dark">
+                        Apakah Anda yakin ingin menyetujui dokumen <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong>?
+                    </p>
+                    <div class="alert alert-info py-2.5 px-3 small mb-0 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
+                        <i class="bi bi-info-circle-fill mt-0.5 text-primary"></i>
+                        <div>
+                            Setelah disetujui, alur penandatanganan berjenjang akan segera dimulai. Berkas akan dialihkan ke status <strong>Proses Tanda Tangan</strong> dan penandatangan pada <strong>Step 1</strong> akan menerima giliran aktif di dashboard mereka.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3">
+                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success btn-sm px-3 fw-semibold">
+                        <i class="bi bi-check-lg me-1"></i> Ya, Setujui Dokumen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tolak Dokumen -->
+<div class="modal fade" id="modalReject" tabindex="-1" aria-labelledby="modalRejectLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fs-6 fw-bold" id="modalRejectLabel">
+                    <i class="bi bi-x-octagon-fill me-1.5"></i> Tolak Pengajuan Dokumen
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/reject" method="POST">
+                <div class="modal-body p-4">
+                    <div class="alert alert-danger py-2.5 px-3 small mb-3 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
+                        <i class="bi bi-exclamation-triangle-fill mt-0.5"></i>
+                        <div>
+                            <strong>Peringatan Kebijakan Kampus (ADR-08):</strong> Dokumen yang ditolak berstatus <em>Arsip Batal Permanen</em> dan tidak dapat diedit kembali. Pengaju harus membuat pengajuan baru.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rejection_reason" class="form-label small fw-semibold text-dark">
+                            Alasan Penolakan <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control form-control-sm" id="rejection_reason" name="rejection_reason" rows="3" 
+                                  placeholder="Tuliskan alasan penolakan secara jelas (contoh: Posisi slot tanda tangan menimpa teks surat, lampiran belum lengkap, dll)..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3">
+                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-3 fw-semibold">
+                        <i class="bi bi-x-lg me-1"></i> Konfirmasi Tolak Dokumen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>
 
