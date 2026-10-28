@@ -1,0 +1,356 @@
+<?php
+$title = 'Detail Dokumen — ' . htmlspecialchars($doc['title']) . ' — SIGMA';
+require_once __DIR__ . '/../layout/header.php';
+
+// Format status badge helper
+$statusBadges = [
+    'draft'          => ['class' => 'bg-secondary', 'label' => 'Draft / Belum Diajukan', 'icon' => 'bi-pencil'],
+    'pending_review' => ['class' => 'bg-warning text-dark', 'label' => 'Menunggu Review Admin', 'icon' => 'bi-hourglass-split'],
+    'approved'       => ['class' => 'bg-info text-dark', 'label' => 'Disetujui Admin', 'icon' => 'bi-check2-circle'],
+    'signing'        => ['class' => 'bg-primary', 'label' => 'Proses Penandatanganan', 'icon' => 'bi-pen-fill'],
+    'completed'      => ['class' => 'bg-success', 'label' => 'Dokumen Selesai', 'icon' => 'bi-patch-check-fill'],
+    'rejected'       => ['class' => 'bg-danger', 'label' => 'Dokumen Ditolak', 'icon' => 'bi-x-octagon-fill'],
+];
+$curBadge = $statusBadges[$doc['status']] ?? ['class' => 'bg-secondary', 'label' => ucfirst($doc['status']), 'icon' => 'bi-circle'];
+
+$signerBadges = [
+    'waiting'  => ['class' => 'bg-secondary', 'label' => 'Menunggu Giliran', 'icon' => 'bi-clock'],
+    'pending'  => ['class' => 'bg-warning text-dark', 'label' => 'Giliran Aktif', 'icon' => 'bi-pen'],
+    'signed'   => ['class' => 'bg-success', 'label' => 'Sudah Ditandatangani', 'icon' => 'bi-check-circle-fill'],
+    'declined' => ['class' => 'bg-danger', 'label' => 'Menolak Tanda Tangan', 'icon' => 'bi-x-circle-fill'],
+];
+?>
+
+<!-- Back Link -->
+<div class="mb-3">
+    <a href="<?= BASE_URL ?>/documents" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1.5">
+        <i class="bi bi-arrow-left"></i>
+        <span>Kembali ke Dashboard Dokumen</span>
+    </a>
+</div>
+
+<!-- Header Detail Dokumen -->
+<div class="card-clean mb-4">
+    <div class="card-clean-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="badge <?= $curBadge['class'] ?> py-1.5 px-2.5 fs-7 d-inline-flex align-items-center gap-1">
+                        <i class="bi <?= $curBadge['icon'] ?>"></i>
+                        <?= htmlspecialchars($curBadge['label']) ?>
+                    </span>
+                    <span class="badge bg-light text-dark border">
+                        <i class="bi <?= $doc['signature_type'] === 'single' ? 'bi-person-check' : 'bi-diagram-3' ?> me-1"></i>
+                        <?= $doc['signature_type'] === 'single' ? 'Tanda Tangan Mandiri' : 'Tanda Tangan Berjenjang' ?>
+                    </span>
+                    <span class="text-muted small">
+                        Diajukan oleh: <strong><?= htmlspecialchars($doc['uploader_name']) ?></strong>
+                    </span>
+                </div>
+                <h3 class="fw-bold text-dark mb-2"><?= htmlspecialchars($doc['title']) ?></h3>
+                <?php if (!empty($doc['description'])): ?>
+                    <p class="text-muted mb-0 small"><?= nl2br(htmlspecialchars($doc['description'])) ?></p>
+                <?php endif; ?>
+            </div>
+
+            <!-- Tombol Aksi Dokumen -->
+            <div class="d-flex flex-wrap gap-2">
+                <?php if ($doc['status'] === 'draft' && $isOwner): ?>
+                    <?php if ($doc['signature_type'] === 'sequential'): ?>
+                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" class="btn btn-pnj-primary btn-sm">
+                            <i class="bi bi-aspect-ratio me-1"></i> Atur Slot Tanda Tangan
+                        </a>
+                    <?php endif; ?>
+
+                    <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete" method="POST" 
+                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus draft dokumen ini? Berkas PDF akan dihapus secara permanen.');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash me-1"></i> Hapus Draft
+                        </button>
+                    </form>
+                <?php endif; ?>
+
+                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-subtle btn-sm">
+                    <i class="bi bi-download me-1"></i> Unduh Berkas PDF
+                </a>
+            </div>
+        </div>
+
+        <!-- Banner Penolakan (Jika status rejected) -->
+        <?php if ($doc['status'] === 'rejected'): ?>
+            <div class="alert alert-danger mt-4 mb-0 d-flex align-items-start gap-2.5" role="alert" style="border-radius: var(--radius-md);">
+                <i class="bi bi-x-circle-fill fs-5 mt-0.5"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Pengajuan Dokumen Ini Ditolak (Arsip Batal)</h6>
+                    <p class="mb-2 small">
+                        <strong>Alasan Penolakan:</strong> <?= htmlspecialchars($doc['rejection_reason'] ?: 'Tidak ada keterangan spesifik.') ?>
+                    </p>
+                    <small class="text-muted d-block mb-2">
+                        Sesuai regulasi kampus, dokumen yang ditolak tidak dapat diedit kembali. Silakan ajukan berkas baru dengan perbaikan yang diperlukan.
+                    </small>
+                    <?php if ($isOwner): ?>
+                        <a href="<?= BASE_URL ?>/documents/create" class="btn btn-danger btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i> Buat Pengajuan Baru
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Stepper Progres Alur Penandatanganan (Khusus Sequential) -->
+    <?php if ($doc['signature_type'] === 'sequential'): ?>
+    <div class="card-clean-header border-top py-3 px-4 bg-light">
+        <div class="w-100">
+            <div class="text-muted small fw-semibold text-uppercase mb-2.5" style="letter-spacing: 0.5px;">
+                Alur Proses Berjenjang
+            </div>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 text-center">
+                <!-- Tahap 1: Pengajuan -->
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success text-white" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                        <i class="bi bi-check-lg"></i>
+                    </div>
+                    <span class="small fw-semibold text-dark">1. Upload & Atur Slot</span>
+                </div>
+
+                <i class="bi bi-chevron-right text-muted small d-none d-md-inline"></i>
+
+                <!-- Tahap 2: Review Admin -->
+                <div class="d-flex align-items-center gap-2">
+                    <?php 
+                        $step2Bg = 'bg-secondary text-white';
+                        $step2Icon = 'bi-circle';
+                        if ($doc['status'] === 'pending_review') {
+                            $step2Bg = 'bg-warning text-dark';
+                            $step2Icon = 'bi-hourglass-split';
+                        } elseif (in_array($doc['status'], ['approved', 'signing', 'completed'])) {
+                            $step2Bg = 'bg-success text-white';
+                            $step2Icon = 'bi-check-lg';
+                        } elseif ($doc['status'] === 'rejected' && empty($doc['reviewed_at'])) {
+                            $step2Bg = 'bg-danger text-white';
+                            $step2Icon = 'bi-x-lg';
+                        }
+                    ?>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center <?= $step2Bg ?>" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                        <i class="bi <?= $step2Icon ?>"></i>
+                    </div>
+                    <span class="small fw-semibold text-dark">2. Peninjauan Admin</span>
+                </div>
+
+                <i class="bi bi-chevron-right text-muted small d-none d-md-inline"></i>
+
+                <!-- Tahap 3: Penandatanganan -->
+                <div class="d-flex align-items-center gap-2">
+                    <?php 
+                        $step3Bg = 'bg-secondary text-white';
+                        $step3Icon = 'bi-circle';
+                        if ($doc['status'] === 'signing') {
+                            $step3Bg = 'bg-primary text-white';
+                            $step3Icon = 'bi-pen-fill';
+                        } elseif ($doc['status'] === 'completed') {
+                            $step3Bg = 'bg-success text-white';
+                            $step3Icon = 'bi-check-lg';
+                        } elseif ($doc['status'] === 'rejected' && !empty($doc['reviewed_at'])) {
+                            $step3Bg = 'bg-danger text-white';
+                            $step3Icon = 'bi-x-lg';
+                        }
+                    ?>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center <?= $step3Bg ?>" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                        <i class="bi <?= $step3Icon ?>"></i>
+                    </div>
+                    <span class="small fw-semibold text-dark">
+                        3. Penandatanganan (Step <?= (int) $doc['current_step'] ?>)
+                    </span>
+                </div>
+
+                <i class="bi bi-chevron-right text-muted small d-none d-md-inline"></i>
+
+                <!-- Tahap 4: Dokumen Selesai -->
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center <?= $doc['status'] === 'completed' ? 'bg-success text-white' : 'bg-secondary text-white' ?>" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                        <i class="bi <?= $doc['status'] === 'completed' ? 'bi-check-lg' : 'bi-circle' ?>"></i>
+                    </div>
+                    <span class="small fw-semibold text-dark">4. Selesai</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+
+<div class="row g-4">
+    <!-- Kolom Kiri: Penandatangan & Pratinjau Dokumen -->
+    <div class="col-lg-8">
+        <!-- Daftar Penandatangan Berjenjang -->
+        <?php if ($doc['signature_type'] === 'sequential'): ?>
+        <div class="card-clean mb-4">
+            <div class="card-clean-header py-3 px-3">
+                <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
+                    <i class="bi bi-people-fill text-success"></i>
+                    <span>Daftar Penandatangan Berjenjang (Urutan Jabatan)</span>
+                </span>
+                <span class="badge bg-light text-dark border">
+                    <?= count($signers) ?> Penandatangan
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr style="font-size: 0.75rem;">
+                            <th class="text-center" style="width: 70px;">Urutan</th>
+                            <th>Nama Penandatangan</th>
+                            <th>Jabatan / Peran</th>
+                            <th>Posisi Slot (Hal & %)</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($signers as $s): ?>
+                            <?php 
+                                $sBadge = $signerBadges[$s['status']] ?? ['class' => 'bg-secondary', 'label' => ucfirst($s['status']), 'icon' => 'bi-circle'];
+                                $isCurrentStep = ($doc['status'] === 'signing' && (int)$s['step_order'] === (int)$doc['current_step']);
+                            ?>
+                            <tr class="<?= $isCurrentStep ? 'table-warning' : '' ?>">
+                                <td class="text-center">
+                                    <span class="badge <?= $isCurrentStep ? 'bg-warning text-dark' : 'bg-secondary' ?> rounded-pill">
+                                        Step <?= $s['step_order'] ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark small"><?= htmlspecialchars($s['signer_name']) ?></div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        <?= htmlspecialchars($s['signer_identifier'] ?: '-') ?> &bull; <?= ucfirst($s['signer_type'] ?? '') ?>
+                                    </div>
+                                </td>
+                                <td class="small text-muted">
+                                    <?= htmlspecialchars($s['role_title'] ?: ($s['signer_position'] ?: '-')) ?>
+                                </td>
+                                <td class="small">
+                                    <?php if ((float)$s['x_percent'] > 0 || (float)$s['y_percent'] > 0): ?>
+                                        <span class="badge bg-light text-dark border" style="font-size: 0.75rem;">
+                                            Hal. <?= $s['page_number'] ?> (X: <?= (float)$s['x_percent'] ?>%, Y: <?= (float)$s['y_percent'] ?>%)
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-light text-danger border" style="font-size: 0.75rem;">
+                                            <i class="bi bi-exclamation-circle me-1"></i> Belum diatur
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge <?= $sBadge['class'] ?>" style="font-size: 0.75rem;">
+                                        <i class="bi <?= $sBadge['icon'] ?> me-1"></i>
+                                        <?= htmlspecialchars($sBadge['label']) ?>
+                                    </span>
+                                    <?php if (!empty($s['signed_at'])): ?>
+                                        <div class="text-muted mt-0.5" style="font-size: 0.65rem;">
+                                            <?= date('d M Y, H:i', strtotime($s['signed_at'])) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Pratinjau Dokumen PDF -->
+        <div class="card-clean mb-4">
+            <div class="card-clean-header py-2.5 px-3 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
+                    <i class="bi bi-file-earmark-pdf text-danger"></i>
+                    <span>Pratinjau Lembar Berkas Dokumen</span>
+                </span>
+                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
+                    <i class="bi bi-arrows-fullscreen me-1"></i> Layar Penuh
+                </a>
+            </div>
+            <div class="card-clean-body p-0">
+                <iframe src="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" 
+                        style="width: 100%; height: 560px; border: none;" 
+                        title="Pratinjau PDF"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kolom Kanan: Informasi Berkas & Riwayat Audit -->
+    <div class="col-lg-4">
+        <!-- Rincian Integritas Berkas -->
+        <div class="card-clean mb-4">
+            <div class="card-clean-header py-2.5 px-3">
+                <span class="fw-semibold text-dark small">
+                    <i class="bi bi-shield-check text-success me-1"></i> Integritas & Info Berkas
+                </span>
+            </div>
+            <div class="card-clean-body p-3">
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-2.5 small">
+                    <li>
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">Nama Berkas Asli</span>
+                        <span class="fw-medium text-dark text-break"><?= htmlspecialchars($doc['file_name_original']) ?></span>
+                    </li>
+                    <li>
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">Ukuran Berkas</span>
+                        <span class="fw-medium text-dark"><?= number_format($doc['file_size'] / 1024, 1) ?> KB</span>
+                    </li>
+                    <li>
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">Waktu Unggah</span>
+                        <span class="fw-medium text-dark"><?= date('d F Y, H:i:s', strtotime($doc['created_at'])) ?> WIB</span>
+                    </li>
+                    <li>
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">SHA-256 Hash Integritas</span>
+                        <code class="d-block p-1.5 bg-light rounded text-break" style="font-size: 0.7rem; font-family: monospace;">
+                            <?= htmlspecialchars($doc['file_hash']) ?>
+                        </code>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Jejak Audit Trail Dokumen -->
+        <div class="card-clean mb-4">
+            <div class="card-clean-header py-2.5 px-3 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-dark small">
+                    <i class="bi bi-clock-history text-muted me-1"></i> Jejak Audit Dokumen
+                </span>
+                <span class="badge bg-light text-muted border"><?= count($auditLog) ?> Catatan</span>
+            </div>
+            <div class="card-clean-body p-3">
+                <?php if (empty($auditLog)): ?>
+                    <div class="text-center text-muted py-3 small">
+                        Belum ada riwayat aktivitas tercatat.
+                    </div>
+                <?php else: ?>
+                    <div class="timeline position-relative" style="padding-left: 1.25rem; border-left: 2px solid var(--border-subtle); margin-left: 0.5rem;">
+                        <?php foreach ($auditLog as $log): ?>
+                            <?php 
+                                $details = !empty($log['details']) ? json_decode($log['details'], true) : [];
+                            ?>
+                            <div class="mb-3 position-relative">
+                                <div class="position-absolute rounded-circle bg-success border border-white" 
+                                     style="width: 10px; height: 10px; left: -1.6rem; top: 4px;"></div>
+                                <div class="fw-bold text-dark small">
+                                    <?= htmlspecialchars(str_replace(['document.', 'civitas.'], '', $log['action'])) ?>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    Oleh: <strong><?= htmlspecialchars($log['user_name'] ?? 'Sistem') ?></strong>
+                                    &bull; <?= date('d/m/Y H:i', strtotime($log['created_at'])) ?>
+                                </div>
+                                <?php if (!empty($details)): ?>
+                                    <div class="text-muted bg-light rounded p-1 mt-1 font-monospace" style="font-size: 0.7rem;">
+                                        <?= htmlspecialchars(json_encode($details, JSON_UNESCAPED_UNICODE)) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/../layout/footer.php'; ?>
+
