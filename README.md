@@ -1,66 +1,69 @@
-# UTS Pemrograman Web Lanjut (PWL) - Sistem Manajemen Akun
+# SIGMA — Aplikasi Web MVC Native PHP (PBL)
 
-Proyek ini merupakan implementasi **Native PHP MVC Skeleton** untuk Ujian Tengah Semester (UTS) mata kuliah **Pemrograman Web Lanjut**, Jurusan Teknik Informatika dan Komputer - Politeknik Negeri Jakarta.
+Repositori ini memuat seluruh kode sumber aplikasi web **SIGMA (Sistem Tanda Tangan Digital)** untuk Politeknik Negeri Jakarta (PNJ).
 
-## 🚀 Fitur Utama
-1. **Autentikasi Pengguna:** Login (dengan enkripsi Bcrypt & Session) serta Logout.
-2. **Manajemen Akun (`accounts`):** Tambah, Edit, Hapus (Soft Delete), Tampil Daftar Akun, dan Pencarian multi-kolom (Nama, Email, NIM/NIP, Tipe Akun).
-3. **Manajemen Tipe Akun (`account_type`):** Tambah, Edit, Hapus (Soft Delete), dan Pencarian Tipe Akun (Relasi 1:1 dengan Akun).
-4. **Manajemen Jenis Aksi (`actions`):** Tambah, Edit, Hapus (Soft Delete), dan Pencarian Master Aksi / Hak Akses.
-5. **Keamanan & Standar Basis Data:**
-   - Primary Key menggunakan **UUID v4 (`CHAR(36)`)** di seluruh tabel.
-   - Kolom penjejakan wajib: `created_at`, `updated_at`, dan `deleted_at` (Soft Delete).
-   - Format database: `PBL_TI_2025_A_RAJA` (dan fallback `tik_pbl`).
+---
+
+## ⚠️ PERHATIAN PENGEMBANG & AGENT AI (OpenCode / DeepSeek)
+1. **Status Implementasi:** Task 1 s.d. Task 6 sudah **SELESAI (DONE)**. Tugas saat ini adalah **Task 7: Modul Penandatanganan Berjenjang & Visual Signing**.
+2. **Modul Warisan UTS (Legacy Archive):**
+   - Modul `controllers/Accounts.php`, `controllers/AccountTypes.php`, `controllers/Actions.php` beserta model dan view terkait adalah **modul arsip latihan UTS**.
+   - **JANGAN DIUBAH, JANGAN DIHAPUS, DAN JANGAN DIJADIKAN ACUAN** untuk fitur SIGMA.
+3. **Modul Aktif Resmi SIGMA:**
+   - **Autentikasi & Sesi:** `controllers/Auth.php`, `models/UsersModel.php`, `views/auth/`
+   - **Master Data Civitas (CRUD Admin):** `controllers/Civitas.php`, `models/CivitasModel.php`, `views/civitas/`
+   - **Template Tanda Tangan Pribadi:** `controllers/UserSignatures.php`, `models/UserSignaturesModel.php`, `views/user-signatures/`
+   - **Manajemen & Alur Dokumen:** `controllers/Documents.php`, `models/DocumentsModel.php`, `views/documents/`
+   - **Verifikasi Publik (Scan QR):** `controllers/Verify.php`, `views/verify/`
+   - **Log Audit Terpusat:** `models/AuditLogModel.php`
 
 ---
 
 ## 🛠️ Persyaratan Lingkungan
-- PHP 8.1+
+- PHP 8.1+ (dengan ekstensi `pdo_mysql`, `gd`, `fileinfo`)
 - Composer
 - MySQL / MariaDB (Laragon / XAMPP)
 
 ---
 
-## 📦 Setup & Instalasi
+## 📦 Setup & Perintah Aplikasi
 
-1. **Instal Dependensi:**
-   ```bash
-   composer install
-   ```
+Jalankan perintah ini langsung di dalam folder `MVC_example/`:
 
-2. **Setup Basis Data:**
-   Eksekusi file SQL yang telah disiapkan di `docs/database_uts.sql` ke MySQL Anda:
-   ```bash
-   mysql -u root -p PBL_TI_2025_A_RAJA < docs/database_uts.sql
-   ```
-   *(File SQL sudah mencakup skema tabel `account_type`, `actions`, `accounts`, serta **seed data** yang 100% identik dengan contoh mock-up pada lembar soal UTS).*
-
-3. **Konfigurasi Database:**
-   Pastikan konfigurasi di `config/database.php` sesuai dengan kredensial MySQL lokal Anda.
-
----
-
-## ▶️ Menjalankan Aplikasi
-
-Jalankan perintah berikut di terminal:
 ```bash
+# 1. Pasang dependensi
+composer install
+
+# 2. Migrasi skema database (7 tabel resmi SIGMA)
+composer migrate
+
+# (Opsi reset ulang database bersih)
+php tools/migrate.php --fresh
+
+# 3. Seeding data awal civitas & akun pengujian
+composer seed
+
+# 4. Jalankan development server
 composer serve
 ```
-Buka browser di alamat:
-```
-http://localhost:5000
-```
+
+Server lokal akan berjalan di `http://localhost:5000`.
 
 ---
 
-## 🔑 Kredensial Akun Pengujian (Seed Data)
-| Peran | Email | Password | Keterangan |
+## 🔑 Akun Uji Coba Default (Password: `password`)
+| Peran | Email | NIP / NIM | Keterangan |
 | :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@pnj.ac.id` | `admin123` | NIP: `520000000000000746` (Status: Aktif) |
-| **Dosen (Dummy)** | `iam@balbalcode.my.id` | `password123` | NIM: `201012121` (Status: Nonaktif) |
+| **Administrator** | `admin@sigma.local` | `198501012010121001` | Verifikasi berkas & CRUD master civitas |
+| **Mahasiswa (Pengaju)** | `mahasiswa@sigma.local` | `2107411001` | Unggah PDF & penataan slot berjenjang |
+| **Dosen Pembimbing** | `dosen@sigma.local` | `197505102000031002` | Penandatangan Step 1 (Sequential) |
+| **Ketua Jurusan (Kajur)** | `kajur@sigma.local` | `196803151993031001` | Penandatangan Step 2 (Sequential) |
+| **Tenaga Kependidikan** | `tendik@sigma.local` | `198002202005012003` | Staf administrasi |
 
 ---
 
-## 📑 Dokumentasi Lengkap
-Laporan dan dokumentasi lengkap sesuai kriteria penilaian UTS (Deskripsi Sistem, Kebutuhan Sistem, Proses Pembuatan Fitur, dan Panduan Demo) tersedia di file:
-👉 **[DOKUMENTASI_UTS.md](file:///c:/laragon/www/pwl-sample-master/pwl-sample-master/DOKUMENTASI_UTS.md)**
+## 🔒 Konvensi Pengembangan
+- **Routing:** Pola `index.php` `/{resource}/{id?}/{action?}`.
+- **Model:** Wajib menggunakan PDO Prepared Statements (`$stmt->prepare()`), Soft Delete (`deleted_at IS NULL`), dan UUID v4 PHP (`Uuid::uuid4()->toString()`).
+- **Autoload:** Tidak ada autoloader aplikasi; setiap file wajib me-`require_once` model/helper yang dipakai.
+- **Penyimpanan Berkas Privat:** Berkas PDF dan gambar tanda tangan disimpan di `storage/` dan hanya disajikan lewat controller streaming, tidak disajikan statis oleh web server.
