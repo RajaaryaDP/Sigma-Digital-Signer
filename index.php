@@ -15,9 +15,26 @@ set_exception_handler(function (Throwable $exception) {
 
 // Built-in CLI server static file handler
 if (PHP_SAPI === 'cli-server') {
-    $requestedFile = __DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    if (is_file($requestedFile)) {
-        return false;
+    $uriPath    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $normalized = '/' . trim(str_replace('\\', '/', $uriPath), '/');
+
+    // Proteksi direktori privat saat memakai built-in server (php -S):
+    // berkas di /storage dkk. tidak boleh disajikan statis karena
+    // .htaccess "Require all denied" tidak berlaku pada CLI server (ADR-04).
+    $blockedPrefixes = ['/storage', '/config', '/controllers', '/models', '/views', '/core', '/tools'];
+    $isBlocked = false;
+    foreach ($blockedPrefixes as $prefix) {
+        if ($normalized === $prefix || strpos($normalized, $prefix . '/') === 0) {
+            $isBlocked = true;
+            break;
+        }
+    }
+
+    if (!$isBlocked) {
+        $requestedFile = __DIR__ . $uriPath;
+        if (is_file($requestedFile)) {
+            return false;
+        }
     }
 }
 
@@ -91,7 +108,7 @@ if (!isset($segments[1]) || $segments[1] === '') {
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Actions requiring POST method
-$postOnlyActions = ['store', 'update', 'delete', 'approve', 'reject'];
+$postOnlyActions = ['store', 'update', 'delete', 'approve', 'reject', 'decline'];
 $expectsPost     = in_array($action, $postOnlyActions, true);
 
 $controllerName = str_replace('-', '', ucwords($page, '-'));
@@ -115,10 +132,13 @@ if (!class_exists($controllerName)) {
     exit;
 }
 
-// Exception for Auth::login which accepts both GET and POST
+// Pengecualian metode ganda (GET + POST):
+//  - Auth::login     → menampilkan form (GET) & memproses kredensial (POST)
+//  - Documents::sign → menampilkan halaman penandatanganan (GET) & menyimpan tanda tangan (POST)
 $isAuthLogin = ($controllerName === 'Auth' && $action === 'login');
+$isDocSign   = ($controllerName === 'Documents' && $action === 'sign');
 
-if (!$isAuthLogin) {
+if (!$isAuthLogin && !$isDocSign) {
     if (($expectsPost && $method !== 'POST') || (!$expectsPost && $method !== 'GET')) {
         http_response_code(404);
         echo '404 - Action method not allowed';

@@ -4,11 +4,17 @@ require_once __DIR__ . '/../core/Loader.php';
 require_once __DIR__ . '/../models/DocumentsModel.php';
 require_once __DIR__ . '/../models/CivitasModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
+require_once __DIR__ . '/../models/SignaturesModel.php';
+require_once __DIR__ . '/../models/UserSignaturesModel.php';
+require_once __DIR__ . '/../models/UsersModel.php';
+
+use Ramsey\Uuid\Uuid;
 
 /**
  * Documents Controller
  * Mengelola pengajuan dokumen, penataan slot penandatangan berjenjang,
- * preview/download file PDF via streaming, serta dashboard dokumen.
+ * preview/download file PDF via streaming, dashboard dokumen, serta
+ * penandatanganan berjenjang & visual (Task 7).
  *
  * Rute:
  *   GET  /documents              → index()    Dashboard dokumen
@@ -19,6 +25,8 @@ require_once __DIR__ . '/../models/AuditLogModel.php';
  *   POST /documents/{id}/update  → update()   Simpan slot koordinat & submit
  *   POST /documents/{id}/delete  → delete()   Soft delete dokumen draft
  *   GET  /documents/{id}/preview → preview()  Streaming file PDF
+ *   GET+POST /documents/{id}/sign   → sign()  Halaman & proses penandatanganan
+ *   POST /documents/{id}/decline    → decline() Penolakan oleh penandatangan
  */
 class Documents
 {
@@ -26,6 +34,9 @@ class Documents
     private $model;
     private $civitasModel;
     private $auditModel;
+    private $signaturesModel;
+    private $signatureModel;
+    private $usersModel;
     private $userId;
     private $user;
     private $isAdmin;
@@ -50,19 +61,28 @@ class Documents
             exit;
         }
 
-        $this->load         = new Loader();
-        $this->model        = new DocumentsModel();
-        $this->civitasModel = new CivitasModel();
-        $this->auditModel   = new AuditLogModel();
-        $this->user         = $_SESSION['user'];
-        $this->userId       = $_SESSION['user']['id'];
-        $this->isAdmin      = ($_SESSION['user']['role'] ?? '') === 'admin';
-        $this->storageDir   = __DIR__ . '/../storage';
+        $this->load           = new Loader();
+        $this->model          = new DocumentsModel();
+        $this->civitasModel   = new CivitasModel();
+        $this->auditModel     = new AuditLogModel();
+        $this->signaturesModel = new SignaturesModel();
+        $this->signatureModel = new UserSignaturesModel();
+        $this->usersModel     = new UsersModel();
+        $this->user           = $_SESSION['user'];
+        $this->userId         = $_SESSION['user']['id'];
+        $this->isAdmin        = ($_SESSION['user']['role'] ?? '') === 'admin';
+        $this->storageDir     = __DIR__ . '/../storage';
 
         // Pastikan direktori storage/documents/ ada
         $docDir = $this->storageDir . '/documents';
         if (!is_dir($docDir)) {
             mkdir($docDir, 0755, true);
+        }
+
+        // Pastikan direktori salinan tanda tangan terisolasi ada (BUG-06)
+        $signatureDir = $this->storageDir . '/signatures/documents';
+        if (!is_dir($signatureDir)) {
+            mkdir($signatureDir, 0755, true);
         }
     }
 
@@ -103,6 +123,7 @@ class Documents
             $docCounts       = $this->model->countByStatusForUser($this->userId);
             $pendingSignCount = $this->model->countPendingSignForUser($this->userId);
             $pendingSignDocs = $this->model->getPendingSignForUser($this->userId);
+            $waitingSignDocs = $this->model->getWaitingSignForUser($this->userId);
 
             $this->load->view('views/documents/index.php', [
                 'title'            => 'Dokumen Digital Saya',
@@ -111,6 +132,7 @@ class Documents
                 'docCounts'        => $docCounts,
                 'pendingSignCount' => $pendingSignCount,
                 'pendingSignDocs'  => $pendingSignDocs,
+                'waitingSignDocs'  => $waitingSignDocs,
                 'statusFilter'     => $statusFilter,
             ]);
         }
@@ -363,26 +385,29 @@ class Documents
         }
 
         // Akses: admin bisa lihat semua, user hanya milik sendiri atau yang mengundangnya
-        if (!$this->isAdmin && $doc['uploader_id'] !== $this->userId) {
-            // Cek apakah user adalah salah satu penandatangan
-            $signer = $this->model->getSignerByDocAndUser($id, $this->userId);
-            if (!$signer) {
+        $mySigner = null;
+        if (!$this->isAdmin) {
+            $mySigner = $this->model->getSignerByDocAndUser($id, $this->userId);
+            if ($doc['uploader_id'] !== $this->userId && !$mySigner) {
                 http_response_code(403);
                 echo '<h1>403 — Akses Ditolak</h1><p>Anda tidak memiliki akses ke dokumen ini.</p>';
                 return;
             }
         }
 
-        $signers  = $this->model->getSignersByDocumentId($id);
-        $auditLog = $this->auditModel->getByDocumentId($id);
+        $signers    = $this->model->getSignersByDocumentId($id);
+        $signatures = $this->signaturesModel->getByDocumentId($id);
+        $auditLog   = $this->auditModel->getByDocumentId($id);
 
         $this->load->view('views/documents/detail.php', [
-            'title'    => 'Detail Dokumen — ' . $doc['title'],
-            'doc'      => $doc,
-            'signers'  => $signers,
-            'auditLog' => $auditLog,
-            'isOwner'  => ($doc['uploader_id'] === $this->userId),
-            'isAdmin'  => $this->isAdmin,
+            'title'      => 'Detail Dokumen — ' . $doc['title'],
+            'doc'        => $doc,
+            'signers'    => $signers,
+            'signatures' => $signatures,
+            'auditLog'   => $auditLog,
+            'isOwner'    => ($doc['uploader_id'] === $this->userId),
+            'isAdmin'    => $this->isAdmin,
+            'mySigner'   => $mySigner,
         ]);
     }
 
@@ -513,17 +538,18 @@ class Documents
                     'document_id'   => $id,
                     'title'         => $doc['title'],
                     'status_from'   => 'draft',
-                    'status_to'     => $isSingle ? 'completed' : 'pending_review',
+                    'status_to'     => $isSingle ? 'signing' : 'pending_review',
                     'signers_count' => count($signers),
                 ], $id);
 
                 $_SESSION['flash'] = [
                     'type'    => 'success',
                     'message' => $isSingle
-                        ? 'Dokumen mandiri berhasil diselesaikan.'
+                        ? 'Dokumen mandiri siap ditandatangani. Silakan bubuhkan tanda tangan Anda pada slot yang tersedia.'
                         : 'Dokumen berhasil diajukan untuk ditinjau oleh Administrator.'
                 ];
-                header('Location: ' . BASE_URL . '/documents/' . $id);
+                // Dokumen mandiri: lanjut langsung ke halaman penandatanganan (Task 7)
+                header('Location: ' . BASE_URL . '/documents/' . $id . ($isSingle ? '/sign' : ''));
                 exit;
             } catch (\Throwable $e) {
                 $_SESSION['flash'] = [
@@ -662,6 +688,404 @@ class Documents
             $_SESSION['flash'] = [
                 'type'    => 'success',
                 'message' => 'Dokumen "' . $doc['title'] . '" telah ditolak. Alasan penolakan dicatat permanen pada berkas arsip.'
+            ];
+        } catch (\Throwable $e) {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage()
+            ];
+        }
+
+        header('Location: ' . BASE_URL . '/documents/' . $id);
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GET+POST /documents/{id}/sign — Penandatanganan Berjenjang & Visual (Task 7)
+    // ─────────────────────────────────────────────────────────────
+    public function sign($id)
+    {
+        $doc = $this->model->getById($id);
+        if (!$doc) {
+            http_response_code(404);
+            echo '<h1>404 — Dokumen Tidak Ditemukan</h1>';
+            return;
+        }
+
+        // Administrator bukan aktor penandatangan
+        if ($this->isAdmin) {
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Administrator tidak berpartisipasi dalam alur penandatanganan dokumen.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        // Pengguna harus menjadi salah satu penandatangan dokumen ini
+        $signer = $this->model->getSignerByDocAndUser($id, $this->userId);
+        if (!$signer) {
+            http_response_code(403);
+            echo '<h1>403 — Akses Ditolak</h1><p>Anda bukan penandatangan yang ditugaskan pada dokumen ini.</p>';
+            return;
+        }
+
+        // POST → proses penyimpanan tanda tangan
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->processSign($doc, $signer);
+            return;
+        }
+
+        // ── GET: Guard ADR-01 sebelum menampilkan antarmuka ──
+        if ($doc['status'] !== 'signing') {
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Dokumen ini tidak sedang dalam proses penandatanganan.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        if ($signer['status'] === 'signed') {
+            $_SESSION['flash'] = [
+                'type'    => 'info',
+                'message' => 'Anda telah membubuhkan tanda tangan pada dokumen ini.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        if ($signer['status'] === 'declined') {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Anda telah menolak dokumen ini. Proses penandatanganan dibatalkan permanen.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        // Guard giliran: hanya penandatangan dengan step_order == current_step
+        // dan status 'pending' yang boleh menandatangani (ADR-01)
+        if ($signer['status'] !== 'pending' || (int) $signer['step_order'] !== (int) $doc['current_step']) {
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Belum giliran Anda. Dokumen masih menunggu penandatangan pada Step ' . (int) $doc['current_step'] . '.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        $this->load->view('views/documents/sign.php', $this->signViewPayload($doc, $signer));
+    }
+
+    /**
+     * Proses penyimpanan tanda tangan (POST /documents/{id}/sign).
+     * Membuat salinan berkas fisik terisolasi (BUG-06), lalu menjalankan
+     * transaksi penandatanganan + advance step otomatis.
+     */
+    private function processSign(array $doc, array $signer)
+    {
+        // Guard ADR-01 ulang di sisi POST (pertahanan berlapis)
+        if ($doc['status'] !== 'signing') {
+            $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Dokumen ini tidak sedang dalam proses penandatanganan.'];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+            exit;
+        }
+
+        if ($signer['status'] !== 'pending' || (int) $signer['step_order'] !== (int) $doc['current_step']) {
+            $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Belum giliran Anda untuk menandatangani dokumen ini.'];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+            exit;
+        }
+
+        // Anti double-submit: tanda tangan untuk (dokumen, user) hanya sekali
+        if ($this->signaturesModel->getByDocAndSigner($doc['id'], $this->userId)) {
+            $_SESSION['flash'] = ['type' => 'info', 'message' => 'Anda telah membubuhkan tanda tangan pada dokumen ini sebelumnya.'];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+            exit;
+        }
+
+        $inputMethod = trim($_POST['input_method'] ?? 'canvas');
+        $errors      = [];
+
+        // Salinan fisik independen ke storage/signatures/documents/{signature_id}.png (BUG-06)
+        $signatureId       = Uuid::uuid4()->toString();
+        $verificationToken = Uuid::uuid4()->toString();
+        $signatureDir      = $this->storageDir . '/signatures/documents';
+        if (!is_dir($signatureDir)) {
+            mkdir($signatureDir, 0755, true);
+        }
+        $destPath = $signatureDir . '/' . $signatureId . '.png';
+        $dbPath   = 'signatures/documents/' . $signatureId . '.png';
+
+        if ($inputMethod === 'template') {
+            // Menggunakan template tersimpan milik user → salin (copy) agar independen
+            $templateId = trim($_POST['template_id'] ?? '');
+            $template   = $this->signatureModel->getById($templateId, $this->userId);
+            if (!$template) {
+                $errors['signature'] = 'Template tanda tangan tidak valid atau bukan milik Anda.';
+            } else {
+                $srcPath = $this->storageDir . '/' . ltrim($template['image_path'], '/\\');
+                if (!file_exists($srcPath) || !is_readable($srcPath)) {
+                    $errors['signature'] = 'Berkas template tanda tangan tidak tersedia di storage server.';
+                } elseif (!copy($srcPath, $destPath)) {
+                    $errors['signature'] = 'Gagal membuat salinan independen tanda tangan di storage server.';
+                }
+            }
+        } elseif ($inputMethod === 'canvas') {
+            // Goresan kanvas baru → tulis langsung ke salinan terisolasi
+            $canvasData = trim($_POST['signature_canvas'] ?? '');
+
+            if (empty($canvasData)) {
+                $errors['signature'] = 'Silakan bubuhkan goresan tanda tangan Anda pada kanvas.';
+            } elseif (!preg_match('/^data:image\/png;base64,(.+)$/', $canvasData, $matches)) {
+                $errors['signature'] = 'Format data kanvas tanda tangan tidak valid.';
+            } else {
+                $decoded = base64_decode($matches[1], true);
+                if ($decoded === false || strlen($decoded) < 100) {
+                    $errors['signature'] = 'Gambar tanda tangan dari kanvas tidak terbaca atau kosong.';
+                } else {
+                    $imgInfo = @getimagesizefromstring($decoded);
+                    if ($imgInfo === false || $imgInfo['mime'] !== 'image/png') {
+                        $errors['signature'] = 'Hasil kanvas harus berupa gambar PNG yang valid.';
+                    } elseif (file_put_contents($destPath, $decoded) === false) {
+                        $errors['signature'] = 'Gagal menyimpan berkas tanda tangan ke penyimpanan privat server.';
+                    }
+                }
+            }
+        } elseif ($inputMethod === 'upload') {
+            // Unggah PNG transparan sekali pakai → wajib lolos validasi alpha channel (BUG-05)
+            if (!isset($_FILES['signature_file']) || $_FILES['signature_file']['error'] === UPLOAD_ERR_NO_FILE) {
+                $errors['signature'] = 'Silakan pilih berkas gambar tanda tangan PNG untuk diunggah.';
+            } elseif ($_FILES['signature_file']['error'] !== UPLOAD_ERR_OK) {
+                $errors['signature'] = 'Terjadi kesalahan saat mengunggah berkas tanda tangan.';
+            } else {
+                $file = $_FILES['signature_file'];
+                if ($file['size'] > 2 * 1024 * 1024) {
+                    $errors['signature'] = 'Ukuran berkas tanda tangan melebihi batas maksimal 2 MB.';
+                } else {
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = finfo_file($finfo, $file['tmp_name']);
+                    finfo_close($finfo);
+
+                    if ($mime !== 'image/png') {
+                        $errors['signature'] = 'Berkas tanda tangan wajib berformat gambar PNG transparan (.png).';
+                    } else {
+                        $im = @imagecreatefrompng($file['tmp_name']);
+                        if ($im === false) {
+                            $errors['signature'] = 'Berkas gambar PNG tanda tangan rusak atau tidak dapat diproses.';
+                        } else {
+                            $w = imagesx($im);
+                            $h = imagesy($im);
+                            $hasAlpha = false;
+
+                            // Sampling titik sudut & tepi
+                            $sampleCoords = [
+                                [0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1],
+                                [intdiv($w, 2), 0], [intdiv($w, 2), $h - 1],
+                                [0, intdiv($h, 2)], [$w - 1, intdiv($h, 2)]
+                            ];
+                            foreach ($sampleCoords as $coord) {
+                                $rgba = imagecolorsforindex($im, imagecolorat($im, $coord[0], $coord[1]));
+                                if ($rgba['alpha'] > 10) {
+                                    $hasAlpha = true;
+                                    break;
+                                }
+                            }
+
+                            // Grid sampling melompat jika tepi belum mendeteksi alpha
+                            if (!$hasAlpha) {
+                                $stepX = max(1, intdiv($w, 50));
+                                $stepY = max(1, intdiv($h, 50));
+                                for ($y = 0; $y < $h && !$hasAlpha; $y += $stepY) {
+                                    for ($x = 0; $x < $w; $x += $stepX) {
+                                        $rgba = imagecolorsforindex($im, imagecolorat($im, $x, $y));
+                                        if ($rgba['alpha'] > 10) {
+                                            $hasAlpha = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            imagedestroy($im);
+
+                            if (!$hasAlpha) {
+                                $errors['signature'] = 'Gambar PNG tidak memiliki latar belakang transparan. Harap gunakan gambar tanda tangan berlatar transparan agar tidak menutupi teks dokumen.';
+                            } elseif (!move_uploaded_file($file['tmp_name'], $destPath)) {
+                                $errors['signature'] = 'Gagal memindahkan berkas tanda tangan ke penyimpanan privat.';
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            $errors['signature'] = 'Metode input tanda tangan tidak dikenali.';
+        }
+
+        // Jika ada error validasi, render ulang halaman penandatanganan
+        if (!empty($errors)) {
+            $payload = $this->signViewPayload($doc, $signer);
+            $payload['errors']      = $errors;
+            $payload['postedInput'] = $inputMethod;
+            $this->load->view('views/documents/sign.php', $payload);
+            return;
+        }
+
+        // Snapshot biodata resmi civitas penandatangan (ADR-03 — immutable)
+        $userProfile = $this->usersModel->getById($this->userId);
+
+        try {
+            $result = $this->signaturesModel->signDocument([
+                'id'                         => $signatureId,
+                'verification_token'         => $verificationToken,
+                'document_id'                => $doc['id'],
+                'signer_id'                  => $this->userId,
+                'civitas_id'                 => $userProfile['civitas_id'] ?? null,
+                'document_signer_id'         => $signer['id'],
+                'signature_image_path'       => $dbPath,
+                'page_number'                => (int) $signer['page_number'],
+                'x_percent'                  => (float) $signer['x_percent'],
+                'y_percent'                  => (float) $signer['y_percent'],
+                'width_percent'              => (float) $signer['width_percent'],
+                'height_percent'             => (float) $signer['height_percent'],
+                'signer_name_snapshot'       => $userProfile['civitas_name'] ?: $userProfile['name'],
+                'signer_identifier_snapshot' => $userProfile['civitas_identifier'] ?? null,
+                'signer_type_snapshot'       => $userProfile['civitas_type'] ?? null,
+                'signer_department_snapshot' => $userProfile['civitas_department'] ?? null,
+                'signer_position_snapshot'   => $userProfile['civitas_position'] ?? null,
+                'signer_email_snapshot'      => $userProfile['email'],
+                'ip_address'                 => $_SERVER['REMOTE_ADDR'] ?? null,
+            ]);
+
+            // Jejak audit penandatanganan
+            $this->auditModel->log($this->userId, 'document.signed', [
+                'document_id'        => $doc['id'],
+                'title'              => $doc['title'],
+                'signature_id'       => $signatureId,
+                'signer_name'        => $userProfile['civitas_name'] ?: $userProfile['name'],
+                'step_order'         => (int) $signer['step_order'],
+                'verification_token' => $verificationToken,
+                'method'             => $inputMethod,
+            ], $doc['id']);
+
+            if ($result === 'completed') {
+                $this->auditModel->log($this->userId, 'document.completed', [
+                    'document_id' => $doc['id'],
+                    'title'       => $doc['title'],
+                    'final_step'  => (int) $signer['step_order'],
+                ], $doc['id']);
+
+                $_SESSION['flash'] = [
+                    'type'    => 'success',
+                    'message' => 'Tanda tangan Anda berhasil dibubuhkan. Seluruh pihak telah menandatangani — dokumen kini berstatus Selesai.'
+                ];
+            } else {
+                $nextStep = (int) $doc['current_step'] + 1;
+                $this->auditModel->log($this->userId, 'document.step_advanced', [
+                    'document_id' => $doc['id'],
+                    'title'       => $doc['title'],
+                    'step_from'   => (int) $doc['current_step'],
+                    'step_to'     => $nextStep,
+                ], $doc['id']);
+
+                $_SESSION['flash'] = [
+                    'type'    => 'success',
+                    'message' => 'Tanda tangan Anda berhasil dibubuhkan. Giliran diteruskan ke penandatangan Step ' . $nextStep . '.'
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Hapus salinan fisik bila transaksi gagal
+            if (file_exists($destPath)) {
+                @unlink($destPath);
+            }
+
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Gagal menyimpan tanda tangan: ' . $e->getMessage()
+            ];
+        }
+
+        header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+        exit;
+    }
+
+    /**
+     * Kumpulan data untuk merender halaman penandatanganan (sign.php).
+     */
+    private function signViewPayload(array $doc, array $signer): array
+    {
+        return [
+            'title'            => 'Tanda Tangani Dokumen — ' . $doc['title'],
+            'doc'              => $doc,
+            'signer'           => $signer,
+            'templates'        => $this->signatureModel->getByUserId($this->userId),
+            'defaultTemplate'  => $this->signatureModel->getDefaultByUserId($this->userId),
+            'userProfile'      => $this->usersModel->getById($this->userId),
+            'signaturesPlaced' => $this->signaturesModel->getByDocumentId($doc['id']),
+            'allSigners'       => $this->model->getSignersByDocumentId($doc['id']),
+            'errors'           => [],
+            'postedInput'      => null,
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // POST /documents/{id}/decline — Penolakan oleh Penandatangan (Task 7)
+    // ─────────────────────────────────────────────────────────────
+    public function decline($id)
+    {
+        $doc = $this->model->getById($id);
+        if (!$doc) {
+            http_response_code(404);
+            echo '<h1>404 — Dokumen Tidak Ditemukan</h1>';
+            return;
+        }
+
+        // Administrator bukan aktor penandatangan
+        if ($this->isAdmin) {
+            $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Administrator tidak berpartisipasi dalam alur penandatanganan dokumen.'];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        $signer = $this->model->getSignerByDocAndUser($id, $this->userId);
+        if (!$signer) {
+            http_response_code(403);
+            echo '<h1>403 — Akses Ditolak</h1><p>Anda bukan penandatangan yang ditugaskan pada dokumen ini.</p>';
+            return;
+        }
+
+        // Guard ADR-01: hanya penandatangan giliran aktif yang boleh menolak
+        if ($doc['status'] !== 'signing' || $signer['status'] !== 'pending' || (int) $signer['step_order'] !== (int) $doc['current_step']) {
+            $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Belum giliran Anda untuk mengambil aksi pada dokumen ini.'];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
+        // Alasan penolakan wajib minimal 10 karakter (ADR-01 kebijakan penolakan)
+        $reason = trim($_POST['decline_reason'] ?? '');
+        if (mb_strlen($reason) < 10) {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Alasan penolakan wajib diisi minimal 10 karakter.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $id . '/sign');
+            exit;
+        }
+
+        try {
+            $this->signaturesModel->declineDocument($doc['id'], $signer['id'], $reason);
+
+            $this->auditModel->log($this->userId, 'document.declined', [
+                'document_id' => $doc['id'],
+                'title'       => $doc['title'],
+                'step_order'  => (int) $signer['step_order'],
+                'reason'      => $reason,
+                'status_to'   => 'rejected',
+            ], $doc['id']);
+
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Anda telah menolak dokumen "' . $doc['title'] . '". Dokumen berstatus Arsip Batal Permanen.'
             ];
         } catch (\Throwable $e) {
             $_SESSION['flash'] = [

@@ -88,6 +88,19 @@ foreach ($signers as $s) {
                     </button>
                 <?php endif; ?>
 
+                <?php if (!$isAdmin && $mySigner): ?>
+                    <?php if ($doc['status'] === 'signing' && $mySigner['status'] === 'pending' && (int) $mySigner['step_order'] === (int) $doc['current_step']): ?>
+                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/sign" class="btn btn-pnj-primary btn-sm">
+                            <i class="bi bi-pen-fill me-1"></i> Tanda Tangani Sekarang
+                        </a>
+                    <?php elseif ($mySigner['status'] === 'waiting' && $doc['status'] === 'signing'): ?>
+                        <button type="button" class="btn btn-secondary btn-sm" disabled
+                                title="Menunggu tanda tangan penandatangan Step <?= (int) $doc['current_step'] ?>">
+                            <i class="bi bi-lock-fill me-1"></i> Menunggu Giliran
+                        </button>
+                    <?php endif; ?>
+                <?php endif; ?>
+
                 <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-subtle btn-sm">
                     <i class="bi bi-download me-1"></i> Unduh Berkas PDF
                 </a>
@@ -306,11 +319,57 @@ foreach ($signers as $s) {
                                             <?= date('d M Y, H:i', strtotime($s['signed_at'])) ?>
                                         </div>
                                     <?php endif; ?>
+                                    <?php if (!empty($s['decline_reason'])): ?>
+                                        <div class="text-danger mt-1" style="font-size: 0.68rem;">
+                                            <i class="bi bi-chat-left-text me-0.5"></i><?= nl2br(htmlspecialchars($s['decline_reason'])) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Rekam Tanda Tangan Terpasang (Task 7) -->
+        <?php if (!empty($signatures)): ?>
+        <div class="card-clean mb-4">
+            <div class="card-clean-header py-3 px-3 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
+                    <i class="bi bi-pen-fill text-success"></i>
+                    <span>Rekam Tanda Tangan Terpasang</span>
+                </span>
+                <span class="badge bg-success"><?= count($signatures) ?> Tanda Tangan</span>
+            </div>
+            <div class="card-clean-body p-3">
+                <div class="d-flex flex-column gap-3">
+                    <?php foreach ($signatures as $sig): ?>
+                        <div class="d-flex align-items-center gap-3 border rounded-3 p-2.5">
+                            <div class="checkerboard-bg rounded border flex-shrink-0 d-flex align-items-center justify-content-center"
+                                 style="width: 150px; height: 75px; overflow: hidden;">
+                                <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
+                                     alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                     style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                            <div class="flex-grow-1 min-width-0">
+                                <div class="fw-bold text-dark small">
+                                    <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                    <span class="badge bg-success ms-1" style="font-size: 0.62rem;">Tertanda</span>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <?= htmlspecialchars($sig['signer_position_snapshot'] ?: '-') ?>
+                                    &bull; <?= date('d F Y, H:i', strtotime($sig['signed_at'])) ?> WIB
+                                </div>
+                                <div class="text-muted text-truncate" style="font-size: 0.7rem;">
+                                    <i class="bi bi-qr-code me-1"></i>Token Verifikasi:
+                                    <code><?= htmlspecialchars($sig['verification_token']) ?></code>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
         <?php endif; ?>

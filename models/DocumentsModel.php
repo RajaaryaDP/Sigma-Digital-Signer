@@ -199,6 +199,51 @@ class DocumentsModel
         return $stmt->fetchAll();
     }
 
+    /**
+     * Ambil dokumen yang masih menunggu giliran penandatanganan oleh user tertentu
+     * (status signer = 'waiting', dokumen sedang 'signing').
+     * Menyertakan nama penandatangan yang sedang memegang giliran aktif.
+     */
+    public function getWaitingSignForUser(string $userId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT d.*, ds.step_order, ds.status AS signer_status,
+                    u.name AS uploader_name,
+                    (SELECT us.name
+                     FROM document_signers dsc
+                     JOIN users us ON dsc.user_id = us.id
+                     WHERE dsc.document_id = d.id
+                       AND dsc.step_order = d.current_step
+                       AND dsc.deleted_at IS NULL
+                     LIMIT 1) AS current_signer_name
+             FROM document_signers ds
+             JOIN documents d ON ds.document_id = d.id
+             JOIN users u ON d.uploader_id = u.id
+             WHERE ds.user_id = ? AND ds.status = 'waiting'
+               AND d.status = 'signing' AND d.deleted_at IS NULL
+               AND ds.deleted_at IS NULL
+             ORDER BY d.created_at ASC"
+        );
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Hitung jumlah dokumen yang masih menunggu giliran user tertentu.
+     */
+    public function countWaitingSignForUser(string $userId): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM document_signers ds
+             JOIN documents d ON ds.document_id = d.id
+             WHERE ds.user_id = ? AND ds.status = 'waiting'
+               AND d.status = 'signing' AND d.deleted_at IS NULL
+               AND ds.deleted_at IS NULL"
+        );
+        $stmt->execute([$userId]);
+        return (int) $stmt->fetchColumn();
+    }
+
     // ─────────────────────────────────────────────────────────────
     // DOCUMENTS — Mutasi
     // ─────────────────────────────────────────────────────────────
@@ -364,20 +409,32 @@ class DocumentsModel
 
     /**
      * Submit dokumen: ubah status draft → pending_review (sequential)
-     * atau draft → completed (single).
-     * Untuk sequential, set signer step 1 ke status 'pending'.
+     * atau draft → signing + aktifkan giliran tanda tangan mandiri (single).
      */
     public function submitDocument(string $documentId, string $signatureType): bool
     {
         $this->db->beginTransaction();
         try {
             if ($signatureType === 'single') {
-                // Single: langsung completed, tanpa admin review
+                // Single: tanpa review admin — langsung aktifkan giliran
+                // tanda tangan mandiri pengaju (ADR-08, Task 7)
                 $stmt = $this->db->prepare(
-                    "UPDATE documents SET status = 'completed', completed_at = NOW()
+                    "UPDATE documents SET status = 'signing', current_step = 1
                      WHERE id = ? AND status = 'draft' AND deleted_at IS NULL"
                 );
                 $stmt->execute([$documentId]);
+
+                if ($stmt->rowCount() === 0) {
+                    throw new \Exception('Dokumen tidak ditemukan atau tidak berstatus Draft.');
+                }
+
+                // Aktifkan penandatangan tunggal (pengaju) sebagai giliran aktif
+                $stmtSigner = $this->db->prepare(
+                    "UPDATE document_signers
+                     SET status = 'pending'
+                     WHERE document_id = ? AND step_order = 1 AND deleted_at IS NULL"
+                );
+                $stmtSigner->execute([$documentId]);
             } else {
                 // Sequential: pindah ke pending_review untuk admin review
                 $stmt = $this->db->prepare(

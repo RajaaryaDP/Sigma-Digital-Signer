@@ -167,9 +167,33 @@ $statusBadges = [
         </p>
         <div class="d-flex flex-wrap gap-2">
             <?php foreach ($pendingSignDocs as $psd): ?>
-                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($psd['id']) ?>" class="btn btn-warning btn-sm py-1 px-2.5 text-dark fw-semibold">
+                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($psd['id']) ?>/sign" class="btn btn-warning btn-sm py-1 px-2.5 text-dark fw-semibold">
                     <i class="bi bi-pen me-1"></i> Tanda Tangani: <?= htmlspecialchars($psd['title']) ?> (Step <?= $psd['step_order'] ?>)
                 </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- Antrean Menunggu Giliran Sebelumnya (Tombol Terkunci) -->
+<?php if (!$isAdmin && !empty($waitingSignDocs)): ?>
+<div class="alert alert-secondary py-3 px-3 mb-4 d-flex align-items-start gap-2.5" style="border-radius: var(--radius-md);">
+    <i class="bi bi-clock-history text-secondary fs-5 mt-0.5"></i>
+    <div class="flex-grow-1">
+        <h6 class="fw-bold mb-1 text-dark">Menunggu Giliran Sebelumnya</h6>
+        <p class="mb-2 small text-muted">
+            Dokumen berikut masih menunggu penandatangan lain pada urutan jenjang sebelum giliran Anda.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+            <?php foreach ($waitingSignDocs as $wsd): ?>
+                <span class="d-inline-block"
+                      title="Menunggu tanda tangan: <?= htmlspecialchars($wsd['current_signer_name'] ?? 'penandatangan sebelumnya') ?>">
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5" disabled style="pointer-events: none;">
+                        <i class="bi bi-lock me-1"></i>
+                        <?= htmlspecialchars($wsd['title']) ?> (Step <?= $wsd['step_order'] ?>)
+                    </button>
+                </span>
             <?php endforeach; ?>
         </div>
     </div>
