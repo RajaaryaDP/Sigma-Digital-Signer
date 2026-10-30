@@ -975,6 +975,14 @@ class Documents
                     'final_step'  => (int) $signer['step_order'],
                 ], $doc['id']);
 
+                // Task 9: Generate berkas PDF final berstempel seketika saat dokumen rampung
+                require_once __DIR__ . '/../core/PdfStamper.php';
+                try {
+                    PdfStamper::stampDocument($doc['id'], $this->userId);
+                } catch (\Throwable $se) {
+                    error_log("Otomatisasi stamping dokumen {$doc['id']} gagal: " . $se->getMessage());
+                }
+
                 $_SESSION['flash'] = [
                     'type'    => 'success',
                     'message' => 'Tanda tangan Anda berhasil dibubuhkan. Seluruh pihak telah menandatangani — dokumen kini berstatus Selesai.'
@@ -1167,16 +1175,41 @@ class Documents
             }
         }
 
-        $filePath = $this->storageDir . '/' . ltrim($doc['file_path'], '/\\');
-        if (!file_exists($filePath) || !is_readable($filePath)) {
+        $targetFileRel = $doc['file_path'];
+        $displayName   = $doc['file_name_original'];
+
+        // Jika dokumen completed, sajikan berkas final berstempel (Task 9)
+        if ($doc['status'] === 'completed') {
+            $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
+            if (empty($doc['final_file_path']) || !file_exists($finalPath)) {
+                require_once __DIR__ . '/../core/PdfStamper.php';
+                $stampRes = PdfStamper::stampDocument($id, $this->userId);
+                if ($stampRes['success']) {
+                    $doc = $this->model->getById($id);
+                    $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
+                }
+            }
+            if (!empty($doc['final_file_path']) && file_exists($finalPath) && is_readable($finalPath)) {
+                $targetFileRel = $doc['final_file_path'];
+                $displayName   = 'FINAL_' . $doc['file_name_original'];
+            }
+        }
+
+        $filePath = $this->storageDir . '/' . ltrim($targetFileRel, '/\\');
+        $realStorage = realpath($this->storageDir);
+        $realFile    = realpath($filePath);
+
+        if (!$realFile || !$realStorage || strpos($realFile, $realStorage) !== 0 || !is_readable($realFile)) {
             http_response_code(404);
             exit('Berkas fisik PDF tidak tersedia di storage server.');
         }
 
+        $cleanDisplayName = preg_replace('/[\x00-\x1F\x7F"]/', '', basename($displayName));
+
         // Streaming respon PDF
         header('Content-Type: application/pdf');
         header('Content-Length: ' . filesize($filePath));
-        header('Content-Disposition: inline; filename="' . basename($doc['file_name_original']) . '"');
+        header('Content-Disposition: inline; filename="' . $cleanDisplayName . '"');
         header('Cache-Control: private, max-age=600');
         header('X-Content-Type-Options: nosniff');
 
@@ -1204,15 +1237,52 @@ class Documents
             }
         }
 
-        $filePath = $this->storageDir . '/' . ltrim($doc['file_path'], '/\\');
-        if (!file_exists($filePath) || !is_readable($filePath)) {
+        $targetFileRel = $doc['file_path'];
+        $downloadName  = basename($doc['file_name_original']);
+        $servedFinal   = false;
+
+        $isOriginalRequested = (isset($_GET['type']) && $_GET['type'] === 'original');
+
+        // Jika dokumen completed dan tidak meminta berkas asli, download berkas final berstempel (Task 9)
+        if ($doc['status'] === 'completed' && !$isOriginalRequested) {
+            $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
+            if (empty($doc['final_file_path']) || !file_exists($finalPath)) {
+                require_once __DIR__ . '/../core/PdfStamper.php';
+                $stampRes = PdfStamper::stampDocument($id, $this->userId);
+                if ($stampRes['success']) {
+                    $doc = $this->model->getById($id);
+                    $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
+                }
+            }
+            if (!empty($doc['final_file_path']) && file_exists($finalPath) && is_readable($finalPath)) {
+                $targetFileRel = $doc['final_file_path'];
+                $downloadName  = 'FINAL_' . basename($doc['file_name_original']);
+                $servedFinal   = true;
+            }
+        }
+
+        $filePath = $this->storageDir . '/' . ltrim($targetFileRel, '/\\');
+        $realStorage = realpath($this->storageDir);
+        $realFile    = realpath($filePath);
+
+        if (!$realFile || !$realStorage || strpos($realFile, $realStorage) !== 0 || !is_readable($realFile)) {
             http_response_code(404);
             exit('Berkas fisik PDF tidak tersedia.');
         }
 
+        // Jejak audit pengunduhan dokumen (NFR-1 / NFR-3)
+        $this->auditModel->log($this->userId, 'document.download', [
+            'document_id' => $id,
+            'title'       => $doc['title'],
+            'is_final'    => $servedFinal,
+            'file_name'   => $downloadName
+        ], $id);
+
+        $cleanDownloadName = preg_replace('/[\x00-\x1F\x7F"]/', '', $downloadName);
+
         header('Content-Type: application/pdf');
         header('Content-Length: ' . filesize($filePath));
-        header('Content-Disposition: attachment; filename="' . basename($doc['file_name_original']) . '"');
+        header('Content-Disposition: attachment; filename="' . $cleanDownloadName . '"');
         header('Cache-Control: private, max-age=600');
         header('X-Content-Type-Options: nosniff');
 

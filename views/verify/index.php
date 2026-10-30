@@ -459,6 +459,27 @@ require_once __DIR__ . '/../layout/header.php';
                             </div>
                         </div>
 
+                        <?php if (!empty($verified['document_final_file_hash'])): ?>
+                            <!-- Hash Kriptografis Final Dokumen (Stamping) -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label small fw-bold text-success mb-0">
+                                        <i class="bi bi-patch-check-fill text-success"></i> Nilai Hash SHA-256 Final (Stamping):
+                                    </label>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-success fw-semibold no-print" style="font-size: 0.75rem;" onclick="copyToClipboard('<?= htmlspecialchars($verified['document_final_file_hash'], ENT_QUOTES) ?>', this)">
+                                        <i class="bi bi-clipboard me-1"></i>Salin Hash Final
+                                    </button>
+                                </div>
+                                <div class="crypto-box text-success" style="background: #f0fdf4; border-color: #86efac;">
+                                    <?= htmlspecialchars($verified['document_final_file_hash']) ?>
+                                </div>
+                                <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.3;">
+                                    <i class="bi bi-shield-lock-fill text-success me-1"></i>
+                                    Hash SHA-256 final membuktikan integritas fisik berkas PDF setelah dibubuhi tanda tangan & stempel QR Code.
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                         <!-- Token Verifikasi QR -->
                         <div>
                             <div class="d-flex align-items-center justify-content-between mb-1">

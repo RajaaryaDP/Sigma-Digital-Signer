@@ -64,8 +64,10 @@ class Signatures
         }
 
         $filePath = $this->storageDir . '/' . ltrim($signature['signature_image_path'], '/\\');
+        $realStorage = realpath($this->storageDir);
+        $realFile    = realpath($filePath);
 
-        if (!file_exists($filePath) || !is_readable($filePath)) {
+        if (!$realFile || !$realStorage || strpos($realFile, $realStorage) !== 0 || !is_readable($realFile)) {
             http_response_code(404);
             exit('Berkas fisik tanda tangan tidak tersedia di storage server.');
         }

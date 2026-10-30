@@ -243,6 +243,15 @@ class SignaturesModel
             }
 
             $this->db->commit();
+
+            // Pemicu Stamping PDF Final Otomatis saat dokumen completed (Task 9)
+            try {
+                require_once __DIR__ . '/../core/PdfStamper.php';
+                PdfStamper::stampDocument($data['document_id'], $data['signer_id'] ?? null);
+            } catch (\Throwable $pe) {
+                error_log("PdfStamper trigger failed on signDocument: " . $pe->getMessage());
+            }
+
             return 'completed';
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) {

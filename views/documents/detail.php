@@ -101,9 +101,17 @@ foreach ($signers as $s) {
                     <?php endif; ?>
                 <?php endif; ?>
 
-                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-subtle btn-sm">
-                    <i class="bi bi-download me-1"></i> Unduh Berkas PDF
-                </a>
+                <?php if ($doc['status'] === 'completed'): ?>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-success btn-sm shadow-sm d-flex align-items-center gap-1.5 fw-semibold">
+                        <i class="bi bi-file-earmark-check-fill"></i>
+                        <span>Unduh Dokumen Final</span>
+                    </a>
+                <?php else: ?>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-subtle btn-sm d-flex align-items-center gap-1.5">
+                        <i class="bi bi-download"></i>
+                        <span>Unduh Berkas Asli</span>
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -408,7 +416,16 @@ foreach ($signers as $s) {
             <div class="card-clean-body p-3">
                 <ul class="list-unstyled mb-0 d-flex flex-column gap-2.5 small">
                     <li>
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">Nama Berkas Asli</span>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">Nama Berkas Asli</span>
+                            <?php if ($doc['status'] === 'completed'): ?>
+                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download?type=original" 
+                                   class="btn btn-link btn-sm p-0 text-decoration-none text-muted" style="font-size: 0.7rem;" 
+                                   title="Unduh berkas PDF asli sebelum dibubuhi tanda tangan">
+                                    <i class="bi bi-download me-0.5"></i>Unduh Asli
+                                </a>
+                            <?php endif; ?>
+                        </div>
                         <span class="fw-medium text-dark text-break"><?= htmlspecialchars($doc['file_name_original']) ?></span>
                     </li>
                     <li>
@@ -420,11 +437,34 @@ foreach ($signers as $s) {
                         <span class="fw-medium text-dark"><?= date('d F Y, H:i:s', strtotime($doc['created_at'])) ?> WIB</span>
                     </li>
                     <li>
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">SHA-256 Hash Integritas</span>
-                        <code class="d-block p-1.5 bg-light rounded text-break" style="font-size: 0.7rem; font-family: monospace;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">SHA-256 Hash Dokumen Asli</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-secondary text-decoration-none fw-semibold" style="font-size: 0.7rem;" onclick="copyHash('<?= htmlspecialchars($doc['file_hash']) ?>', this)">
+                                Salin
+                            </button>
+                        </div>
+                        <code class="d-block p-1.5 bg-light rounded text-break mt-1" style="font-size: 0.7rem; font-family: monospace;">
                             <?= htmlspecialchars($doc['file_hash']) ?>
                         </code>
                     </li>
+                    <?php if (!empty($doc['final_file_hash'])): ?>
+                    <li class="border-top pt-2">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-success fw-bold d-block" style="font-size: 0.75rem;">
+                                <i class="bi bi-patch-check-fill me-1"></i>SHA-256 Hash Final (Stamping)
+                            </span>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-success text-decoration-none fw-semibold" style="font-size: 0.7rem;" onclick="copyHash('<?= htmlspecialchars($doc['final_file_hash']) ?>', this)">
+                                Salin
+                            </button>
+                        </div>
+                        <code class="d-block p-1.5 bg-success-subtle text-success rounded text-break mt-1" style="font-size: 0.7rem; font-family: monospace;">
+                            <?= htmlspecialchars($doc['final_file_hash']) ?>
+                        </code>
+                        <span class="text-muted d-block mt-0.5" style="font-size: 0.68rem;">
+                            Nilai integritas kriptografis berkas PDF setelah dibubuhi tanda tangan fisik & stempel QR Code.
+                        </span>
+                    </li>
+                    <?php endif; ?>
                     <?php if (!empty($doc['reviewed_at'])): ?>
                     <li class="border-top pt-2">
                         <span class="text-muted d-block" style="font-size: 0.75rem;">Status Review Admin</span>
@@ -465,23 +505,81 @@ foreach ($signers as $s) {
                     </div>
                 <?php else: ?>
                     <div class="timeline position-relative" style="padding-left: 1.25rem; border-left: 2px solid var(--border-subtle); margin-left: 0.5rem;">
+                        <?php 
+                            $actionMap = [
+                                'document.create'          => ['label' => 'Dokumen Dibuat', 'badge' => 'bg-secondary', 'icon' => 'bi-file-earmark-plus'],
+                                'document.submit'          => ['label' => 'Diajukan ke Admin', 'badge' => 'bg-info text-dark', 'icon' => 'bi-send'],
+                                'document.approve'         => ['label' => 'Disetujui Administrator', 'badge' => 'bg-success', 'icon' => 'bi-check2-circle'],
+                                'document.reject'          => ['label' => 'Ditolak Administrator', 'badge' => 'bg-danger', 'icon' => 'bi-x-circle'],
+                                'document.signed'          => ['label' => 'Tanda Tangan Dibubuhkan', 'badge' => 'bg-primary', 'icon' => 'bi-pen-fill'],
+                                'document.step_advanced'   => ['label' => 'Giliran Jenjang Dialihkan', 'badge' => 'bg-info text-dark', 'icon' => 'bi-arrow-right-circle'],
+                                'document.completed'       => ['label' => 'Alur Pengesahan Selesai', 'badge' => 'bg-success', 'icon' => 'bi-patch-check-fill'],
+                                'document.declined'        => ['label' => 'Tanda Tangan Ditolak Signer', 'badge' => 'bg-danger', 'icon' => 'bi-shield-x'],
+                                'document.final_generated' => ['label' => 'PDF Final Berstempel Diterbitkan', 'badge' => 'bg-success', 'icon' => 'bi-file-earmark-check-fill'],
+                                'document.download'        => ['label' => 'Berkas Diunduh', 'badge' => 'bg-secondary', 'icon' => 'bi-download'],
+                                'document.delete'          => ['label' => 'Dokumen Dihapus', 'badge' => 'bg-danger', 'icon' => 'bi-trash'],
+                            ];
+                        ?>
                         <?php foreach ($auditLog as $log): ?>
                             <?php 
                                 $details = !empty($log['details']) ? json_decode($log['details'], true) : [];
+                                $actionConfig = $actionMap[$log['action']] ?? [
+                                    'label' => ucwords(str_replace(['document.', 'civitas.', '.'], ['', '', ' '], $log['action'])),
+                                    'badge' => 'bg-secondary',
+                                    'icon'  => 'bi-circle-fill'
+                                ];
+                                $dotColor = strpos($actionConfig['badge'], 'danger') !== false ? 'bg-danger' : 
+                                           (strpos($actionConfig['badge'], 'primary') !== false ? 'bg-primary' : 
+                                           (strpos($actionConfig['badge'], 'info') !== false ? 'bg-info' : 'bg-success'));
                             ?>
                             <div class="mb-3 position-relative">
-                                <div class="position-absolute rounded-circle bg-success border border-white" 
+                                <div class="position-absolute rounded-circle <?= $dotColor ?> border border-white" 
                                      style="width: 10px; height: 10px; left: -1.6rem; top: 4px;"></div>
-                                <div class="fw-bold text-dark small">
-                                    <?= htmlspecialchars(str_replace(['document.', 'civitas.'], '', $log['action'])) ?>
+                                <div class="fw-bold text-dark small d-flex align-items-center gap-1">
+                                    <i class="bi <?= $actionConfig['icon'] ?> text-muted" style="font-size: 0.8rem;"></i>
+                                    <span><?= htmlspecialchars($actionConfig['label']) ?></span>
                                 </div>
-                                <div class="text-muted" style="font-size: 0.75rem;">
+                                <div class="text-muted" style="font-size: 0.72rem;">
                                     Oleh: <strong><?= htmlspecialchars($log['user_name'] ?? 'Sistem') ?></strong>
                                     &bull; <?= date('d/m/Y H:i', strtotime($log['created_at'])) ?>
                                 </div>
                                 <?php if (!empty($details)): ?>
-                                    <div class="text-muted bg-light rounded p-1 mt-1 font-monospace" style="font-size: 0.7rem;">
-                                        <?= htmlspecialchars(json_encode($details, JSON_UNESCAPED_UNICODE)) ?>
+                                    <div class="mt-1" style="font-size: 0.7rem;">
+                                        <?php if (!empty($details['reason'])): ?>
+                                            <div class="text-danger bg-danger-subtle rounded p-1.5 border border-danger-subtle">
+                                                <i class="bi bi-chat-left-text me-1"></i><strong>Alasan:</strong> <?= htmlspecialchars($details['reason']) ?>
+                                            </div>
+                                        <?php elseif (isset($details['step_from'], $details['step_to'])): ?>
+                                            <span class="badge bg-light text-dark border">
+                                                Step <?= (int)$details['step_from'] ?> &rarr; Step <?= (int)$details['step_to'] ?>
+                                            </span>
+                                        <?php elseif (!empty($details['signer_name'])): ?>
+                                            <?php $methodBadge = !empty($details['method']) ? ' (' . ucfirst($details['method']) . ')' : ''; ?>
+                                            <span class="badge bg-light text-dark border">
+                                                Step <?= (int)($details['step_order'] ?? 1) ?> &bull; <?= htmlspecialchars($details['signer_name']) . $methodBadge ?>
+                                            </span>
+                                        <?php elseif (!empty($details['final_file_hash'])): ?>
+                                            <div class="text-success bg-light rounded p-1 font-monospace text-truncate" title="SHA-256 Hash Final">
+                                                <i class="bi bi-patch-check-fill me-1"></i>Hash: <?= substr($details['final_file_hash'], 0, 16) ?>...
+                                            </div>
+                                        <?php elseif (isset($details['is_final'])): ?>
+                                            <span class="badge <?= !empty($details['is_final']) ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-light text-muted border' ?>">
+                                                <i class="bi <?= !empty($details['is_final']) ? 'bi-file-earmark-check' : 'bi-file-earmark-pdf' ?> me-0.5"></i>
+                                                <?= !empty($details['is_final']) ? 'Dokumen Final Berstempel' : 'Berkas Asli' ?>
+                                            </span>
+                                        <?php elseif (!empty($details['final_step'])): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                <i class="bi bi-check-all me-1"></i>Semua <?= (int)$details['final_step'] ?> Tahap Lengkap
+                                            </span>
+                                        <?php elseif (isset($details['status_from'], $details['status_to'])): ?>
+                                            <span class="badge bg-light text-muted border">
+                                                <?= htmlspecialchars($details['status_from']) ?> &rarr; <?= htmlspecialchars($details['status_to']) ?>
+                                            </span>
+                                        <?php elseif (!empty($details['file_name'])): ?>
+                                            <span class="text-muted">
+                                                <i class="bi bi-file-earmark-pdf me-0.5"></i><?= htmlspecialchars($details['file_name']) ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -564,6 +662,26 @@ foreach ($signers as $s) {
     </div>
 </div>
 <?php endif; ?>
+
+<script>
+function copyHash(text, btn) {
+    if (!navigator.clipboard) {
+        const t = document.createElement("textarea");
+        t.value = text;
+        t.style.position = "fixed";
+        t.style.opacity = "0";
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand('copy');
+        document.body.removeChild(t);
+    } else {
+        navigator.clipboard.writeText(text);
+    }
+    const orig = btn.innerText;
+    btn.innerText = 'Tersalin!';
+    setTimeout(() => { btn.innerText = orig; }, 2000);
+}
+</script>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>
 

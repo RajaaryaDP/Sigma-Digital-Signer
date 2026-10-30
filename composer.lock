@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cf888e76942046fda33b1cd5ba937248",
+    "content-hash": "1d315606417ab4b2970e2e919e1e2c02",
     "packages": [
         {
             "name": "brick/math",
@@ -64,6 +64,235 @@
                 }
             ],
             "time": "2026-06-14T18:21:03+00:00"
+        },
+        {
+            "name": "chillerlan/php-qrcode",
+            "version": "6.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/chillerlan/php-qrcode.git",
+                "reference": "49006e34bd5328f163e80329e7312f34dceea59b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/chillerlan/php-qrcode/zipball/49006e34bd5328f163e80329e7312f34dceea59b",
+                "reference": "49006e34bd5328f163e80329e7312f34dceea59b",
+                "shasum": ""
+            },
+            "require": {
+                "chillerlan/php-settings-container": "^3.2.1",
+                "ext-mbstring": "*",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "chillerlan/php-authenticator": "^5.3",
+                "ext-fileinfo": "*",
+                "intervention/image": "^3.11",
+                "phan/phan": "^6.0.1",
+                "phpbench/phpbench": "^1.4",
+                "phpmd/phpmd": "^2.15",
+                "phpstan/phpstan": "^2.1.40",
+                "phpstan/phpstan-deprecation-rules": "^2.0.4",
+                "phpunit/phpunit": "^11.5",
+                "setasign/fpdf": "^1.8.6",
+                "slevomat/coding-standard": "^8.28",
+                "squizlabs/php_codesniffer": "^4.0"
+            },
+            "suggest": {
+                "chillerlan/php-authenticator": "Yet another Google authenticator! Also creates URIs for mobile apps.",
+                "intervention/image": "More advanced GD and ImageMagick output.",
+                "setasign/fpdf": "Required to use the QR FPDF output.",
+                "simple-icons/simple-icons": "SVG icons that you can use to embed as logos in the QR Code"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "chillerlan\\QRCode\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT",
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Kazuhiko Arase",
+                    "homepage": "https://github.com/kazuhikoarase/qrcode-generator"
+                },
+                {
+                    "name": "ZXing Authors",
+                    "homepage": "https://github.com/zxing/zxing"
+                },
+                {
+                    "name": "Ashot Khanamiryan",
+                    "homepage": "https://github.com/khanamiryan/php-qrcode-detector-decoder"
+                },
+                {
+                    "name": "Smiley",
+                    "email": "smiley@chillerlan.net",
+                    "homepage": "https://github.com/codemasher"
+                },
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/chillerlan/php-qrcode/graphs/contributors"
+                }
+            ],
+            "description": "A QR Code generator and reader with a user-friendly API. PHP 8.2+",
+            "homepage": "https://github.com/chillerlan/php-qrcode",
+            "keywords": [
+                "phpqrcode",
+                "qr",
+                "qr code",
+                "qr-reader",
+                "qrcode",
+                "qrcode-generator",
+                "qrcode-reader"
+            ],
+            "support": {
+                "docs": "https://php-qrcode.readthedocs.io",
+                "issues": "https://github.com/chillerlan/php-qrcode/issues",
+                "source": "https://github.com/chillerlan/php-qrcode"
+            },
+            "funding": [
+                {
+                    "url": "https://ko-fi.com/codemasher",
+                    "type": "Ko-Fi"
+                }
+            ],
+            "time": "2026-03-18T21:21:07+00:00"
+        },
+        {
+            "name": "chillerlan/php-settings-container",
+            "version": "3.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/chillerlan/php-settings-container.git",
+                "reference": "a0a487cbf5344f721eb504bf0f59bada40c381b7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/chillerlan/php-settings-container/zipball/a0a487cbf5344f721eb504bf0f59bada40c381b7",
+                "reference": "a0a487cbf5344f721eb504bf0f59bada40c381b7",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "phan/phan": "^5.5.2",
+                "phpmd/phpmd": "^2.15",
+                "phpstan/phpstan": "^2.1.31",
+                "phpstan/phpstan-deprecation-rules": "^2.0.3",
+                "phpunit/phpunit": "^10.5",
+                "slevomat/coding-standard": "^8.22",
+                "squizlabs/php_codesniffer": "^4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "chillerlan\\Settings\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Smiley",
+                    "email": "smiley@chillerlan.net",
+                    "homepage": "https://github.com/codemasher"
+                }
+            ],
+            "description": "A container class for immutable settings objects. Not a DI container.",
+            "homepage": "https://github.com/chillerlan/php-settings-container",
+            "keywords": [
+                "Settings",
+                "configuration",
+                "container",
+                "helper",
+                "property hook"
+            ],
+            "support": {
+                "issues": "https://github.com/chillerlan/php-settings-container/issues",
+                "source": "https://github.com/chillerlan/php-settings-container"
+            },
+            "funding": [
+                {
+                    "url": "https://www.paypal.com/donate?hosted_button_id=WLYUNAT9ZTJZ4",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://ko-fi.com/codemasher",
+                    "type": "ko_fi"
+                }
+            ],
+            "time": "2026-03-20T21:10:52+00:00"
+        },
+        {
+            "name": "drainerlight/php-pdf-decompressor",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/drainerlight/php-pdf-decompressor.git",
+                "reference": "f799cbb87bea4d89aa35a0d6d8bffba4d9aba864"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/drainerlight/php-pdf-decompressor/zipball/f799cbb87bea4d89aa35a0d6d8bffba4d9aba864",
+                "reference": "f799cbb87bea4d89aa35a0d6d8bffba4d9aba864",
+                "shasum": ""
+            },
+            "require": {
+                "ext-zlib": "*",
+                "php": ">=7.4"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.5",
+                "setasign/fpdi-fpdf": "^2.3"
+            },
+            "bin": [
+                "bin/pdf-decompress"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PdfDecompressor\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "drainerlight"
+                }
+            ],
+            "description": "Pure-PHP PDF decompressor: converts PDF 1.5+ cross-reference streams and object streams (ObjStm) into a classic PDF 1.4 structure, so parsers that only understand the traditional xref table (such as FPDI's free parser) can read them. A qpdf-free alternative — no external binaries.",
+            "homepage": "https://github.com/drainerlight/php-pdf-decompressor",
+            "keywords": [
+                "cross-reference-stream",
+                "decompress",
+                "decompressor",
+                "flatedecode",
+                "fpdi",
+                "object-stream",
+                "objstm",
+                "pdf",
+                "pdf-parser",
+                "php",
+                "qpdf",
+                "uncompress",
+                "xref"
+            ],
+            "support": {
+                "issues": "https://github.com/drainerlight/php-pdf-decompressor/issues",
+                "source": "https://github.com/drainerlight/php-pdf-decompressor/tree/v0.1.0"
+            },
+            "time": "2026-07-01T09:17:20+00:00"
         },
         {
             "name": "ramsey/collection",
@@ -218,15 +447,132 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.3"
             },
             "time": "2026-06-18T03:57:49+00:00"
+        },
+        {
+            "name": "setasign/fpdf",
+            "version": "1.9.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Setasign/FPDF.git",
+                "reference": "051b70e4c57dedc88df41b1eff1c62894e5f9ed0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Setasign/FPDF/zipball/051b70e4c57dedc88df41b1eff1c62894e5f9ed0",
+                "reference": "051b70e4c57dedc88df41b1eff1c62894e5f9ed0",
+                "shasum": ""
+            },
+            "require": {
+                "ext-gd": "*",
+                "ext-zlib": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "fpdf.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Olivier Plathey",
+                    "email": "oliver@fpdf.org",
+                    "homepage": "http://fpdf.org/"
+                }
+            ],
+            "description": "FPDF is a PHP class which allows to generate PDF files with pure PHP. F from FPDF stands for Free: you may use it for any kind of usage and modify it to suit your needs.",
+            "homepage": "http://www.fpdf.org",
+            "keywords": [
+                "fpdf",
+                "pdf"
+            ],
+            "support": {
+                "source": "https://github.com/Setasign/FPDF/tree/1.9.0"
+            },
+            "time": "2026-05-31T14:25:29+00:00"
+        },
+        {
+            "name": "setasign/fpdi",
+            "version": "v2.6.9",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Setasign/FPDI.git",
+                "reference": "d97ade6368aa0b51b6316d5dc16a567e2bf60167"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Setasign/FPDI/zipball/d97ade6368aa0b51b6316d5dc16a567e2bf60167",
+                "reference": "d97ade6368aa0b51b6316d5dc16a567e2bf60167",
+                "shasum": ""
+            },
+            "require": {
+                "ext-zlib": "*",
+                "php": ">=7.2 <=8.6.99999"
+            },
+            "conflict": {
+                "setasign/tfpdf": "<1.31"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^8.5.52",
+                "setasign/fpdf": "^1.9.0",
+                "setasign/tfpdf": "~1.33",
+                "tecnickcom/tcpdf": "^6.8"
+            },
+            "suggest": {
+                "setasign/fpdf": "FPDI will extend this class but as it is also possible to use TCPDF or tFPDF as an alternative. There's no fixed dependency configured."
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "setasign\\Fpdi\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jan Slabon",
+                    "email": "jan.slabon@setasign.com",
+                    "homepage": "https://www.setasign.com"
+                },
+                {
+                    "name": "Maximilian Kresse",
+                    "email": "maximilian.kresse@setasign.com",
+                    "homepage": "https://www.setasign.com"
+                }
+            ],
+            "description": "FPDI is a collection of PHP classes facilitating developers to read pages from existing PDF documents and use them as templates in FPDF. Because it is also possible to use FPDI with TCPDF, there are no fixed dependencies defined. Please see suggestions for packages which evaluates the dependencies automatically.",
+            "homepage": "https://www.setasign.com/fpdi",
+            "keywords": [
+                "fpdf",
+                "fpdi",
+                "pdf"
+            ],
+            "support": {
+                "issues": "https://github.com/Setasign/FPDI/issues",
+                "source": "https://github.com/Setasign/FPDI/tree/v2.6.9"
+            },
+            "funding": [
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/setasign/fpdi",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-10-13T07:36:28+00:00"
         }
     ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
-    "platform-dev": [],
-    "plugin-api-version": "2.6.0"
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
 }

@@ -1,1 +1,6 @@
 /vendor/
+/storage/documents/*.pdf
+/storage/signatures/documents/*.png
+/storage/signatures/templates/*.png
+!/storage/**/.gitkeep
+

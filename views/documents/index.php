@@ -336,6 +336,12 @@ $statusBadges = [
                                             <i class="bi bi-eye"></i>
                                         </a>
                                     <?php endif; ?>
+                                    <?php if ($doc['status'] === 'completed'): ?>
+                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" 
+                                           class="btn btn-outline-success btn-sm py-1 px-2" title="Unduh Berkas PDF Final Berstempel">
+                                            <i class="bi bi-file-earmark-arrow-down"></i>
+                                        </a>
+                                    <?php endif; ?>
                                     <?php if ($doc['status'] === 'draft' && !$isAdmin): ?>
                                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" 
                                            class="btn btn-pnj-primary btn-sm py-1 px-2" title="Atur slot tanda tangan">
