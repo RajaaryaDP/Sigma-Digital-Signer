@@ -78,6 +78,44 @@ class SignaturesModel
         return $row ?: null;
     }
 
+    /**
+     * Ambil data verifikasi lengkap berdasarkan token verifikasi QR (Task 8).
+     * Menggabungkan data tanda tangan snapshot, metadata dokumen,
+     * profil civitas penandatangan, dan pengaju berkas.
+     */
+    public function getByVerificationToken(string $token): ?array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT s.*,
+                    d.title AS document_title,
+                    d.description AS document_description,
+                    d.signature_type AS document_signature_type,
+                    d.status AS document_status,
+                    d.current_step AS document_current_step,
+                    d.file_name_original AS document_file_name,
+                    d.file_size AS document_file_size,
+                    d.file_hash AS document_file_hash,
+                    d.final_file_hash AS document_final_file_hash,
+                    d.created_at AS document_created_at,
+                    d.completed_at AS document_completed_at,
+                    COALESCE(u.name, 'Civitas Kampus') AS uploader_name,
+                    ds.step_order,
+                    ds.role_title,
+                    c.avatar_path AS civitas_avatar_path,
+                    c.phone AS civitas_phone
+             FROM signatures s
+             JOIN documents d ON s.document_id = d.id AND d.deleted_at IS NULL
+             LEFT JOIN users u ON d.uploader_id = u.id
+             LEFT JOIN document_signers ds ON s.document_signer_id = ds.id AND ds.deleted_at IS NULL
+             LEFT JOIN civitas c ON s.civitas_id = c.id AND c.deleted_at IS NULL
+             WHERE s.verification_token = ? AND s.deleted_at IS NULL
+             LIMIT 1"
+        );
+        $stmt->execute([$token]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
     // ─────────────────────────────────────────────────────────────
     // SIGNATURES — Mutasi (Task 7)
     // ─────────────────────────────────────────────────────────────

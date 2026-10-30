@@ -23,7 +23,7 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
     <header class="pnj-navbar">
         <div class="pnj-navbar-inner">
             <!-- Brand Identity -->
-            <a href="<?= BASE_URL ?>/documents" class="pnj-brand">
+            <a href="<?= $currentUser ? (BASE_URL . '/documents') : (BASE_URL . '/verify') ?>" class="pnj-brand">
                 <div class="pnj-brand-icon">
                     <i class="bi bi-shield-shaded"></i>
                 </div>
@@ -36,31 +36,33 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
             <!-- Horizontal Navigation Links -->
             <nav>
                 <ul class="pnj-nav-menu">
-                    <li>
-                        <a href="<?= BASE_URL ?>/documents" class="pnj-nav-link <?= ($page === 'documents') ? 'active' : '' ?>">
-                            <i class="bi bi-folder2-open"></i>
-                            <span><?= $isAdmin ? 'Dashboard Dokumen' : 'Dokumen Saya' ?></span>
-                        </a>
-                    </li>
-
-                    <?php if ($isAdmin): ?>
+                    <?php if ($currentUser): ?>
                         <li>
-                            <a href="<?= BASE_URL ?>/civitas" class="pnj-nav-link <?= ($page === 'civitas') ? 'active' : '' ?>">
-                                <i class="bi bi-person-vcard"></i>
-                                <span>Master Data Civitas</span>
+                            <a href="<?= BASE_URL ?>/documents" class="pnj-nav-link <?= ($page === 'documents') ? 'active' : '' ?>">
+                                <i class="bi bi-folder2-open"></i>
+                                <span><?= $isAdmin ? 'Dashboard Dokumen' : 'Dokumen Saya' ?></span>
+                            </a>
+                        </li>
+
+                        <?php if ($isAdmin): ?>
+                            <li>
+                                <a href="<?= BASE_URL ?>/civitas" class="pnj-nav-link <?= ($page === 'civitas') ? 'active' : '' ?>">
+                                    <i class="bi bi-person-vcard"></i>
+                                    <span>Master Data Civitas</span>
+                                </a>
+                            </li>
+                        <?php endif; ?>
+
+                        <li>
+                            <a href="<?= BASE_URL ?>/user-signatures" class="pnj-nav-link <?= ($page === 'user-signatures') ? 'active' : '' ?>">
+                                <i class="bi bi-pen"></i>
+                                <span>Template TTD</span>
                             </a>
                         </li>
                     <?php endif; ?>
 
                     <li>
-                        <a href="<?= BASE_URL ?>/user-signatures" class="pnj-nav-link <?= ($page === 'user-signatures') ? 'active' : '' ?>">
-                            <i class="bi bi-pen"></i>
-                            <span>Template TTD</span>
-                        </a>
-                    </li>
-
-                    <li>
-                        <a href="<?= BASE_URL ?>/verify" class="pnj-nav-link <?= ($page === 'verify') ? 'active' : '' ?>" target="_blank">
+                        <a href="<?= BASE_URL ?>/verify" class="pnj-nav-link <?= ($page === 'verify') ? 'active' : '' ?>">
                             <i class="bi bi-qr-code-scan"></i>
                             <span>Verifikasi Publik</span>
                         </a>
@@ -88,6 +90,13 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                     <a href="<?= BASE_URL ?>/auth/logout" class="btn-pnj-logout" title="Keluar dari sistem">
                         <i class="bi bi-box-arrow-right"></i>
                         <span class="d-none d-md-inline">Keluar</span>
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="pnj-user-widget">
+                    <a href="<?= BASE_URL ?>/auth" class="btn btn-sm btn-outline-light d-flex align-items-center gap-1.5 fw-semibold px-3 py-1.5" style="border-radius: 8px;">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Masuk Civitas</span>
                     </a>
                 </div>
             <?php endif; ?>

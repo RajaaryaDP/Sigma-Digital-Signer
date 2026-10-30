@@ -365,6 +365,9 @@ foreach ($signers as $s) {
                                 <div class="text-muted text-truncate" style="font-size: 0.7rem;">
                                     <i class="bi bi-qr-code me-1"></i>Token Verifikasi:
                                     <code><?= htmlspecialchars($sig['verification_token']) ?></code>
+                                    <a href="<?= BASE_URL ?>/verify?token=<?= urlencode($sig['verification_token']) ?>" target="_blank" class="text-decoration-none text-success fw-bold ms-1.5" title="Buka verifikasi publik tanda tangan ini">
+                                        <i class="bi bi-box-arrow-up-right me-0.5"></i>Verifikasi
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -453,7 +456,7 @@ foreach ($signers as $s) {
                 <span class="fw-semibold text-dark small">
                     <i class="bi bi-clock-history text-muted me-1"></i> Jejak Audit Dokumen
                 </span>
-                <span class="badge bg-light text-muted border"><?= count($auditLog) ?> Catatan</span>
+                <span class="badge bg-light text-muted border"><?= !empty($auditLog) ? count($auditLog) : 0 ?> Catatan</span>
             </div>
             <div class="card-clean-body p-3">
                 <?php if (empty($auditLog)): ?>
