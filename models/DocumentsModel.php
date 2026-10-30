@@ -387,15 +387,15 @@ class DocumentsModel
     }
 
     /**
-     * Update posisi slot tanda tangan penandatangan.
+     * Update posisi slot tanda tangan penandatangan dengan validasi kepemilikan dokumen (anti-IDOR).
      */
-    public function updateSignerSlot(string $signerId, array $slot): bool
+    public function updateSignerSlot(string $signerId, string $documentId, array $slot): bool
     {
         $stmt = $this->db->prepare(
             "UPDATE document_signers
              SET page_number = ?, x_percent = ?, y_percent = ?,
                  width_percent = ?, height_percent = ?
-             WHERE id = ? AND deleted_at IS NULL"
+             WHERE id = ? AND document_id = ? AND deleted_at IS NULL"
         );
         return $stmt->execute([
             $slot['page_number'],
@@ -404,6 +404,7 @@ class DocumentsModel
             $slot['width_percent'],
             $slot['height_percent'],
             $signerId,
+            $documentId,
         ]);
     }
 

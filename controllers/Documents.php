@@ -475,30 +475,37 @@ class Documents
             return;
         }
 
+        // Keamanan State Guard: Slot koordinat hanya dapat dimutasi saat dokumen berstatus Draft
+        if ($doc['status'] !== 'draft') {
+            $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Slot tanda tangan hanya dapat diatur saat status Draft.'];
+            header('Location: ' . BASE_URL . '/documents/' . $id);
+            exit;
+        }
+
         $actionType = $_POST['action_type'] ?? '';
 
-        // Simpan posisi slot koordinat terlebih dahulu jika data koordinat dikirimkan
+        // Simpan posisi slot koordinat jika data koordinat dikirimkan (dengan proteksi Anti-IDOR & Boundary Clamping)
         $slotData = $_POST['slots'] ?? [];
         if (is_array($slotData) && !empty($slotData)) {
             foreach ($slotData as $signerId => $slot) {
-                $this->model->updateSignerSlot($signerId, [
-                    'page_number'    => max(1, (int) ($slot['page_number'] ?? 1)),
-                    'x_percent'      => max(0, min(100, (float) ($slot['x_percent'] ?? 0))),
-                    'y_percent'      => max(0, min(100, (float) ($slot['y_percent'] ?? 0))),
-                    'width_percent'  => max(5, min(50, (float) ($slot['width_percent'] ?? 20))),
-                    'height_percent' => max(3, min(30, (float) ($slot['height_percent'] ?? 10))),
+                $w = max(5.0, min(50.0, (float) ($slot['width_percent'] ?? 20.0)));
+                $h = max(3.0, min(30.0, (float) ($slot['height_percent'] ?? 10.0)));
+                $x = max(0.0, min(100.0 - $w, (float) ($slot['x_percent'] ?? 0.0)));
+                $y = max(0.0, min(100.0 - $h, (float) ($slot['y_percent'] ?? 0.0)));
+                $p = max(1, (int) ($slot['page_number'] ?? 1));
+
+                $this->model->updateSignerSlot((string) $signerId, (string) $id, [
+                    'page_number'    => $p,
+                    'x_percent'      => $x,
+                    'y_percent'      => $y,
+                    'width_percent'  => $w,
+                    'height_percent' => $h,
                 ]);
             }
         }
 
         // ── Aksi 1: Simpan slot koordinat saja ──
         if ($actionType === 'save_slots') {
-            if ($doc['status'] !== 'draft') {
-                $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Slot hanya dapat diatur saat status Draft.'];
-                header('Location: ' . BASE_URL . '/documents/' . $id);
-                exit;
-            }
-
             $_SESSION['flash'] = ['type' => 'success', 'message' => 'Posisi slot tanda tangan berhasil disimpan.'];
             header('Location: ' . BASE_URL . '/documents/' . $id . '/arrange');
             exit;
