@@ -355,7 +355,7 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                     </div>
 
                     <div class="d-flex flex-column gap-2">
-                        <button type="button" id="btnOpenConfirm" class="btn btn-pnj-primary w-100 py-2 fw-semibold" disabled>
+                        <button type="button" id="btnOpenConfirm" class="btn btn-pnj-primary w-100 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalConfirm" disabled>
                             <i class="bi bi-pen-fill me-1.5"></i> Tanda Tangani &amp; Terbitkan
                         </button>
                         <button type="button" class="btn btn-outline-danger w-100 py-2" data-bs-toggle="modal" data-bs-target="#modalDecline">
@@ -371,6 +371,7 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
             </div>
         </div>
     </div>
+</form>
 
     <!-- Modal Konfirmasi Penandatanganan -->
     <div class="modal fade" id="modalConfirm" tabindex="-1" aria-labelledby="modalConfirmLabel" aria-hidden="true">
@@ -449,7 +450,6 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
             </div>
         </div>
     </div>
-</form>
 
 <style>
 @keyframes slotPulse {
@@ -697,8 +697,12 @@ document.addEventListener('DOMContentLoaded', function () {
         resizeCanvas();
         if (hasDrawn) {
             const data = getTrimmedCanvasData();
-            if (data) showSlotPreview(data);
-        } else if (!hasTemplate && !uploadDataUrl) {
+            if (data) {
+                showSlotPreview(data);
+            } else {
+                showSlotPreview(null);
+            }
+        } else {
             showSlotPreview(null);
         }
     });
@@ -726,15 +730,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.getElementById('tab-template-btn').addEventListener('shown.bs.tab', function () {
+        inputMethod.value = 'template';
         if (hasTemplate) {
             const checked = document.querySelector('.template-radio:checked');
             if (checked) {
                 selectedTemplateId = checked.value;
-                inputMethod.value = 'template';
                 showSlotPreview('<?= BASE_URL ?>/user-signatures/' + checked.value + '/preview');
+            } else {
+                showSlotPreview(null);
             }
         } else {
-            inputMethod.value = 'canvas';
+            showSlotPreview(null);
         }
     });
 
@@ -823,6 +829,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (selectedTemplateId && hasTemplate) {
         showSlotPreview('<?= BASE_URL ?>/user-signatures/' + selectedTemplateId + '/preview');
     }
+
+    // ── Buka Modal Konfirmasi (Trigger Ganda Bootstrap + JS) ──
+    btnOpenConfirm.addEventListener('click', function () {
+        if (this.disabled) return;
+        const modalEl = document.getElementById('modalConfirm');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    });
 
     // ── Konfirmasi final (validasi + submit) ──
     btnConfirmSign.addEventListener('click', function () {

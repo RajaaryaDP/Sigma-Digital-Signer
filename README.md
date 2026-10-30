@@ -5,7 +5,7 @@ Repositori ini memuat seluruh kode sumber aplikasi web **SIGMA (Sistem Tanda Tan
 ---
 
 ## ⚠️ PERHATIAN PENGEMBANG & AGENT AI (OpenCode / DeepSeek)
-1. **Status Implementasi:** Task 1 s.d. Task 6 sudah **SELESAI (DONE)**. Tugas saat ini adalah **Task 7: Modul Penandatanganan Berjenjang & Visual Signing**.
+1. **Status Implementasi:** Task 1 s.d. Task 7 sudah **SELESAI (DONE)**. Tugas saat ini adalah **Task 8: Halaman Verifikasi Publik Scan QR (`/verify?token=...`)**.
 2. **Modul Warisan UTS (Legacy Archive):**
    - Modul `controllers/Accounts.php`, `controllers/AccountTypes.php`, `controllers/Actions.php` beserta model dan view terkait adalah **modul arsip latihan UTS**.
    - **JANGAN DIUBAH, JANGAN DIHAPUS, DAN JANGAN DIJADIKAN ACUAN** untuk fitur SIGMA.
