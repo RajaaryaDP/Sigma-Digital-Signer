@@ -28,22 +28,25 @@ Repositori ini memuat seluruh kode sumber aplikasi web **SIGMA (Sistem Tanda Tan
 
 ## 📦 Setup & Perintah Aplikasi
 
-Jalankan perintah ini langsung di dalam folder `MVC_example/`:
+Jalankan perintah ini langsung di dalam folder proyek:
 
 ```bash
 # 1. Pasang dependensi
 composer install
 
-# 2. Migrasi skema database (7 tabel resmi SIGMA)
+# 2. Buat database MySQL kosong sesuai nama di config/database.php
+#    (misalnya melalui Laragon > Database > phpMyAdmin)
+
+# 3. Migrasi skema database SIGMA
 composer migrate
 
-# (Opsi reset ulang database bersih)
+# (Opsi reset ulang: menghapus tabel SIGMA dan data di dalamnya)
 php tools/migrate.php --fresh
 
-# 3. Seeding data awal civitas & akun pengujian
+# 4. Seeding data awal civitas & akun pengujian
 composer seed
 
-# 4. Jalankan development server
+# 5. Jalankan development server
 composer serve
 ```
 

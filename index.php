@@ -54,8 +54,8 @@ $noIdActions = ['create', 'store', 'login', 'logout'];
 
 // Routing alias & default controller
 $rawPage = strtolower($segments[0] ?? '');
-if ($rawPage === '' || $rawPage === 'home') {
-    $page = isset($_SESSION['user']) ? 'documents' : 'auth';
+if ($rawPage === '' || $rawPage === 'home' || $rawPage === 'landing') {
+    $page = 'home';
 } elseif ($rawPage === 'login') {
     $page = 'auth';
 } elseif ($rawPage === 'logout') {
@@ -66,7 +66,7 @@ if ($rawPage === '' || $rawPage === 'home') {
 }
 
 // Public endpoints that do not require authentication
-$publicPages = ['auth', 'verify'];
+$publicPages = ['home', 'auth', 'verify'];
 
 // Global Auth Guard: Redirect unauthenticated user to login
 if (!isset($_SESSION['user']) && !in_array($page, $publicPages, true)) {

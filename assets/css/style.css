@@ -5,30 +5,30 @@
     --pnj-green-700: #0a5c47;
     --pnj-green-600: #0d7359;
     --pnj-green-100: #d1fae5;
-    --pnj-green-50:  #ecfdf5;
+    --pnj-green-50: #ecfdf5;
 
     /* Neutrals & Surfaces */
-    --bg-page:        #f1f5f9;
-    --surface:        #ffffff;
-    --surface-hover:  #f8fafc;
-    --border-subtle:  #e2e8f0;
-    --border-strong:  #cbd5e1;
+    --bg-page: #f1f5f9;
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+    --border-subtle: #e2e8f0;
+    --border-strong: #cbd5e1;
 
     /* Typography Colors */
-    --text-heading:   #0f172a;
-    --text-body:      #334155;
-    --text-muted:     #64748b;
-    --text-light:     #94a3b8;
+    --text-heading: #0f172a;
+    --text-body: #334155;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
 
     /* Functional Accents */
-    --status-amber-bg:   #fef3c7;
+    --status-amber-bg: #fef3c7;
     --status-amber-text: #92400e;
-    --status-green-bg:   #dcfce7;
+    --status-green-bg: #dcfce7;
     --status-green-text: #166534;
-    --status-red-bg:     #fee2e2;
-    --status-red-text:   #991b1b;
-    --status-blue-bg:    #e0f2fe;
-    --status-blue-text:  #0369a1;
+    --status-red-bg: #fee2e2;
+    --status-red-text: #991b1b;
+    --status-blue-bg: #e0f2fe;
+    --status-blue-text: #0369a1;
 
     /* Dimensions & Radii */
     --navbar-h: 68px;
@@ -213,6 +213,37 @@ body {
     border-color: #ef4444;
 }
 
+/* Taskbar Login Button */
+.btn-pnj-login-taskbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #ffffff;
+    color: var(--pnj-green-900);
+    font-weight: 700;
+    font-size: 0.875rem;
+    padding: 0.45rem 1.15rem;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+.btn-pnj-login-taskbar:hover {
+    background: #ecfdf5;
+    color: var(--pnj-green-800);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+    border-color: #a7f3d0;
+}
+
+.btn-pnj-login-taskbar i {
+    font-size: 1rem;
+    color: var(--pnj-green-700);
+}
+
 /* ==========================================================================
    Page Content & Layout
    ========================================================================== */
@@ -378,11 +409,13 @@ body {
         padding: 0.75rem 0;
         gap: 0.75rem;
     }
+
     .pnj-nav-menu {
         overflow-x: auto;
         width: 100%;
         padding-bottom: 0.35rem;
     }
+
     .pnj-user-widget {
         order: 2;
     }
@@ -434,7 +467,7 @@ body {
 /* Checkerboard background for transparent image preview */
 .checkerboard-bg {
     background-color: #ffffff;
-    background-image: 
+    background-image:
         linear-gradient(45deg, #f1f5f9 25%, transparent 25%),
         linear-gradient(-45deg, #f1f5f9 25%, transparent 25%),
         linear-gradient(45deg, transparent 75%, #f1f5f9 75%),
@@ -476,4 +509,324 @@ body {
 .sig-upload-box.dragover {
     border-color: var(--pnj-green-700);
     background: var(--pnj-green-50);
+}
+
+/* ==========================================================================
+   Landing & Introduction Page (SIGMA PNJ)
+   ========================================================================== */
+.landing-hero {
+    background: linear-gradient(135deg, #032b20 0%, #064e3b 55%, #0a5c47 100%);
+    border-radius: var(--radius-lg);
+    color: #ffffff;
+    padding: 3rem 2.25rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(4, 62, 46, 0.25);
+    border: 1px solid rgba(167, 243, 208, 0.2);
+    margin-bottom: 2.25rem;
+}
+
+.landing-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(167, 243, 208, 0.12) 0%, rgba(6, 78, 59, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.landing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(167, 243, 208, 0.15);
+    border: 1px solid rgba(167, 243, 208, 0.35);
+    color: #a7f3d0;
+    padding: 0.4rem 0.9rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 1.25rem;
+}
+
+.landing-title {
+    font-size: 2.35rem;
+    font-weight: 800;
+    line-height: 1.22;
+    letter-spacing: -0.5px;
+    margin-bottom: 1rem;
+    color: #ffffff;
+}
+
+.landing-title span {
+    color: #6ee7b7;
+}
+
+.landing-desc {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #d1fae5;
+    margin-bottom: 1.75rem;
+    max-width: 640px;
+}
+
+.btn-landing-primary {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: #022c22;
+    font-weight: 700;
+    padding: 0.75rem 1.6rem;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    font-size: 0.98rem;
+}
+
+.btn-landing-primary:hover {
+    background-color: #34d399;
+    border-color: #34d399;
+    color: #022c22;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.btn-landing-secondary {
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.75rem 1.4rem;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    font-size: 0.98rem;
+}
+
+.btn-landing-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.22);
+    border-color: #ffffff;
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+/* Certificate Mockup Preview Card */
+.doc-mockup-card {
+    background: #ffffff;
+    color: var(--text-body);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    position: relative;
+}
+
+.doc-mockup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--border-subtle);
+    padding-bottom: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.doc-stamp-valid {
+    border: 2px dashed #059669;
+    color: #059669;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.72rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transform: rotate(-3deg);
+    background: #ecfdf5;
+}
+
+.doc-flow-step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.doc-flow-step.completed {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.doc-flow-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* Landing Section Titles */
+.section-tag {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--pnj-green-700);
+    margin-bottom: 0.35rem;
+    display: inline-block;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    letter-spacing: -0.3px;
+    margin-bottom: 0.75rem;
+}
+
+.section-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    max-width: 680px;
+    margin: 0 auto 2.5rem;
+}
+
+/* Feature Cards */
+.feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 1.6rem 1.4rem;
+    height: 100%;
+    transition: all 0.25s ease;
+    position: relative;
+}
+
+.feature-card:hover {
+    border-color: var(--pnj-green-600);
+    box-shadow: 0 8px 22px rgba(6, 78, 59, 0.08);
+    transform: translateY(-3px);
+}
+
+.feature-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: var(--pnj-green-50);
+    color: var(--pnj-green-700);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 1.15rem;
+    border: 1px solid var(--pnj-green-100);
+    transition: all 0.2s ease;
+}
+
+.feature-card:hover .feature-icon-box {
+    background: var(--pnj-green-700);
+    color: #ffffff;
+    border-color: var(--pnj-green-700);
+}
+
+.feature-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.5rem;
+}
+
+.feature-desc {
+    font-size: 0.88rem;
+    color: var(--text-body);
+    line-height: 1.55;
+    margin-bottom: 0;
+}
+
+/* Step Workflow Cards */
+.workflow-card {
+    background: #ffffff;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    position: relative;
+    height: 100%;
+    transition: all 0.2s ease;
+}
+
+.workflow-card:hover {
+    border-color: var(--pnj-green-600);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+.workflow-number {
+    position: absolute;
+    top: 1rem;
+    right: 1.25rem;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #cbd5e1;
+    line-height: 1;
+}
+
+.workflow-card:hover .workflow-number {
+    color: var(--pnj-green-600);
+}
+
+/* Role Cards */
+.role-badge-card {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    height: 100%;
+}
+
+.role-badge-card:hover {
+    border-color: var(--pnj-green-600);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
+/* Quick Verify Box */
+.quick-verify-banner {
+    background: linear-gradient(135deg, #f8fafc 0%, #ecfdf5 100%);
+    border: 1px solid #a7f3d0;
+    border-radius: var(--radius-lg);
+    padding: 2.25rem 2rem;
+    margin: 2.5rem 0;
+}
+
+/* CTA Bottom Card */
+.landing-cta {
+    background: linear-gradient(135deg, #043e2e 0%, #064e3b 100%);
+    border-radius: var(--radius-lg);
+    color: #ffffff;
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    margin-top: 3rem;
 }

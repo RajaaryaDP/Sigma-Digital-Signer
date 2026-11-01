@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../config/database.php';
 
-$schemaFile = dirname(__DIR__, 2) . '/database/schema.sql';
+$schemaFile = __DIR__ . '/../database/schema.sql';
 
 if (!file_exists($schemaFile)) {
     echo "Error: Schema file not found at {$schemaFile}\n";

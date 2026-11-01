@@ -6,7 +6,7 @@
         "ramsey/uuid": "^4.9",
         "setasign/fpdi": "^2.6",
         "setasign/fpdf": "^1.9",
-        "chillerlan/php-qrcode": "^6.0",
+        "chillerlan/php-qrcode": "^5.0",
         "drainerlight/php-pdf-decompressor": "^0.1.0"
     },
     "scripts": {

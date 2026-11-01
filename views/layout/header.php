@@ -19,11 +19,11 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
 </head>
 <body>
 
-    <!-- PNJ Top Navigation Bar -->
+    <!-- PNJ Top Navigation Bar (Taskbar) -->
     <header class="pnj-navbar">
         <div class="pnj-navbar-inner">
             <!-- Brand Identity -->
-            <a href="<?= $currentUser ? (BASE_URL . '/documents') : (BASE_URL . '/verify') ?>" class="pnj-brand">
+            <a href="<?= BASE_URL ?>/" class="pnj-brand" title="Halaman Utama SIGMA PNJ">
                 <div class="pnj-brand-icon">
                     <i class="bi bi-shield-shaded"></i>
                 </div>
@@ -34,8 +34,15 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
             </a>
 
             <!-- Horizontal Navigation Links -->
-            <nav>
+            <nav class="pnj-nav-container">
                 <ul class="pnj-nav-menu">
+                    <li>
+                        <a href="<?= BASE_URL ?>/" class="pnj-nav-link <?= ($page === 'home' || $page === '') ? 'active' : '' ?>">
+                            <i class="bi bi-house-door"></i>
+                            <span>Beranda</span>
+                        </a>
+                    </li>
+
                     <?php if ($currentUser): ?>
                         <li>
                             <a href="<?= BASE_URL ?>/documents" class="pnj-nav-link <?= ($page === 'documents') ? 'active' : '' ?>">
@@ -59,6 +66,25 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                                 <span>Template TTD</span>
                             </a>
                         </li>
+                    <?php else: ?>
+                        <li>
+                            <a href="<?= BASE_URL ?>/#tentang" class="pnj-nav-link">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Tentang</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?= BASE_URL ?>/#fitur" class="pnj-nav-link">
+                                <i class="bi bi-stars"></i>
+                                <span>Fitur</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?= BASE_URL ?>/#alur" class="pnj-nav-link">
+                                <i class="bi bi-diagram-3"></i>
+                                <span>Alur Kerja</span>
+                            </a>
+                        </li>
                     <?php endif; ?>
 
                     <li>
@@ -70,7 +96,7 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                 </ul>
             </nav>
 
-            <!-- User Profile & Action -->
+            <!-- User Profile & Action (Taskbar Login / User Widget) -->
             <?php if ($currentUser): ?>
                 <div class="pnj-user-widget">
                     <div class="pnj-avatar">
@@ -94,9 +120,9 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                 </div>
             <?php else: ?>
                 <div class="pnj-user-widget">
-                    <a href="<?= BASE_URL ?>/auth" class="btn btn-sm btn-outline-light d-flex align-items-center gap-1.5 fw-semibold px-3 py-1.5" style="border-radius: 8px;">
+                    <a href="<?= BASE_URL ?>/auth" class="btn-pnj-login-taskbar" title="Masuk ke Akun Civitas SIGMA PNJ">
                         <i class="bi bi-box-arrow-in-right"></i>
-                        <span>Masuk Civitas</span>
+                        <span>Login Civitas</span>
                     </a>
                 </div>
             <?php endif; ?>

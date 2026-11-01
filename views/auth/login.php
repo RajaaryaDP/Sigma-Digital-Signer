@@ -138,6 +138,16 @@
 <body>
 
     <div class="login-box">
+        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+            <a href="<?= BASE_URL ?>/" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1.5 fw-semibold">
+                <i class="bi bi-arrow-left"></i>
+                <span>Kembali ke Beranda</span>
+            </a>
+            <a href="<?= BASE_URL ?>/verify" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1">
+                <i class="bi bi-qr-code-scan"></i>
+                <span>Verifikasi QR</span>
+            </a>
+        </div>
         <div class="login-card">
             <!-- Brand Identity -->
             <div class="brand-logo-area">
@@ -182,7 +192,7 @@
                         <input type="email" id="inputEmail" name="email" 
                                class="form-control border-start-0 <?= isset($errors['email']) ? 'is-invalid' : '' ?>" 
                                placeholder="nama@sigma.local"
-                               value="<?= htmlspecialchars($old['email'] ?? 'mahasiswa@sigma.local') ?>" required autofocus>
+                               value="<?= htmlspecialchars($old['email'] ?? ($_GET['email'] ?? 'mahasiswa@sigma.local')) ?>" required autofocus>
                     </div>
                     <?php if (isset($errors['email'])): ?>
                         <div class="invalid-feedback d-block small mt-1"><?= htmlspecialchars($errors['email']) ?></div>
