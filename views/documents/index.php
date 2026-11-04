@@ -5,347 +5,234 @@ $isAdmin = ($user['role'] ?? '') === 'admin';
 $civitasType = $user['civitas_type'] ?? 'civitas';
 
 $statusBadges = [
-    'draft'          => ['class' => 'bg-secondary', 'label' => 'Draft', 'icon' => 'bi-pencil'],
-    'pending_review' => ['class' => 'bg-warning text-dark', 'label' => 'Menunggu Review', 'icon' => 'bi-hourglass-split'],
-    'approved'       => ['class' => 'bg-info text-dark', 'label' => 'Disetujui', 'icon' => 'bi-check2-circle'],
-    'signing'        => ['class' => 'bg-primary', 'label' => 'Proses TTD', 'icon' => 'bi-pen-fill'],
-    'completed'      => ['class' => 'bg-success', 'label' => 'Selesai', 'icon' => 'bi-patch-check-fill'],
-    'rejected'       => ['class' => 'bg-danger', 'label' => 'Ditolak', 'icon' => 'bi-x-octagon-fill'],
+    'draft'          => ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => 'Draft'],
+    'pending_review' => ['class' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle', 'label' => 'Review'],
+    'approved'       => ['class' => 'bg-info-subtle text-info-emphasis border border-info-subtle', 'label' => 'Disetujui'],
+    'signing'        => ['class' => 'bg-primary-subtle text-primary border border-primary-subtle', 'label' => 'Proses'],
+    'completed'      => ['class' => 'bg-success-subtle text-success border border-success-subtle', 'label' => 'Selesai'],
+    'rejected'       => ['class' => 'bg-danger-subtle text-danger border border-danger-subtle', 'label' => 'Ditolak'],
 ];
 ?>
 
-<!-- Header Section (Clean & Minimalist) -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+<!-- Header -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
     <div>
-        <h4 class="fw-bold text-dark mb-1">
-            <?= $isAdmin ? 'Dashboard Dokumen — Administrator' : 'Dokumen Digital Saya' ?>
+        <h4 class="fw-bold text-dark mb-0">
+            <?= $isAdmin ? 'Dashboard Dokumen' : 'Dokumen Saya' ?>
         </h4>
-        <p class="text-muted small mb-0">
-            <?= $isAdmin 
-                ? 'Kelola dan verifikasi seluruh pengajuan dokumen digital civitas Politeknik Negeri Jakarta.' 
-                : 'Kelola pengajuan berkas akademik dan pembubuhan tanda tangan berjenjang kampus.' ?>
-        </p>
     </div>
-
-    <div>
+    <div class="d-flex align-items-center gap-2">
         <?php if ($isAdmin): ?>
-            <a href="<?= BASE_URL ?>/civitas" class="btn btn-subtle">
-                <i class="bi bi-people-fill me-1 text-success"></i> Master Data Civitas
+            <a href="<?= BASE_URL ?>/civitas" class="btn btn-subtle btn-sm">
+                <i class="bi bi-people me-1 text-success"></i> Master Data Civitas
             </a>
         <?php else: ?>
-            <a href="<?= BASE_URL ?>/documents/create" class="btn btn-pnj-primary">
-                <i class="bi bi-cloud-arrow-up me-1"></i> Ajukan Dokumen Baru
+            <a href="<?= BASE_URL ?>/documents/create" class="btn btn-pnj-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Ajukan Dokumen
             </a>
         <?php endif; ?>
     </div>
 </div>
 
-<!-- Compact Stat Summary Cards -->
+<!-- Stat Cards -->
 <div class="row g-3 mb-4">
     <?php if ($isAdmin): ?>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--status-amber-bg); color: var(--status-amber-text);">
-                    <i class="bi bi-hourglass-split"></i>
-                </div>
-                <div>
-                    <div class="stat-val"><?= (int) ($docCounts['pending_review'] ?? 0) ?></div>
-                    <div class="stat-label">Menunggu Review</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <div class="text-muted small mb-1">Menunggu Review</div>
+                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['pending_review'] ?? 0) ?></div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--pnj-green-50); color: var(--pnj-green-800);">
-                    <i class="bi bi-person-vcard"></i>
-                </div>
-                <div>
-                    <div class="stat-val"><?= (int) ($civitasCount ?? 0) ?></div>
-                    <div class="stat-label">Civitas Terdaftar</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <div class="text-muted small mb-1">Dalam Proses</div>
+                <div class="h3 fw-bold text-dark mb-0"><?= (int) (($docCounts['signing'] ?? 0) + ($docCounts['approved'] ?? 0)) ?></div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--status-blue-bg); color: var(--status-blue-text);">
-                    <i class="bi bi-arrow-repeat"></i>
-                </div>
-                <div>
-                    <div class="stat-val"><?= (int) (($docCounts['signing'] ?? 0) + ($docCounts['approved'] ?? 0)) ?></div>
-                    <div class="stat-label">Proses Tanda Tangan</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <div class="text-muted small mb-1">Selesai</div>
+                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['completed'] ?? 0) ?></div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--status-green-bg); color: var(--status-green-text);">
-                    <i class="bi bi-check-circle"></i>
-                </div>
-                <div>
-                    <div class="stat-val"><?= (int) ($docCounts['completed'] ?? 0) ?></div>
-                    <div class="stat-label">Dokumen Selesai</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <div class="text-muted small mb-1">Total Civitas</div>
+                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($civitasCount ?? 0) ?></div>
             </div>
         </div>
     <?php else: ?>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--status-amber-bg); color: var(--status-amber-text);">
-                    <i class="bi bi-pen"></i>
-                </div>
-                <div>
-                    <div class="stat-val"><?= (int) ($pendingSignCount ?? 0) ?></div>
-                    <div class="stat-label">Perlu TTD Anda</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <div class="text-muted small mb-1">Perlu TTD</div>
+                <div class="h3 fw-bold <?= ($pendingSignCount ?? 0) > 0 ? 'text-warning' : 'text-dark' ?> mb-0"><?= (int) ($pendingSignCount ?? 0) ?></div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--pnj-green-50); color: var(--pnj-green-800);">
-                    <i class="bi bi-file-earmark-text"></i>
-                </div>
-                <div>
-                    <div class="stat-val"><?= (int) ($docCounts['total'] ?? 0) ?></div>
-                    <div class="stat-label">Pengajuan Saya</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <div class="text-muted small mb-1">Pengajuan Saya</div>
+                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['total'] ?? 0) ?></div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--status-blue-bg); color: var(--status-blue-text);">
-                    <i class="bi bi-hourglass"></i>
-                </div>
-                <div>
-                    <?php 
-                        $inProgress = ($docCounts['pending_review'] ?? 0) + ($docCounts['approved'] ?? 0) + ($docCounts['signing'] ?? 0);
-                    ?>
-                    <div class="stat-val"><?= (int) $inProgress ?></div>
-                    <div class="stat-label">Dalam Proses</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <?php 
+                    $inProgress = ($docCounts['pending_review'] ?? 0) + ($docCounts['approved'] ?? 0) + ($docCounts['signing'] ?? 0);
+                ?>
+                <div class="text-muted small mb-1">Dalam Proses</div>
+                <div class="h3 fw-bold text-dark mb-0"><?= (int) $inProgress ?></div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: var(--status-green-bg); color: var(--status-green-text);">
-                    <i class="bi bi-file-earmark-check"></i>
-                </div>
-                <div>
-                    <div class="stat-val"><?= (int) ($docCounts['completed'] ?? 0) ?></div>
-                    <div class="stat-label">Dokumen Selesai</div>
-                </div>
+        <div class="col-6 col-md-3">
+            <div class="card-clean p-3">
+                <div class="text-muted small mb-1">Selesai</div>
+                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['completed'] ?? 0) ?></div>
             </div>
         </div>
     <?php endif; ?>
 </div>
 
-<!-- Alert Antrean Verifikasi Admin (Jika Ada Dokumen pending_review) -->
+<!-- Admin Notification: Pending Review -->
 <?php if ($isAdmin && ($docCounts['pending_review'] ?? 0) > 0 && ($statusFilter !== 'pending_review')): ?>
-<div class="alert alert-warning py-3 px-3 mb-4 d-flex align-items-center justify-content-between gap-2.5" style="border-radius: var(--radius-md);">
-    <div class="d-flex align-items-center gap-2.5">
-        <i class="bi bi-shield-exclamation text-warning fs-4"></i>
-        <div>
-            <h6 class="fw-bold mb-0.5 text-dark">Terdapat <?= (int)$docCounts['pending_review'] ?> Pengajuan Dokumen Menunggu Review Admin</h6>
-            <p class="mb-0 small text-dark">
-                Periksa kelayakan berkas PDF dan susunan slot tanda tangan civitas sebelum memberikan persetujuan.
-            </p>
+    <div class="alert alert-warning py-2 px-3 mb-4 d-flex align-items-center justify-content-between small" style="border-radius: var(--radius-sm);">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-exclamation text-warning"></i>
+            <span>Ada <strong><?= (int)$docCounts['pending_review'] ?></strong> dokumen menunggu review.</span>
         </div>
+        <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn btn-warning btn-sm py-0.5 px-2.5 text-dark fw-semibold" style="font-size: 0.8rem;">
+            Tinjau &rarr;
+        </a>
     </div>
-    <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn btn-warning btn-sm text-dark fw-semibold px-3 flex-shrink-0">
-        <i class="bi bi-list-check me-1"></i> Buka Antrean Review
-    </a>
-</div>
 <?php endif; ?>
 
-<!-- Alert Tugas Penandatanganan Aktif (Jika Ada Dokumen Perlu TTD User) -->
+<!-- User Notification: Pending Signature -->
 <?php if (!$isAdmin && !empty($pendingSignDocs)): ?>
-<div class="alert alert-warning py-3 px-3 mb-4 d-flex align-items-start gap-2.5" style="border-radius: var(--radius-md);">
-    <i class="bi bi-exclamation-circle-fill text-warning fs-5 mt-0.5"></i>
-    <div class="flex-grow-1">
-        <h6 class="fw-bold mb-1 text-dark">Tugas Tanda Tangan Menunggu Giliran Anda</h6>
-        <p class="mb-2 small text-dark">
-            Terdapat <strong><?= count($pendingSignDocs) ?> dokumen</strong> yang saat ini aktif menunggu tanda tangan Anda sebagai penandatangan resmi.
-        </p>
+    <div class="card-clean p-3 mb-4 border-warning" style="background: #fffdf5;">
+        <div class="small fw-semibold text-dark mb-2 d-flex align-items-center gap-1.5">
+            <i class="bi bi-pen text-warning"></i>
+            <span>Menunggu Tanda Tangan Anda (<?= count($pendingSignDocs) ?>)</span>
+        </div>
         <div class="d-flex flex-wrap gap-2">
             <?php foreach ($pendingSignDocs as $psd): ?>
-                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($psd['id']) ?>/sign" class="btn btn-warning btn-sm py-1 px-2.5 text-dark fw-semibold">
-                    <i class="bi bi-pen me-1"></i> Tanda Tangani: <?= htmlspecialchars($psd['title']) ?> (Step <?= $psd['step_order'] ?>)
+                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($psd['id']) ?>/sign" class="btn btn-sm btn-warning text-dark fw-medium py-1 px-2.5" style="font-size: 0.82rem;">
+                    <?= htmlspecialchars($psd['title']) ?> &rarr;
                 </a>
             <?php endforeach; ?>
         </div>
     </div>
-</div>
 <?php endif; ?>
 
-<!-- Antrean Menunggu Giliran Sebelumnya (Tombol Terkunci) -->
-<?php if (!$isAdmin && !empty($waitingSignDocs)): ?>
-<div class="alert alert-secondary py-3 px-3 mb-4 d-flex align-items-start gap-2.5" style="border-radius: var(--radius-md);">
-    <i class="bi bi-clock-history text-secondary fs-5 mt-0.5"></i>
-    <div class="flex-grow-1">
-        <h6 class="fw-bold mb-1 text-dark">Menunggu Giliran Sebelumnya</h6>
-        <p class="mb-2 small text-muted">
-            Dokumen berikut masih menunggu penandatangan lain pada urutan jenjang sebelum giliran Anda.
-        </p>
-        <div class="d-flex flex-wrap gap-2">
-            <?php foreach ($waitingSignDocs as $wsd): ?>
-                <span class="d-inline-block"
-                      title="Menunggu tanda tangan: <?= htmlspecialchars($wsd['current_signer_name'] ?? 'penandatangan sebelumnya') ?>">
-                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5" disabled style="pointer-events: none;">
-                        <i class="bi bi-lock me-1"></i>
-                        <?= htmlspecialchars($wsd['title']) ?> (Step <?= $wsd['step_order'] ?>)
-                    </button>
-                </span>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
-
-<!-- Main Table / Document Queue Card -->
+<!-- Main Documents Table -->
 <div class="card-clean mb-4">
-    <div class="card-clean-header flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-            <span class="fw-semibold text-dark">
-                <i class="bi bi-table me-1.5 text-muted"></i>
-                <?= $isAdmin ? 'Antrean Dokumen Masuk' : 'Daftar Pengajuan Dokumen' ?>
-            </span>
-            <span class="badge bg-light text-muted border">
-                <?= count($documents) ?> Dokumen
-            </span>
+    <div class="card-clean-header flex-wrap gap-2 justify-content-between align-items-center">
+        <div class="fw-semibold text-dark">
+            <?= $isAdmin ? 'Antrean Dokumen' : 'Daftar Dokumen' ?>
+            <span class="text-muted fw-normal small ms-1">(<?= count($documents) ?>)</span>
         </div>
 
         <!-- Filter Status Tab -->
         <div class="d-flex flex-wrap gap-1">
-            <a href="<?= BASE_URL ?>/documents" 
-               class="btn btn-sm <?= empty($statusFilter) ? 'btn-pnj-primary' : 'btn-subtle' ?>">
-                Semua
-            </a>
-            <a href="<?= BASE_URL ?>/documents?status=draft" 
-               class="btn btn-sm <?= ($statusFilter === 'draft') ? 'btn-pnj-primary' : 'btn-subtle' ?>">
-                Draft
-            </a>
-            <a href="<?= BASE_URL ?>/documents?status=pending_review" 
-               class="btn btn-sm <?= ($statusFilter === 'pending_review') ? 'btn-pnj-primary' : 'btn-subtle' ?>">
-                Review Admin
-            </a>
-            <a href="<?= BASE_URL ?>/documents?status=signing" 
-               class="btn btn-sm <?= ($statusFilter === 'signing') ? 'btn-pnj-primary' : 'btn-subtle' ?>">
-                Proses TTD
-            </a>
-            <a href="<?= BASE_URL ?>/documents?status=completed" 
-               class="btn btn-sm <?= ($statusFilter === 'completed') ? 'btn-pnj-primary' : 'btn-subtle' ?>">
-                Selesai
-            </a>
-            <a href="<?= BASE_URL ?>/documents?status=rejected" 
-               class="btn btn-sm <?= ($statusFilter === 'rejected') ? 'btn-pnj-primary' : 'btn-subtle' ?>">
-                Ditolak
-            </a>
+            <?php
+            $filters = [
+                ''               => 'Semua',
+                'draft'          => 'Draft',
+                'pending_review' => 'Review',
+                'signing'        => 'Proses',
+                'completed'      => 'Selesai',
+                'rejected'       => 'Ditolak',
+            ];
+            foreach ($filters as $key => $lbl):
+                $active = ($statusFilter === $key || ($key === '' && empty($statusFilter)));
+            ?>
+                <a href="<?= BASE_URL ?>/documents<?= $key ? '?status=' . $key : '' ?>" 
+                   class="btn btn-sm <?= $active ? 'btn-pnj-primary' : 'btn-subtle' ?> py-1 px-2.5" 
+                   style="font-size: 0.78rem;">
+                    <?= $lbl ?>
+                </a>
+            <?php endforeach; ?>
         </div>
     </div>
 
     <?php if (empty($documents)): ?>
-        <!-- Empty State Content -->
-        <div class="p-5 text-center">
-            <div class="text-muted mb-2" style="font-size: 2.5rem; opacity: 0.4;">
-                <i class="bi bi-inbox"></i>
-            </div>
-            <h6 class="fw-semibold text-dark mb-1">
-                <?= !empty($statusFilter) ? 'Tidak Ada Dokumen dengan Status Tersebut' : 'Belum Ada Dokumen Aktif' ?>
-            </h6>
-            <p class="text-muted small mb-3" style="max-width: 480px; margin: 0 auto;">
-                <?= $isAdmin 
-                    ? 'Seluruh pengajuan berkas dari mahasiswa atau staf akan muncul di antrean ini untuk diverifikasi.' 
-                    : 'Mulai dengan mengunggah berkas PDF untuk diajukan secara berjenjang atau ditandatangani mandiri.' ?>
-            </p>
-            <?php if (!$isAdmin): ?>
+        <div class="py-5 text-center text-muted">
+            <i class="bi bi-inbox fs-2 opacity-50 d-block mb-2"></i>
+            <p class="small mb-2"><?= !empty($statusFilter) ? 'Tidak ada dokumen dengan status ini.' : 'Belum ada dokumen.' ?></p>
+            <?php if (!$isAdmin && empty($statusFilter)): ?>
                 <a href="<?= BASE_URL ?>/documents/create" class="btn btn-pnj-primary btn-sm">
-                    <i class="bi bi-plus-lg me-1"></i> Buat Pengajuan Baru
+                    <i class="bi bi-plus-lg me-1"></i> Ajukan Dokumen
                 </a>
             <?php endif; ?>
         </div>
     <?php else: ?>
-        <!-- Data Table -->
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr style="font-size: 0.75rem;">
-                        <th class="text-center" style="width: 50px;">#</th>
+                        <th class="text-center" style="width: 40px;">#</th>
                         <th>Judul Dokumen</th>
                         <?php if ($isAdmin): ?>
                             <th>Pengaju</th>
                         <?php endif; ?>
-                        <th>Tipe Alur</th>
+                        <th>Tipe</th>
                         <th class="text-center">Status</th>
-                        <th>Tanggal Unggah</th>
-                        <th class="text-end" style="width: 140px;">Aksi</th>
+                        <th>Tanggal</th>
+                        <th class="text-end" style="width: 120px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($documents as $idx => $doc): ?>
                         <?php 
-                            $badge = $statusBadges[$doc['status']] ?? ['class' => 'bg-secondary', 'label' => ucfirst($doc['status']), 'icon' => 'bi-circle'];
+                            $badge = $statusBadges[$doc['status']] ?? ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => ucfirst($doc['status'])];
                             $isPendingReviewAdmin = ($isAdmin && $doc['status'] === 'pending_review');
                         ?>
                         <tr class="<?= $isPendingReviewAdmin ? 'table-warning' : '' ?>">
                             <td class="text-center text-muted small"><?= $idx + 1 ?></td>
                             <td>
-                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" class="fw-bold text-dark text-decoration-none d-block">
+                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" class="fw-semibold text-dark text-decoration-none">
                                     <?= htmlspecialchars($doc['title']) ?>
                                 </a>
-                                <small class="text-muted">
-                                    <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>
+                                <div class="text-muted small" style="font-size: 0.75rem;">
                                     <?= htmlspecialchars($doc['file_name_original']) ?>
-                                    (<?= number_format($doc['file_size'] / 1024, 1) ?> KB)
-                                </small>
+                                </div>
                             </td>
                             <?php if ($isAdmin): ?>
-                                <td class="small">
-                                    <i class="bi bi-person me-1 text-muted"></i>
+                                <td class="small text-muted">
                                     <?= htmlspecialchars($doc['uploader_name']) ?>
                                 </td>
                             <?php endif; ?>
-                            <td class="small">
-                                <?php if ($doc['signature_type'] === 'single'): ?>
-                                    <span class="badge bg-light text-dark border">
-                                        <i class="bi bi-person-check me-1"></i> Mandiri
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge bg-light text-primary border">
-                                        <i class="bi bi-diagram-3 me-1"></i> Berjenjang (Step <?= $doc['current_step'] ?>)
-                                    </span>
-                                <?php endif; ?>
+                            <td class="small text-muted">
+                                <?= $doc['signature_type'] === 'single' ? 'Mandiri' : 'Berjenjang (Step ' . (int)$doc['current_step'] . ')' ?>
                             </td>
                             <td class="text-center">
-                                <span class="badge <?= $badge['class'] ?>" style="font-size: 0.75rem;">
-                                    <i class="bi <?= $badge['icon'] ?> me-1"></i>
+                                <span class="badge <?= $badge['class'] ?> fw-normal" style="font-size: 0.72rem; padding: 0.3em 0.6em;">
                                     <?= htmlspecialchars($badge['label']) ?>
                                 </span>
                             </td>
                             <td class="small text-muted">
-                                <?= date('d M Y, H:i', strtotime($doc['created_at'])) ?>
+                                <?= date('d/m/Y', strtotime($doc['created_at'])) ?>
                             </td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
                                     <?php if ($isPendingReviewAdmin): ?>
                                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
-                                           class="btn btn-warning btn-sm py-1 px-2.5 text-dark fw-semibold" title="Tinjau & Verifikasi Dokumen">
-                                            <i class="bi bi-shield-check me-1"></i> Tinjau
+                                           class="btn btn-warning btn-sm py-0.5 px-2 text-dark fw-medium" style="font-size: 0.78rem;">
+                                            Tinjau
+                                        </a>
+                                    <?php elseif ($doc['status'] === 'draft' && !$isAdmin): ?>
+                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" 
+                                           class="btn btn-subtle btn-sm py-0.5 px-2" style="font-size: 0.78rem;">
+                                            Atur Slot
                                         </a>
                                     <?php else: ?>
                                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
-                                           class="btn btn-subtle btn-sm py-1 px-2" title="Lihat detail dokumen">
-                                            <i class="bi bi-eye"></i>
+                                           class="btn btn-subtle btn-sm py-0.5 px-2" style="font-size: 0.78rem;">
+                                            Detail
                                         </a>
                                     <?php endif; ?>
                                     <?php if ($doc['status'] === 'completed'): ?>
                                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" 
-                                           class="btn btn-outline-success btn-sm py-1 px-2" title="Unduh Berkas PDF Final Berstempel">
-                                            <i class="bi bi-file-earmark-arrow-down"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if ($doc['status'] === 'draft' && !$isAdmin): ?>
-                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" 
-                                           class="btn btn-pnj-primary btn-sm py-1 px-2" title="Atur slot tanda tangan">
-                                            <i class="bi bi-aspect-ratio"></i>
+                                           class="btn btn-subtle btn-sm py-0.5 px-2 text-success" style="font-size: 0.78rem;" title="Unduh PDF">
+                                            <i class="bi bi-download"></i>
                                         </a>
                                     <?php endif; ?>
                                 </div>

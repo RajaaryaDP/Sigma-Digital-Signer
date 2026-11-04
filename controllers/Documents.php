@@ -941,6 +941,32 @@ class Documents
         // Snapshot biodata resmi civitas penandatangan (ADR-03 — immutable)
         $userProfile = $this->usersModel->getById($this->userId);
 
+        // Penyesuaian halaman dan posisi slot tanda tangan dari antarmuka penandatanganan
+        $effectivePage   = (int) ($signer['page_number'] ?: 1);
+        $effectiveX      = (float) $signer['x_percent'];
+        $effectiveY      = (float) $signer['y_percent'];
+        $effectiveWidth  = (float) $signer['width_percent'] > 0 ? (float) $signer['width_percent'] : 20.0;
+        $effectiveHeight = (float) $signer['height_percent'] > 0 ? (float) $signer['height_percent'] : 10.0;
+
+        if (isset($_POST['slot_page_number']) && (int) $_POST['slot_page_number'] >= 1) {
+            $effectivePage = (int) $_POST['slot_page_number'];
+            if (isset($_POST['slot_x_percent']) && $_POST['slot_x_percent'] !== '') {
+                $effectiveX = max(0.0, min(100.0 - $effectiveWidth, (float) $_POST['slot_x_percent']));
+            }
+            if (isset($_POST['slot_y_percent']) && $_POST['slot_y_percent'] !== '') {
+                $effectiveY = max(0.0, min(100.0 - $effectiveHeight, (float) $_POST['slot_y_percent']));
+            }
+
+            // Sinkronisasi pembaruan ke tabel document_signers
+            $this->model->updateSignerSlot((string) $signer['id'], (string) $doc['id'], [
+                'page_number'    => $effectivePage,
+                'x_percent'      => $effectiveX,
+                'y_percent'      => $effectiveY,
+                'width_percent'  => $effectiveWidth,
+                'height_percent' => $effectiveHeight,
+            ]);
+        }
+
         try {
             $result = $this->signaturesModel->signDocument([
                 'id'                         => $signatureId,
@@ -950,11 +976,11 @@ class Documents
                 'civitas_id'                 => $userProfile['civitas_id'] ?? null,
                 'document_signer_id'         => $signer['id'],
                 'signature_image_path'       => $dbPath,
-                'page_number'                => (int) $signer['page_number'],
-                'x_percent'                  => (float) $signer['x_percent'],
-                'y_percent'                  => (float) $signer['y_percent'],
-                'width_percent'              => (float) $signer['width_percent'],
-                'height_percent'             => (float) $signer['height_percent'],
+                'page_number'                => $effectivePage,
+                'x_percent'                  => $effectiveX,
+                'y_percent'                  => $effectiveY,
+                'width_percent'              => $effectiveWidth,
+                'height_percent'             => $effectiveHeight,
                 'signer_name_snapshot'       => $userProfile['civitas_name'] ?: $userProfile['name'],
                 'signer_identifier_snapshot' => $userProfile['civitas_identifier'] ?? null,
                 'signer_type_snapshot'       => $userProfile['civitas_type'] ?? null,

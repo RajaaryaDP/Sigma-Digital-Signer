@@ -1,7 +1,12 @@
 <?php
 $title = 'Tanda Tangani Dokumen — ' . htmlspecialchars($doc['title']) . ' — SIGMA';
 require_once __DIR__ . '/../layout/header.php';
+?>
 
+<!-- Pustaka Mozilla PDF.js untuk rendering lembar dokumen langsung di kanvas interaktif (ADR-09) -->
+<script src="<?= BASE_URL ?>/assets/js/pdf.min.js"></script>
+
+<?php
 // Slot milik penandatangan aktif (terkunci, ADR-08)
 $slotX    = (float) $signer['x_percent'];
 $slotY    = (float) $signer['y_percent'];
@@ -90,97 +95,189 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
 <form id="signForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/sign" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="input_method" id="inputMethod" value="<?= htmlspecialchars($restoreTab === 'canvas' || $restoreTab === 'upload' ? $restoreTab : 'template') ?>">
     <input type="hidden" name="signature_canvas" id="signatureCanvasInput">
+    <input type="hidden" name="slot_page_number" id="slotPageNumberInput" value="<?= $pageNo ?>">
+    <input type="hidden" name="slot_x_percent" id="slotXInput" value="<?= number_format($slotX, 1, '.', '') ?>">
+    <input type="hidden" name="slot_y_percent" id="slotYInput" value="<?= number_format($slotY, 1, '.', '') ?>">
 
     <div class="row g-4">
-        <!-- Kolom Kiri: Pratinjau Dokumen & Slot Terkunci -->
+        <!-- Kolom Kiri: Pratinjau Dokumen Interaktif & Slot Terkunci (ADR-09) -->
         <div class="col-lg-7">
             <div class="card-clean mb-4">
-                <div class="card-clean-header py-2.5 px-3 d-flex justify-content-between align-items-center">
+                <div class="card-clean-header py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
-                        <i class="bi bi-file-earmark-pdf text-danger"></i>
-                        <span>Pratinjau Lembar Berkas Dokumen</span>
+                        <i class="bi bi-file-earmark-check text-success"></i>
+                        <span>Pratinjau Dokumen &amp; Penempatan Slot Tanda Tangan</span>
                     </span>
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
-                        <i class="bi bi-arrows-fullscreen me-1"></i> Layar Penuh
-                    </a>
-                </div>
-                <div class="card-clean-body p-0">
-                    <iframe src="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview"
-                            style="width: 100%; height: 460px; border: none;" title="Pratinjau PDF"></iframe>
-                </div>
-            </div>
 
-            <div class="card-clean mb-4">
-                <div class="card-clean-header py-2.5 px-3 d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
-                        <i class="bi bi-bounding-box text-success"></i>
-                        <span>Slot Tanda Tangan Anda — Halaman <?= $pageNo ?> (Terkunci)</span>
-                    </span>
-                    <span class="badge bg-light text-dark border"><i class="bi bi-lock me-1"></i>Dikunci Pengaju</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Toolbar Navigasi Halaman PDF -->
+                        <div class="btn-group btn-group-sm" role="group" id="pdfNavToolbar">
+                            <button type="button" class="btn btn-outline-secondary" id="btnPrevPage" title="Halaman Sebelumnya" disabled>
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <span class="btn btn-outline-secondary disabled text-dark fw-medium px-2.5" id="pageIndicator" style="font-size: 0.75rem;">
+                                Hal <span id="pageNumDisplay"><?= $pageNo ?></span> dari <span id="pageTotalDisplay">1</span>
+                            </span>
+                            <button type="button" class="btn btn-outline-secondary" id="btnNextPage" title="Halaman Berikutnya" disabled>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <!-- Tombol Pindahkan Slot ke Halaman Aktif -->
+                        <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnToolbarMoveSlot" title="Pindahkan slot tanda tangan ke halaman ini">
+                            <i class="bi bi-geo-alt me-1"></i> Tempatkan di Hal <span id="toolbarMoveTargetPage"><?= $pageNo ?></span>
+                        </button>
+
+                        <!-- Buka Layar Penuh -->
+                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
+                            <i class="bi bi-arrows-fullscreen me-1"></i> Layar Penuh
+                        </a>
+                    </div>
                 </div>
-                <div class="card-clean-body p-3 bg-light text-center">
-                    <!-- Kanvas Representasi Lembar PDF (Rasio A4 = 1 : 1.414) -->
-                    <div class="d-inline-block text-start" style="max-width: 100%;">
-                        <div id="slotCanvasContainer" class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden"
-                             style="width: 480px; height: 678px; max-width: 100%;">
-                            <!-- Watermark latar lembar -->
-                            <div class="position-absolute w-100 h-100 d-flex flex-column align-items-center justify-content-center pointer-events-none opacity-25" style="user-select: none;">
+
+                <div class="card-clean-body p-3 bg-light text-center position-relative" style="min-height: 480px;">
+                    <!-- Loading Spinner saat PDF.js memuat lembar berkas -->
+                    <div id="pdfLoadingSpinner" class="py-5 text-center">
+                        <div class="spinner-border text-success" role="status" style="width: 2.5rem; height: 2.5rem;">
+                            <span class="visually-hidden">Memuat PDF...</span>
+                        </div>
+                        <div class="text-muted small mt-2 fw-medium">Memuat halaman dokumen PDF asli...</div>
+                    </div>
+
+                    <!-- Alert Fallback jika PDF.js gagal atau offline -->
+                    <div id="pdfFallbackAlert" class="alert alert-warning py-2 px-3 small d-none text-start mb-3" style="border-radius: var(--radius-md);">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat melihat slot tanda tangan pada representasi lembar di bawah ini.
+                    </div>
+
+                    <!-- Notifikasi Cepat jika Penandatangan Sedang di Halaman Lain -->
+                    <div id="slotPageNotice" class="alert alert-warning border py-2 px-3 small d-none text-start mb-2 align-items-center justify-content-between flex-wrap gap-2" style="border-radius: var(--radius-sm);">
+                        <span>
+                            <i class="bi bi-info-circle-fill text-warning me-1"></i>
+                            Slot tanda tangan Anda berada di <strong>Halaman <span id="slotCurrentPageNotice"><?= $pageNo ?></span></strong>.
+                        </span>
+                        <div class="d-flex align-items-center gap-1.5">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnJumpToSlotPage">
+                                <i class="bi bi-arrow-left-circle me-1"></i> Buka Hal <span id="jumpTargetPage"><?= $pageNo ?></span>
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm py-0.5 px-2 fw-semibold text-white" id="btnMoveToCurrentPage">
+                                <i class="bi bi-geo-alt-fill me-1"></i> Tempatkan Slot di Halaman Ini (<span id="btnMoveTargetPage">1</span>)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Wadah Kanvas Interaktif Terpadu -->
+                    <div id="pdfStageContainer" class="d-inline-block text-start position-relative d-none" style="max-width: 100%;">
+                        <div id="slotCanvasContainer" class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden" style="cursor: crosshair;">
+                            <!-- Canvas Elemen PDF Asli (dirender oleh PDF.js) -->
+                            <canvas id="pdfSignRenderCanvas" style="display: block; width: 100%; height: auto;"></canvas>
+
+                            <!-- Watermark Latar (Hanya aktif jika PDF.js fallback) -->
+                            <div id="fallbackWatermark" class="position-absolute w-100 h-100 d-none flex-column align-items-center justify-content-center pointer-events-none opacity-25" style="user-select: none;">
                                 <i class="bi bi-file-earmark-text display-1 text-muted"></i>
                                 <span class="fw-semibold text-muted small mt-2">Lembar Halaman <?= $pageNo ?></span>
                             </div>
 
-                            <!-- Kotak slot milik penandatangan lain (teredam) -->
-                            <?php foreach ($allSigners as $s): ?>
-                                <?php if ($s['id'] === $signer['id']) continue; ?>
-                                <?php
-                                    $ox = (float) $s['x_percent'];
-                                    $oy = (float) $s['y_percent'];
-                                    $ow = (float) $s['width_percent'] > 0 ? (float) $s['width_percent'] : 20.0;
-                                    $oh = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
-                                    if ($ox == 0 && $oy == 0) continue;
-                                ?>
-                                <div class="position-absolute rounded border bg-light d-flex flex-column align-items-center justify-content-center"
-                                     style="left: <?= $ox ?>%; top: <?= $oy ?>%; width: <?= $ow ?>%; height: <?= $oh ?>%;
-                                            border-color: #cbd5e1 !important; border-width: 1px !important; opacity: 0.55; z-index: 5;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.6rem; max-width: 95%;">
-                                        <i class="bi bi-lock-fill me-0.5"></i><?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
+                            <!-- Overlay Lapisan Kotak Slot Tanda Tangan (Persis di atas PDF) -->
+                            <div id="slotOverlayContainer" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;">
+                                
+                                <!-- 1. Tanda Tangan yang Sudah Ditempatkan oleh Pihak Sebelumnya ($signaturesPlaced) -->
+                                <?php if (!empty($signaturesPlaced)): ?>
+                                    <?php foreach ($signaturesPlaced as $sig): ?>
+                                        <?php
+                                            $sx = (float) $sig['x_percent'];
+                                            $sy = (float) $sig['y_percent'];
+                                            $sw = (float) $sig['width_percent'] > 0 ? (float) $sig['width_percent'] : 20.0;
+                                            $sh = (float) $sig['height_percent'] > 0 ? (float) $sig['height_percent'] : 10.0;
+                                            $sp = (int) $sig['page_number'] > 0 ? (int) $sig['page_number'] : 1;
+                                        ?>
+                                        <div class="position-absolute rounded border text-center overflow-hidden bg-white shadow-xs"
+                                             data-page="<?= $sp ?>"
+                                             style="left: <?= $sx ?>%; top: <?= $sy ?>%; width: <?= $sw ?>%; height: <?= $sh ?>%;
+                                                    border-color: #10b981 !important; border-width: 1.5px !important; z-index: 15; pointer-events: auto;"
+                                             title="Telah ditandatangani oleh <?= htmlspecialchars($sig['signer_name_snapshot']) ?>">
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle position-absolute top-0 start-0 m-1 px-1 py-0.5" style="font-size: 0.58rem; z-index: 5;">
+                                                <i class="bi bi-check-circle-fill me-0.5"></i> <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                            </span>
+                                            <div class="position-absolute" style="inset: 8% 8% 18% 8%;">
+                                                <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
+                                                     alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                                     style="width: 100%; height: 100%; object-fit: contain;">
+                                            </div>
+                                            <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center bg-white shadow-xs rounded border border-success-subtle text-success"
+                                                 style="width: 16%; height: 16%; min-width: 24px; min-height: 24px; font-size: 0.65rem; z-index: 5;"
+                                                 title="QR Verifikasi Resmi">
+                                                <i class="bi bi-qr-code"></i>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
 
-                            <!-- Slot aktif milik penandatangan saat ini -->
-                            <div id="activeSlotBox" class="position-absolute rounded border text-center overflow-hidden"
-                                 style="left: <?= $slotX ?>%; top: <?= $slotY ?>%; width: <?= $slotW ?>%; height: <?= $slotH ?>%;
-                                        background-color: rgba(16, 185, 129, 0.08); border-color: #059669 !important; border-width: 2px !important;
-                                        z-index: 10; animation: slotPulse 2.2s ease-in-out infinite;">
-                                <span class="badge bg-success position-absolute top-0 start-0 m-1 px-1.5 py-0.5" style="font-size: 0.62rem;">
-                                    Slot Anda &bull; Step <?= (int) $signer['step_order'] ?>
-                                </span>
-                                <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
-                                <div class="position-absolute" style="inset: 8% 8% 18% 8%;">
-                                    <img id="slotPreviewImg" src="" alt="Pratinjau tanda tangan"
-                                         class="d-none"
-                                         style="width: 100%; height: 100%; object-fit: contain;"
-                                         title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
-                                    <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
-                                        <span class="text-muted" style="font-size: 0.65rem;">
-                                            <i class="bi bi-pen me-1"></i>Pilih metode tanda tangan untuk melihat pratinjau
+                                <!-- 2. Kotak Slot Milik Penandatangan Lain yang Sedang Menunggu Giliran -->
+                                <?php foreach ($allSigners as $s): ?>
+                                    <?php
+                                        if ($s['id'] === $signer['id'] || $s['status'] === 'signed') continue;
+                                        $ox = (float) $s['x_percent'];
+                                        $oy = (float) $s['y_percent'];
+                                        $ow = (float) $s['width_percent'] > 0 ? (float) $s['width_percent'] : 20.0;
+                                        $oh = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
+                                        $op = (int) $s['page_number'] > 0 ? (int) $s['page_number'] : 1;
+                                        if ($ox == 0 && $oy == 0) continue;
+                                    ?>
+                                    <div class="position-absolute rounded border bg-light d-flex flex-column align-items-center justify-content-center"
+                                         data-page="<?= $op ?>"
+                                         style="left: <?= $ox ?>%; top: <?= $oy ?>%; width: <?= $ow ?>%; height: <?= $oh ?>%;
+                                                border-color: #cbd5e1 !important; border-width: 1px dashed !important; opacity: 0.7; z-index: 10; pointer-events: auto;">
+                                        <span class="badge bg-light text-muted border text-truncate mb-0.5" style="font-size: 0.58rem; max-width: 95%;">
+                                            <i class="bi bi-clock me-0.5"></i>Step <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
                                         </span>
+                                        <span class="text-muted" style="font-size: 0.55rem;">[Menunggu Giliran]</span>
+                                    </div>
+                                <?php endforeach; ?>
+
+                                <!-- 3. Slot Aktif Milik Penandatangan Saat Ini (Terkunci & Live Preview) -->
+                                <div id="activeSlotBox" class="position-absolute rounded border text-center overflow-hidden"
+                                     data-page="<?= $pageNo ?>"
+                                     style="left: <?= $slotX ?>%; top: <?= $slotY ?>%; width: <?= $slotW ?>%; height: <?= $slotH ?>%;
+                                            background-color: rgba(16, 185, 129, 0.08); border-color: #059669 !important; border-width: 2px !important;
+                                            z-index: 20; animation: slotPulse 2.2s ease-in-out infinite; pointer-events: auto;">
+                                    <span class="badge bg-success position-absolute top-0 start-0 m-1 px-1.5 py-0.5" style="font-size: 0.62rem; z-index: 5;">
+                                        Slot Anda &bull; Step <?= (int) $signer['step_order'] ?>
+                                    </span>
+                                    <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
+                                    <div class="position-absolute" style="inset: 8% 8% 18% 8%;">
+                                        <img id="slotPreviewImg" src="" alt="Pratinjau tanda tangan"
+                                             class="d-none"
+                                             style="width: 100%; height: 100%; object-fit: contain;"
+                                             title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
+                                        <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                            <span class="text-muted" style="font-size: 0.65rem;">
+                                                <i class="bi bi-pen me-1"></i>Pilih metode tanda tangan untuk melihat pratinjau
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <!-- Stempel QR placeholder -->
+                                    <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
+                                         style="width: 16%; height: 16%; min-width: 28px; min-height: 28px; font-size: 0.7rem; z-index: 5;"
+                                         title="QR Code verifikasi akan dibubuhkan otomatis di samping tanda tangan">
+                                        <i class="bi bi-qr-code text-dark"></i>
+                                        <span style="font-size: 0.45rem; line-height: 1;">QR</span>
                                     </div>
                                 </div>
-                                <!-- Stempel QR placeholder -->
-                                <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
-                                     style="width: 16%; height: 16%; min-width: 28px; min-height: 28px; font-size: 0.7rem;"
-                                     title="QR Code verifikasi akan dibubuhkan otomatis di samping tanda tangan">
-                                    <i class="bi bi-qr-code text-dark"></i>
-                                    <span style="font-size: 0.45rem; line-height: 1;">QR</span>
-                                </div>
+
                             </div>
                         </div>
                     </div>
-                    <div class="text-muted mt-2" style="font-size: 0.75rem;">
-                        <i class="bi bi-hand-index-thumb me-1"></i>
-                        Posisi slot dikunci oleh pengaju. Pratinjau tanda tangan tampil di tengah kotak dengan rasio aspek asli (fit-contain).
+
+                    <!-- Petunjuk Bawah Kanvas -->
+                    <div class="text-muted mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem;">
+                        <span>
+                            <i class="bi bi-hand-index-thumb me-1"></i>
+                            Klik lembar dokumen untuk menempatkan slot tanda tangan atau navigasi halaman jika ingin menandatangani di halaman lain.
+                        </span>
+                        <span class="badge bg-light text-muted border">
+                            <i class="bi bi-layers me-1"></i> Menampilkan Halaman: <strong id="activePageBadge" class="text-dark"><?= $pageNo ?></strong>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -388,6 +485,12 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                         Apakah Anda yakin membubuhi tanda tangan resmi pada dokumen
                         <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong>?
                     </p>
+                    <div class="d-flex align-items-center justify-content-between p-2 mb-3 bg-light rounded border small">
+                        <span class="text-muted"><i class="bi bi-file-earmark-text me-1"></i>Halaman Penempatan:</span>
+                        <span class="badge bg-success-subtle text-success border border-success fw-bold" id="modalConfirmPageBadge">
+                            Halaman <?= $pageNo ?>
+                        </span>
+                    </div>
                     <div class="checkerboard-bg rounded border p-3 mb-3 d-flex align-items-center justify-content-center" style="height: 110px;">
                         <img id="modalPreviewImg" src="" alt="Pratinjau tanda tangan" class="d-none"
                              style="max-height: 100%; max-width: 100%; object-fit: contain;">
@@ -474,6 +577,32 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalPreviewEmpty = document.getElementById('modalPreviewEmpty');
     const btnConfirmSign = document.getElementById('btnConfirmSign');
 
+    // ── Referensi Elemen PDF.js Viewer & Stage ──
+    const loadingSpinner = document.getElementById('pdfLoadingSpinner');
+    const fallbackAlert = document.getElementById('pdfFallbackAlert');
+    const stageContainer = document.getElementById('pdfStageContainer');
+    const slotCanvasContainer = document.getElementById('slotCanvasContainer');
+    const renderCanvas = document.getElementById('pdfSignRenderCanvas');
+    const fallbackWatermark = document.getElementById('fallbackWatermark');
+    const btnPrevPage = document.getElementById('btnPrevPage');
+    const btnNextPage = document.getElementById('btnNextPage');
+    const pageNumDisplay = document.getElementById('pageNumDisplay');
+    const pageTotalDisplay = document.getElementById('pageTotalDisplay');
+    const activePageBadge = document.getElementById('activePageBadge');
+    const slotPageNotice = document.getElementById('slotPageNotice');
+    const btnJumpToSlotPage = document.getElementById('btnJumpToSlotPage');
+    const slotPageNumberInput = document.getElementById('slotPageNumberInput');
+    const slotXInput = document.getElementById('slotXInput');
+    const slotYInput = document.getElementById('slotYInput');
+    const btnToolbarMoveSlot = document.getElementById('btnToolbarMoveSlot');
+    const toolbarMoveTargetPage = document.getElementById('toolbarMoveTargetPage');
+    const btnMoveToCurrentPage = document.getElementById('btnMoveToCurrentPage');
+    const btnMoveTargetPage = document.getElementById('btnMoveTargetPage');
+    const slotCurrentPageNotice = document.getElementById('slotCurrentPageNotice');
+    const jumpTargetPage = document.getElementById('jumpTargetPage');
+    const activeSlotBox = document.getElementById('activeSlotBox');
+    const modalConfirmPageBadge = document.getElementById('modalConfirmPageBadge');
+
     // ── Status input ──
     let hasDrawn = false;
     let hasTemplate = <?= json_encode(!empty($templates)) ?>;
@@ -500,6 +629,233 @@ document.addEventListener('DOMContentLoaded', function () {
         modalPreviewImg.classList.remove('d-none');
         modalPreviewEmpty.classList.add('d-none');
         btnOpenConfirm.disabled = false;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Integrasi Mozilla PDF.js: Render Lembar Berkas PDF Asli (ADR-09)
+    // ─────────────────────────────────────────────────────────────
+    const pdfUrl = <?= json_encode(BASE_URL . '/documents/' . $doc['id'] . '/preview') ?>;
+    let currentSlotPage = <?= (int) $pageNo ?>;
+    let pdfDoc = null;
+    let currentPage = currentSlotPage;
+    let totalPages = 1;
+    let isRendering = false;
+    let pageRenderingQueue = null;
+
+    function updateSlotNotice(num) {
+        if (!slotPageNotice) return;
+        if (num !== currentSlotPage) {
+            slotPageNotice.classList.remove('d-none');
+            slotPageNotice.classList.add('d-flex');
+            if (btnToolbarMoveSlot) {
+                btnToolbarMoveSlot.classList.remove('d-none');
+                if (toolbarMoveTargetPage) toolbarMoveTargetPage.textContent = num;
+            }
+            if (slotCurrentPageNotice) slotCurrentPageNotice.textContent = currentSlotPage;
+            if (jumpTargetPage) jumpTargetPage.textContent = currentSlotPage;
+            if (btnMoveTargetPage) btnMoveTargetPage.textContent = num;
+        } else {
+            slotPageNotice.classList.add('d-none');
+            slotPageNotice.classList.remove('d-flex');
+            if (btnToolbarMoveSlot) btnToolbarMoveSlot.classList.add('d-none');
+        }
+    }
+
+    function moveSlotTo(targetPage, xPercent = null, yPercent = null) {
+        currentSlotPage = targetPage;
+        if (slotPageNumberInput) slotPageNumberInput.value = targetPage;
+
+        if (activeSlotBox) {
+            activeSlotBox.setAttribute('data-page', targetPage);
+            if (xPercent !== null && yPercent !== null) {
+                const w = parseFloat(activeSlotBox.style.width) || 20;
+                const h = parseFloat(activeSlotBox.style.height) || 10;
+                const clampedX = Math.max(0, Math.min(100 - w, xPercent));
+                const clampedY = Math.max(0, Math.min(100 - h, yPercent));
+                activeSlotBox.style.left = clampedX.toFixed(1) + '%';
+                activeSlotBox.style.top = clampedY.toFixed(1) + '%';
+                if (slotXInput) slotXInput.value = clampedX.toFixed(1);
+                if (slotYInput) slotYInput.value = clampedY.toFixed(1);
+            }
+        }
+
+        if (modalConfirmPageBadge) {
+            modalConfirmPageBadge.textContent = 'Halaman ' + currentSlotPage + ' dari ' + totalPages;
+        }
+
+        updateSlotVisibilityForPage(currentPage);
+        updateSlotNotice(currentPage);
+    }
+
+    if (window.pdfjsLib) {
+        try {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = <?= json_encode(BASE_URL . '/assets/js/pdf.worker.min.js') ?>;
+        } catch (e) {
+            console.warn('Worker configuration notice:', e);
+        }
+
+        pdfjsLib.getDocument({ url: pdfUrl, withCredentials: true }).promise.then(function (loadedPdf) {
+            pdfDoc = loadedPdf;
+            totalPages = loadedPdf.numPages;
+            if (pageTotalDisplay) pageTotalDisplay.textContent = totalPages;
+
+            currentPage = Math.min(totalPages, Math.max(1, currentSlotPage));
+
+            if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            if (stageContainer) stageContainer.classList.remove('d-none');
+
+            renderPage(currentPage);
+        }).catch(function (error) {
+            console.warn('PDF.js gagal memuat berkas:', error);
+            initFallbackMode();
+        });
+    } else {
+        initFallbackMode();
+    }
+
+    function initFallbackMode() {
+        if (loadingSpinner) loadingSpinner.classList.add('d-none');
+        if (fallbackAlert) fallbackAlert.classList.remove('d-none');
+        if (stageContainer) {
+            stageContainer.classList.remove('d-none');
+            if (slotCanvasContainer) {
+                slotCanvasContainer.style.width = '480px';
+                slotCanvasContainer.style.height = '678px';
+            }
+            if (renderCanvas) renderCanvas.style.display = 'none';
+            if (fallbackWatermark) {
+                fallbackWatermark.classList.remove('d-none');
+                fallbackWatermark.classList.add('d-flex');
+            }
+        }
+        updateSlotVisibilityForPage(currentSlotPage);
+        updateSlotNotice(currentSlotPage);
+    }
+
+    function renderPage(num) {
+        if (!pdfDoc) return;
+
+        if (isRendering) {
+            pageRenderingQueue = num;
+            return;
+        }
+        isRendering = true;
+        currentPage = num;
+
+        if (pageNumDisplay) pageNumDisplay.textContent = num;
+        if (activePageBadge) activePageBadge.textContent = num;
+        if (btnPrevPage) btnPrevPage.disabled = (num <= 1);
+        if (btnNextPage) btnNextPage.disabled = (num >= totalPages);
+
+        updateSlotNotice(num);
+
+        pdfDoc.getPage(num).then(function (page) {
+            const parentWidth = stageContainer.parentElement.clientWidth || 560;
+            const targetWidth = Math.min(620, Math.max(340, parentWidth - 32));
+            const unscaledViewport = page.getViewport({ scale: 1.0 });
+            const scale = targetWidth / unscaledViewport.width;
+            const viewport = page.getViewport({ scale: scale });
+
+            const rCtx = renderCanvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+
+            renderCanvas.width = Math.floor(viewport.width * dpr);
+            renderCanvas.height = Math.floor(viewport.height * dpr);
+            renderCanvas.style.width = Math.floor(viewport.width) + 'px';
+            renderCanvas.style.height = Math.floor(viewport.height) + 'px';
+
+            slotCanvasContainer.style.width = Math.floor(viewport.width) + 'px';
+            slotCanvasContainer.style.height = Math.floor(viewport.height) + 'px';
+
+            const renderContext = {
+                canvasContext: rCtx,
+                viewport: viewport,
+                transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null
+            };
+
+            const renderTask = page.render(renderContext);
+            renderTask.promise.then(function () {
+                isRendering = false;
+                if (pageRenderingQueue !== null) {
+                    const queuedPage = pageRenderingQueue;
+                    pageRenderingQueue = null;
+                    renderPage(queuedPage);
+                } else {
+                    updateSlotVisibilityForPage(currentPage);
+                }
+            }).catch(function (err) {
+                if (err.name !== 'RenderingCancelledException') {
+                    console.error('Render error:', err);
+                }
+                isRendering = false;
+            });
+        });
+    }
+
+    if (btnPrevPage) {
+        btnPrevPage.addEventListener('click', function () {
+            if (currentPage > 1) {
+                renderPage(currentPage - 1);
+            }
+        });
+    }
+
+    if (btnNextPage) {
+        btnNextPage.addEventListener('click', function () {
+            if (currentPage < totalPages) {
+                renderPage(currentPage + 1);
+            }
+        });
+    }
+
+    if (btnJumpToSlotPage) {
+        btnJumpToSlotPage.addEventListener('click', function () {
+            renderPage(currentSlotPage);
+        });
+    }
+
+    if (btnMoveToCurrentPage) {
+        btnMoveToCurrentPage.addEventListener('click', function () {
+            moveSlotTo(currentPage);
+        });
+    }
+
+    if (btnToolbarMoveSlot) {
+        btnToolbarMoveSlot.addEventListener('click', function () {
+            moveSlotTo(currentPage);
+        });
+    }
+
+    // Klik pada kanvas dokumen untuk langsung menempatkan slot tanda tangan pada posisi kursor di halaman aktif
+    if (slotCanvasContainer) {
+        slotCanvasContainer.addEventListener('click', function (e) {
+            if (e.target.closest('#activeSlotBox')) return;
+            const rect = slotCanvasContainer.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            const clickX = ((e.clientX - rect.left) / rect.width) * 100;
+            const clickY = ((e.clientY - rect.top) / rect.height) * 100;
+
+            const w = activeSlotBox ? (parseFloat(activeSlotBox.style.width) || 20) : 20;
+            const h = activeSlotBox ? (parseFloat(activeSlotBox.style.height) || 10) : 10;
+
+            const newX = clickX - (w / 2);
+            const newY = clickY - (h / 2);
+
+            moveSlotTo(currentPage, newX, newY);
+        });
+    }
+
+    function updateSlotVisibilityForPage(page) {
+        const overlayItems = document.querySelectorAll('#slotOverlayContainer [data-page]');
+        overlayItems.forEach(el => {
+            const p = parseInt(el.getAttribute('data-page'), 10) || 1;
+            if (p === page) {
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        });
     }
 
     // ── Kanvas: HiDPI-safe (replikasi mitigasi BUG-04) ──
@@ -543,7 +899,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', function () {
+        resizeCanvas();
+        if (pdfDoc && !isRendering) {
+            renderPage(currentPage);
+        }
+    });
 
     function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
@@ -833,6 +1194,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Buka Modal Konfirmasi (Trigger Ganda Bootstrap + JS) ──
     btnOpenConfirm.addEventListener('click', function () {
         if (this.disabled) return;
+        if (modalConfirmPageBadge) {
+            modalConfirmPageBadge.textContent = 'Halaman ' + currentSlotPage + (totalPages > 1 ? (' dari ' + totalPages) : '');
+        }
         const modalEl = document.getElementById('modalConfirm');
         if (modalEl && typeof bootstrap !== 'undefined') {
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);

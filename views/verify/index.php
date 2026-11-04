@@ -609,7 +609,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </div>
             </div>
             <div class="text-center text-muted border-top mt-3 pt-3" style="font-size: 0.75rem; line-height: 1.5;">
-                <i class="bi bi-shield-shaded text-success me-1"></i>
+                <img src="<?= BASE_URL ?>/assets/img/logo.png" alt="SIGMA" width="18" height="18" style="object-fit: contain; vertical-align: -3px; margin-right: 4px;">
                 Halaman verifikasi publik ini diterbitkan secara otomatis oleh <strong>SIGMA (Sistem Tanda Tangan Digital) Politeknik Negeri Jakarta</strong>.
                 Setiap data snapshot penandatangan dan hash berkas dilindungi oleh mekanisme kriptografis internal kampus yang menjamin keaslian data.
             </div>
