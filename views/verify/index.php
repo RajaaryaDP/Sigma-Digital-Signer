@@ -287,6 +287,15 @@ require_once __DIR__ . '/../layout/header.php';
                                             <?= htmlspecialchars($verified['role_title']) ?>
                                         </span>
                                     <?php endif; ?>
+                                    <?php if (($verified['signature_format'] ?? '') === 'qr_only'): ?>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle" style="font-size: 0.75rem;">
+                                            <i class="bi bi-qr-code me-1"></i>Hanya Kode QR
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle" style="font-size: 0.75rem;">
+                                            <i class="bi bi-pen me-1"></i>QR + Tanda Tangan
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -348,9 +357,15 @@ require_once __DIR__ . '/../layout/header.php';
                         </span>
                     </div>
                     <div class="p-3.5 p-md-4 text-center">
-                        <div class="signature-stamp-box mb-3">
+                        <div class="signature-stamp-box mb-3 d-flex flex-column align-items-center justify-content-center">
                             <?php if (!empty($sigImageSrc)): ?>
                                 <img src="<?= $sigImageSrc ?>" alt="Tanda Tangan Digital" class="signature-stamp-img">
+                            <?php elseif (($verified['signature_format'] ?? '') === 'qr_only'): ?>
+                                <div class="text-success small py-3 text-center">
+                                    <i class="bi bi-qr-code fs-1 d-block mb-1"></i>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold">Format: Hanya Kode QR</span>
+                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">Disahkan secara elektronik dengan stempel QR verifikasi resmi SIGMA PNJ.</div>
+                                </div>
                             <?php else: ?>
                                 <div class="text-muted small py-3">
                                     <i class="bi bi-file-earmark-check fs-2 text-success d-block mb-1"></i>

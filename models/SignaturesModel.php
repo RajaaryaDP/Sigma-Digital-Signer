@@ -141,16 +141,20 @@ class SignaturesModel
     {
         $this->db->beginTransaction();
         try {
+            $format = in_array($data['signature_format'] ?? '', ['qr_and_signature', 'qr_only'], true)
+                ? $data['signature_format']
+                : 'qr_and_signature';
+
             // 1. Rekam tanda tangan (immutable record, ADR-03)
             $stmt = $this->db->prepare(
                 "INSERT INTO signatures
-                    (id, document_id, signer_id, civitas_id, document_signer_id,
+                    (id, document_id, signer_id, civitas_id, document_signer_id, signature_format,
                      signature_image_path, verification_token, qr_code_path,
                      page_number, x_percent, y_percent, width_percent, height_percent,
                      signer_name_snapshot, signer_identifier_snapshot, signer_type_snapshot,
                      signer_department_snapshot, signer_position_snapshot, signer_email_snapshot,
                      signed_at, ip_address, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, NOW(), NOW())"
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, NOW(), NOW())"
             );
             $stmt->execute([
                 $data['id'],
@@ -158,7 +162,8 @@ class SignaturesModel
                 $data['signer_id'],
                 $data['civitas_id'] ?? null,
                 $data['document_signer_id'],
-                $data['signature_image_path'],
+                $format,
+                $data['signature_image_path'] ?? null,
                 $data['verification_token'],
                 (int) $data['page_number'],
                 (float) $data['x_percent'],

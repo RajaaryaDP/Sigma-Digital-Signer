@@ -52,6 +52,11 @@ class Signatures
             exit('Tanda tangan tidak ditemukan.');
         }
 
+        if (empty($signature['signature_image_path'])) {
+            http_response_code(404);
+            exit('Tanda tangan ini menggunakan format Hanya Kode QR (tanpa berkas gambar goresan fisik).');
+        }
+
         if (!$this->isAdmin) {
             // Boleh melihat jika pengaju dokumen atau penandatangan dokumen tersebut
             if ($signature['uploader_id'] !== $this->userId) {
