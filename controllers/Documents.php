@@ -179,9 +179,9 @@ class Documents
             exit;
         }
 
-        $title         = trim($_POST['title'] ?? '');
-        $description   = trim($_POST['description'] ?? '') ?: null;
-        $signatureType = $_POST['signature_type'] ?? 'sequential';
+        $title         = isset($_POST['title']) && is_string($_POST['title']) ? trim($_POST['title']) : '';
+        $description   = (isset($_POST['description']) && is_string($_POST['description'])) ? (trim($_POST['description']) ?: null) : null;
+        $signatureType = isset($_POST['signature_type']) && is_string($_POST['signature_type']) ? $_POST['signature_type'] : 'sequential';
         $errors        = [];
 
         // Validasi judul
@@ -241,12 +241,20 @@ class Documents
             $validSigners = [];
             if (is_array($signerUserIds)) {
                 foreach ($signerUserIds as $idx => $uid) {
+                    if (!is_string($uid)) {
+                        continue;
+                    }
                     $uid = trim($uid);
                     if ($uid !== '') {
+                        $rawRole = (isset($signerRoles[$idx]) && is_string($signerRoles[$idx])) ? trim($signerRoles[$idx]) : '';
+                        if (mb_strlen($rawRole) > 150) {
+                            $errors['signers'] = 'Jabatan / peran penandatangan maksimal 150 karakter.';
+                        }
+                        $rawStep = (isset($signerSteps[$idx]) && is_scalar($signerSteps[$idx])) ? (int) $signerSteps[$idx] : ($idx + 1);
                         $validSigners[] = [
                             'user_id'    => $uid,
-                            'role_title' => trim($signerRoles[$idx] ?? '') ?: null,
-                            'step_order' => max(1, (int) ($signerSteps[$idx] ?? ($idx + 1))),
+                            'role_title' => $rawRole !== '' ? mb_substr($rawRole, 0, 150) : null,
+                            'step_order' => max(1, min(1000, $rawStep)),
                         ];
                     }
                 }
@@ -281,7 +289,15 @@ class Documents
         }
 
         // ── Simpan file PDF ke storage/documents/ ──
-        $originalName = $uploadedFile['name'];
+        $rawOrigName  = is_string($uploadedFile['name'] ?? null) ? trim(str_replace("\0", '', mb_scrub($uploadedFile['name'], 'UTF-8'))) : 'document.pdf';
+        if ($rawOrigName === '') {
+            $rawOrigName = 'document.pdf';
+        }
+        if (mb_strlen($rawOrigName) > 255) {
+            $originalName = mb_substr($rawOrigName, 0, 251) . '.pdf';
+        } else {
+            $originalName = $rawOrigName;
+        }
         $uniqueName   = 'doc_' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.pdf';
         $destPath     = $this->storageDir . '/documents/' . $uniqueName;
         $dbPath       = 'documents/' . $uniqueName;
@@ -363,9 +379,14 @@ class Documents
                 @unlink($destPath);
             }
 
+            error_log('[Documents::store] ' . $e->getMessage());
+            $safeMsg = ($e instanceof \PDOException)
+                ? 'Gagal menyimpan dokumen karena kendala pada basis data. Silakan coba kembali.'
+                : 'Gagal menyimpan dokumen: ' . $e->getMessage();
+
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal menyimpan dokumen: ' . $e->getMessage()
+                'message' => $safeMsg
             ];
             header('Location: ' . BASE_URL . '/documents/create');
             exit;
@@ -482,25 +503,38 @@ class Documents
             exit;
         }
 
-        $actionType = $_POST['action_type'] ?? '';
+        $actionType = isset($_POST['action_type']) && is_string($_POST['action_type']) ? $_POST['action_type'] : '';
 
         // Simpan posisi slot koordinat jika data koordinat dikirimkan (dengan proteksi Anti-IDOR & Boundary Clamping)
         $slotData = $_POST['slots'] ?? [];
         if (is_array($slotData) && !empty($slotData)) {
-            foreach ($slotData as $signerId => $slot) {
-                $w = max(5.0, min(50.0, (float) ($slot['width_percent'] ?? 20.0)));
-                $h = max(3.0, min(30.0, (float) ($slot['height_percent'] ?? 10.0)));
-                $x = max(0.0, min(100.0 - $w, (float) ($slot['x_percent'] ?? 0.0)));
-                $y = max(0.0, min(100.0 - $h, (float) ($slot['y_percent'] ?? 0.0)));
-                $p = max(1, (int) ($slot['page_number'] ?? 1));
+            try {
+                foreach ($slotData as $signerId => $slot) {
+                    if (!is_array($slot)) {
+                        continue;
+                    }
+                    $w = max(5.0, min(50.0, is_scalar($slot['width_percent'] ?? null) ? (float) $slot['width_percent'] : 20.0));
+                    $h = max(3.0, min(30.0, is_scalar($slot['height_percent'] ?? null) ? (float) $slot['height_percent'] : 10.0));
+                    $x = max(0.0, min(100.0 - $w, is_scalar($slot['x_percent'] ?? null) ? (float) $slot['x_percent'] : 0.0));
+                    $y = max(0.0, min(100.0 - $h, is_scalar($slot['y_percent'] ?? null) ? (float) $slot['y_percent'] : 0.0));
+                    $p = max(1, min(10000, is_scalar($slot['page_number'] ?? null) ? (int) $slot['page_number'] : 1));
 
-                $this->model->updateSignerSlot((string) $signerId, (string) $id, [
-                    'page_number'    => $p,
-                    'x_percent'      => $x,
-                    'y_percent'      => $y,
-                    'width_percent'  => $w,
-                    'height_percent' => $h,
-                ]);
+                    $this->model->updateSignerSlot((string) $signerId, (string) $id, [
+                        'page_number'    => $p,
+                        'x_percent'      => $x,
+                        'y_percent'      => $y,
+                        'width_percent'  => $w,
+                        'height_percent' => $h,
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                error_log('[Documents::update/save_slots] ' . $e->getMessage());
+                $_SESSION['flash'] = [
+                    'type'    => 'danger',
+                    'message' => 'Gagal menyimpan posisi slot tanda tangan karena kendala pada basis data.'
+                ];
+                header('Location: ' . BASE_URL . '/documents/' . $id . '/arrange');
+                exit;
             }
         }
 
@@ -559,9 +593,14 @@ class Documents
                 header('Location: ' . BASE_URL . '/documents/' . $id . ($isSingle ? '/sign' : ''));
                 exit;
             } catch (\Throwable $e) {
+                error_log('[Documents::update/arrange] ' . $e->getMessage());
+                $safeMsg = ($e instanceof \PDOException)
+                    ? 'Gagal mengajukan dokumen karena kendala pada basis data. Silakan coba kembali.'
+                    : 'Gagal mengajukan dokumen: ' . $e->getMessage();
+
                 $_SESSION['flash'] = [
                     'type'    => 'danger',
-                    'message' => 'Gagal mengajukan dokumen: ' . $e->getMessage()
+                    'message' => $safeMsg
                 ];
                 header('Location: ' . BASE_URL . '/documents/' . $id . '/arrange');
                 exit;
@@ -630,9 +669,14 @@ class Documents
                 'message' => 'Dokumen "' . $doc['title'] . '" berhasil disetujui. Berkas kini diteruskan ke penandatangan urutan pertama.'
             ];
         } catch (\Throwable $e) {
+            error_log('[Documents::approve] ' . $e->getMessage());
+            $safeMsg = ($e instanceof \PDOException)
+                ? 'Terjadi kesalahan basis data saat menyetujui dokumen. Silakan coba kembali.'
+                : 'Terjadi kesalahan saat menyetujui dokumen: ' . $e->getMessage();
+
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Terjadi kesalahan saat menyetujui dokumen: ' . $e->getMessage()
+                'message' => $safeMsg
             ];
         }
 
@@ -669,7 +713,7 @@ class Documents
             exit;
         }
 
-        $rejectionReason = trim($_POST['rejection_reason'] ?? '');
+        $rejectionReason = isset($_POST['rejection_reason']) && is_string($_POST['rejection_reason']) ? trim($_POST['rejection_reason']) : '';
         if ($rejectionReason === '') {
             $_SESSION['flash'] = [
                 'type'    => 'danger',
@@ -697,9 +741,14 @@ class Documents
                 'message' => 'Dokumen "' . $doc['title'] . '" telah ditolak. Alasan penolakan dicatat permanen pada berkas arsip.'
             ];
         } catch (\Throwable $e) {
+            error_log('[Documents::reject] ' . $e->getMessage());
+            $safeMsg = ($e instanceof \PDOException)
+                ? 'Terjadi kesalahan basis data saat menolak dokumen. Silakan coba kembali.'
+                : 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage();
+
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage()
+                'message' => $safeMsg
             ];
         }
 
@@ -812,12 +861,12 @@ class Documents
             exit;
         }
 
-        $signatureFormat = trim($_POST['signature_format'] ?? 'qr_and_signature');
+        $signatureFormat = isset($_POST['signature_format']) && is_string($_POST['signature_format']) ? trim($_POST['signature_format']) : 'qr_and_signature';
         if (!in_array($signatureFormat, ['qr_and_signature', 'qr_only'], true)) {
             $signatureFormat = 'qr_and_signature';
         }
 
-        $inputMethod = trim($_POST['input_method'] ?? 'canvas');
+        $inputMethod = isset($_POST['input_method']) && is_string($_POST['input_method']) ? trim($_POST['input_method']) : 'canvas';
         $errors      = [];
 
         $signatureId       = Uuid::uuid4()->toString();
@@ -839,7 +888,7 @@ class Documents
 
             if ($inputMethod === 'template') {
                 // Menggunakan template tersimpan milik user → salin (copy) agar independen
-                $templateId = trim($_POST['template_id'] ?? '');
+                $templateId = isset($_POST['template_id']) && is_string($_POST['template_id']) ? trim($_POST['template_id']) : '';
                 $template   = $this->signatureModel->getById($templateId, $this->userId);
                 if (!$template) {
                     $errors['signature'] = 'Template tanda tangan tidak valid atau bukan milik Anda.';
@@ -853,7 +902,7 @@ class Documents
                 }
             } elseif ($inputMethod === 'canvas') {
                 // Goresan kanvas baru → tulis langsung ke salinan terisolasi
-                $canvasData = trim($_POST['signature_canvas'] ?? '');
+                $canvasData = isset($_POST['signature_canvas']) && is_string($_POST['signature_canvas']) ? trim($_POST['signature_canvas']) : '';
 
                 if (empty($canvasData)) {
                     $errors['signature'] = 'Silakan bubuhkan goresan tanda tangan Anda pada kanvas.';
@@ -954,31 +1003,12 @@ class Documents
         // Snapshot biodata resmi civitas penandatangan (ADR-03 — immutable)
         $userProfile = $this->usersModel->getById($this->userId);
 
-        // Penyesuaian halaman dan posisi slot tanda tangan dari antarmuka penandatanganan
-        $effectivePage   = (int) ($signer['page_number'] ?: 1);
+        // Posisi halaman dan koordinat slot tanda tangan dikunci sesuai pengaturan Pengaju saat Draft (ADR-08)
+        $effectivePage   = max(1, min(10000, (int) ($signer['page_number'] ?: 1)));
         $effectiveX      = (float) $signer['x_percent'];
         $effectiveY      = (float) $signer['y_percent'];
         $effectiveWidth  = (float) $signer['width_percent'] > 0 ? (float) $signer['width_percent'] : 20.0;
         $effectiveHeight = (float) $signer['height_percent'] > 0 ? (float) $signer['height_percent'] : 10.0;
-
-        if (isset($_POST['slot_page_number']) && (int) $_POST['slot_page_number'] >= 1) {
-            $effectivePage = (int) $_POST['slot_page_number'];
-            if (isset($_POST['slot_x_percent']) && $_POST['slot_x_percent'] !== '') {
-                $effectiveX = max(0.0, min(100.0 - $effectiveWidth, (float) $_POST['slot_x_percent']));
-            }
-            if (isset($_POST['slot_y_percent']) && $_POST['slot_y_percent'] !== '') {
-                $effectiveY = max(0.0, min(100.0 - $effectiveHeight, (float) $_POST['slot_y_percent']));
-            }
-
-            // Sinkronisasi pembaruan ke tabel document_signers
-            $this->model->updateSignerSlot((string) $signer['id'], (string) $doc['id'], [
-                'page_number'    => $effectivePage,
-                'x_percent'      => $effectiveX,
-                'y_percent'      => $effectiveY,
-                'width_percent'  => $effectiveWidth,
-                'height_percent' => $effectiveHeight,
-            ]);
-        }
 
         try {
             $result = $this->signaturesModel->signDocument([
@@ -1055,9 +1085,14 @@ class Documents
                 @unlink($destPath);
             }
 
+            error_log('[Documents::sign] ' . $e->getMessage());
+            $safeMsg = ($e instanceof \PDOException)
+                ? 'Gagal menyimpan tanda tangan karena kendala pada basis data. Silakan coba kembali.'
+                : 'Gagal menyimpan tanda tangan: ' . $e->getMessage();
+
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal menyimpan tanda tangan: ' . $e->getMessage()
+                'message' => $safeMsg
             ];
         }
 
@@ -1118,7 +1153,7 @@ class Documents
         }
 
         // Alasan penolakan wajib minimal 10 karakter (ADR-01 kebijakan penolakan)
-        $reason = trim($_POST['decline_reason'] ?? '');
+        $reason = isset($_POST['decline_reason']) && is_string($_POST['decline_reason']) ? trim($_POST['decline_reason']) : '';
         if (mb_strlen($reason) < 10) {
             $_SESSION['flash'] = [
                 'type'    => 'danger',
@@ -1144,9 +1179,14 @@ class Documents
                 'message' => 'Anda telah menolak dokumen "' . $doc['title'] . '". Dokumen berstatus Arsip Batal Permanen.'
             ];
         } catch (\Throwable $e) {
+            error_log('[Documents::decline] ' . $e->getMessage());
+            $safeMsg = ($e instanceof \PDOException)
+                ? 'Terjadi kesalahan basis data saat menolak dokumen. Silakan coba kembali.'
+                : 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage();
+
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage()
+                'message' => $safeMsg
             ];
         }
 

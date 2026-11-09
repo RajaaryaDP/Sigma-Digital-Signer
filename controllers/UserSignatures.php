@@ -81,10 +81,14 @@ class UserSignatures
      */
     public function store()
     {
-        $label       = trim($_POST['label'] ?? '');
+        $label       = isset($_POST['label']) && is_string($_POST['label']) ? trim($_POST['label']) : '';
         $isDefault   = !empty($_POST['is_default']) ? 1 : 0;
-        $inputMethod = trim($_POST['input_method'] ?? 'canvas');
+        $inputMethod = isset($_POST['input_method']) && is_string($_POST['input_method']) ? trim($_POST['input_method']) : 'canvas';
         $errors      = [];
+
+        if (mb_strlen($label) > 100) {
+            $errors['label'] = 'Nama/label template tanda tangan maksimal 100 karakter.';
+        }
 
         $templateDir = $this->storageBaseDir . '/signatures/templates';
         $uniqueName  = 'sig_tpl_' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.png';
@@ -92,7 +96,7 @@ class UserSignatures
         $dbPath      = 'signatures/templates/' . $uniqueName;
 
         if ($inputMethod === 'canvas') {
-            $canvasData = trim($_POST['signature_canvas'] ?? '');
+            $canvasData = isset($_POST['signature_canvas']) && is_string($_POST['signature_canvas']) ? trim($_POST['signature_canvas']) : '';
 
             if (empty($canvasData)) {
                 $errors['signature'] = 'Silakan bubuhkan goresan tanda tangan Anda pada kanvas.';
@@ -228,9 +232,14 @@ class UserSignatures
                 @unlink($destPath);
             }
 
+            error_log('[UserSignatures::store] ' . $e->getMessage());
+            $safeMsg = ($e instanceof \PDOException)
+                ? 'Gagal menyimpan template tanda tangan karena kendala pada basis data. Silakan coba kembali.'
+                : 'Gagal menyimpan template tanda tangan: ' . $e->getMessage();
+
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal menyimpan template tanda tangan: ' . $e->getMessage()
+                'message' => $safeMsg
             ];
 
             header('Location: ' . BASE_URL . '/user-signatures/create');
@@ -250,34 +259,45 @@ class UserSignatures
             exit;
         }
 
-        $actionType = $_POST['action_type'] ?? '';
+        $actionType = isset($_POST['action_type']) && is_string($_POST['action_type']) ? $_POST['action_type'] : '';
 
-        if ($actionType === 'set_default') {
-            $this->signatureModel->setDefault($id, $this->userId);
+        try {
+            if ($actionType === 'set_default') {
+                $this->signatureModel->setDefault($id, $this->userId);
 
-            $this->auditModel->log($this->userId, 'signature_template.set_default', [
-                'id'    => $id,
-                'label' => $target['label'],
-            ]);
+                $this->auditModel->log($this->userId, 'signature_template.set_default', [
+                    'id'    => $id,
+                    'label' => $target['label'],
+                ]);
 
+                $_SESSION['flash'] = [
+                    'type'    => 'success',
+                    'message' => 'Template "' . ($target['label'] ?: 'Tanda Tangan') . '" berhasil ditetapkan sebagai tanda tangan default.'
+                ];
+            } else {
+                $label = isset($_POST['label']) && is_string($_POST['label']) ? trim($_POST['label']) : '';
+                if (mb_strlen($label) > 100) {
+                    $label = mb_substr($label, 0, 100);
+                }
+                $this->signatureModel->update($id, $this->userId, [
+                    'label' => $label ?: 'Tanda Tangan Pribadi',
+                ]);
+
+                $this->auditModel->log($this->userId, 'signature_template.update', [
+                    'id'    => $id,
+                    'label' => $label,
+                ]);
+
+                $_SESSION['flash'] = [
+                    'type'    => 'success',
+                    'message' => 'Informasi template tanda tangan berhasil diperbarui.'
+                ];
+            }
+        } catch (Throwable $e) {
+            error_log('[UserSignatures::update] ' . $e->getMessage());
             $_SESSION['flash'] = [
-                'type'    => 'success',
-                'message' => 'Template "' . ($target['label'] ?: 'Tanda Tangan') . '" berhasil ditetapkan sebagai tanda tangan default.'
-            ];
-        } else {
-            $label = trim($_POST['label'] ?? '');
-            $this->signatureModel->update($id, $this->userId, [
-                'label' => $label ?: 'Tanda Tangan Pribadi',
-            ]);
-
-            $this->auditModel->log($this->userId, 'signature_template.update', [
-                'id'    => $id,
-                'label' => $label,
-            ]);
-
-            $_SESSION['flash'] = [
-                'type'    => 'success',
-                'message' => 'Informasi template tanda tangan berhasil diperbarui.'
+                'type'    => 'danger',
+                'message' => 'Gagal memperbarui template tanda tangan karena kendala pada basis data.'
             ];
         }
 
@@ -297,17 +317,25 @@ class UserSignatures
             exit;
         }
 
-        $this->signatureModel->delete($id, $this->userId);
+        try {
+            $this->signatureModel->delete($id, $this->userId);
 
-        $this->auditModel->log($this->userId, 'signature_template.delete', [
-            'id'    => $id,
-            'label' => $target['label'],
-        ]);
+            $this->auditModel->log($this->userId, 'signature_template.delete', [
+                'id'    => $id,
+                'label' => $target['label'],
+            ]);
 
-        $_SESSION['flash'] = [
-            'type'    => 'success',
-            'message' => 'Template tanda tangan berhasil dihapus.'
-        ];
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Template tanda tangan berhasil dihapus.'
+            ];
+        } catch (Throwable $e) {
+            error_log('[UserSignatures::delete] ' . $e->getMessage());
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Gagal menghapus template tanda tangan karena kendala pada basis data.'
+            ];
+        }
 
         header('Location: ' . BASE_URL . '/user-signatures');
         exit;

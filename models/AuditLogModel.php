@@ -20,10 +20,11 @@ class AuditLogModel
      */
     public function log(?string $userId, string $action, ?array $details = null, ?string $documentId = null): bool
     {
-        $id        = Uuid::uuid4()->toString();
-        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
-        $detailsJson = !empty($details) ? json_encode($details, JSON_UNESCAPED_UNICODE) : null;
+        $id          = Uuid::uuid4()->toString();
+        $action      = mb_substr(str_replace("\0", '', mb_scrub($action, 'UTF-8')), 0, 100);
+        $ipAddress   = isset($_SERVER['REMOTE_ADDR']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $_SERVER['REMOTE_ADDR'], 'UTF-8')), 0, 45) : null;
+        $userAgent   = isset($_SERVER['HTTP_USER_AGENT']) ? str_replace("\0", '', mb_scrub((string) $_SERVER['HTTP_USER_AGENT'], 'UTF-8')) : null;
+        $detailsJson = !empty($details) ? json_encode($details, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) : null;
 
         $stmt = $this->db->prepare(
             "INSERT INTO audit_logs (id, user_id, document_id, action, details, ip_address, user_agent, created_at)

@@ -28,18 +28,22 @@ class CivitasModel
             $params[] = $type;
         }
 
-        if (!empty($search)) {
-            $keyword = '%' . trim($search) . '%';
-            $sql .= " AND (identifier LIKE ? 
-                           OR name LIKE ? 
-                           OR department LIKE ? 
-                           OR position LIKE ? 
-                           OR email LIKE ?)";
-            $params[] = $keyword;
-            $params[] = $keyword;
-            $params[] = $keyword;
-            $params[] = $keyword;
-            $params[] = $keyword;
+        if ($search !== null && $search !== '') {
+            $cleanSearch = trim(str_replace("\0", '', mb_scrub($search, 'UTF-8')));
+            if ($cleanSearch !== '') {
+                $escapedSearch = strtr($cleanSearch, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
+                $keyword = '%' . $escapedSearch . '%';
+                $sql .= " AND (LOWER(identifier) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(name) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(department) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(position) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(email) LIKE LOWER(?) ESCAPE '\\')";
+                $params[] = $keyword;
+                $params[] = $keyword;
+                $params[] = $keyword;
+                $params[] = $keyword;
+                $params[] = $keyword;
+            }
         }
 
         $sql .= " ORDER BY created_at DESC";
@@ -54,6 +58,10 @@ class CivitasModel
      */
     public function getById(string $id): ?array
     {
+        $id = trim(str_replace("\0", '', mb_scrub($id, 'UTF-8')));
+        if ($id === '') {
+            return null;
+        }
         $stmt = $this->db->prepare(
             "SELECT * FROM civitas WHERE id = ? AND deleted_at IS NULL LIMIT 1"
         );
@@ -67,12 +75,13 @@ class CivitasModel
      */
     public function getByIdentifier(string $identifier, ?string $excludeId = null): ?array
     {
-        $sql = "SELECT id, identifier FROM civitas WHERE identifier = ? AND deleted_at IS NULL";
-        $params = [trim($identifier)];
+        $identifier = trim(str_replace("\0", '', mb_scrub($identifier, 'UTF-8')));
+        $sql = "SELECT id, identifier FROM civitas WHERE LOWER(identifier) = LOWER(?) AND deleted_at IS NULL";
+        $params = [$identifier];
 
         if (!empty($excludeId)) {
             $sql .= " AND id != ?";
-            $params[] = $excludeId;
+            $params[] = trim(str_replace("\0", '', mb_scrub($excludeId, 'UTF-8')));
         }
 
         $sql .= " LIMIT 1";
@@ -87,12 +96,13 @@ class CivitasModel
      */
     public function getByEmail(string $email, ?string $excludeId = null): ?array
     {
-        $sql = "SELECT id, email FROM civitas WHERE email = ? AND deleted_at IS NULL";
-        $params = [trim($email)];
+        $email = trim(str_replace("\0", '', mb_scrub($email, 'UTF-8')));
+        $sql = "SELECT id, email FROM civitas WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL";
+        $params = [$email];
 
         if (!empty($excludeId)) {
             $sql .= " AND id != ?";
-            $params[] = $excludeId;
+            $params[] = trim(str_replace("\0", '', mb_scrub($excludeId, 'UTF-8')));
         }
 
         $sql .= " LIMIT 1";
@@ -142,14 +152,14 @@ class CivitasModel
 
         $stmt->execute([
             $id,
-            trim($data['identifier']),
-            trim($data['name']),
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64),
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255),
             $data['type'],
-            trim($data['department']),
-            trim($data['position']),
-            trim($data['email']),
-            !empty($data['phone']) ? trim($data['phone']) : null,
-            !empty($data['avatar_path']) ? trim($data['avatar_path']) : null,
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150),
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150),
+            mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255),
+            !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null,
+            !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null,
         ]);
 
         return $id;
@@ -175,15 +185,15 @@ class CivitasModel
         );
 
         return $stmt->execute([
-            trim($data['identifier']),
-            trim($data['name']),
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64),
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255),
             $data['type'],
-            trim($data['department']),
-            trim($data['position']),
-            trim($data['email']),
-            !empty($data['phone']) ? trim($data['phone']) : null,
-            !empty($data['avatar_path']) ? trim($data['avatar_path']) : null,
-            $id,
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150),
+            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150),
+            mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255),
+            !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null,
+            !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null,
+            trim(str_replace("\0", '', mb_scrub($id, 'UTF-8'))),
         ]);
     }
 

@@ -2,14 +2,70 @@
 
 session_start();
 
-// Catch uncaught exceptions and render professional 500 error page
+/**
+ * Sanitasi rekursif input eksternal dari byte NUL (\0) dan urutan byte non-UTF-8
+ * agar PostgreSQL (ENCODING 'UTF8') tidak melempar SQLSTATE[22021].
+ */
+function sigma_sanitize_utf8($value)
+{
+    if (is_array($value)) {
+        $cleaned = [];
+        foreach ($value as $k => $v) {
+            $cleanKey = is_string($k) ? str_replace("\0", '', mb_scrub($k, 'UTF-8')) : $k;
+            $cleaned[$cleanKey] = sigma_sanitize_utf8($v);
+        }
+        return $cleaned;
+    }
+    if (is_string($value)) {
+        return str_replace("\0", '', mb_scrub($value, 'UTF-8'));
+    }
+    return $value;
+}
+
+$_GET    = sigma_sanitize_utf8($_GET);
+$_POST   = sigma_sanitize_utf8($_POST);
+$_COOKIE = sigma_sanitize_utf8($_COOKIE);
+
+// Normalisasi $_GET agar selalu bernilai string skalar (mencegah Array Injection TypeError pada trim/filter)
+foreach ($_GET as $gk => $gv) {
+    if (!is_string($gv)) {
+        $_GET[$gk] = '';
+    }
+}
+
+// Sanitasi nama berkas unggahan pada $_FILES dari urutan byte non-UTF-8 dan byte NUL
+if (!empty($_FILES) && is_array($_FILES)) {
+    foreach ($_FILES as $fk => $fv) {
+        if (isset($fv['name'])) {
+            $_FILES[$fk]['name'] = sigma_sanitize_utf8($fv['name']);
+        }
+    }
+}
+
+if (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI'])) {
+    $_SERVER['REQUEST_URI'] = sigma_sanitize_utf8($_SERVER['REQUEST_URI']);
+}
+if (isset($_SERVER['HTTP_USER_AGENT']) && is_string($_SERVER['HTTP_USER_AGENT'])) {
+    $_SERVER['HTTP_USER_AGENT'] = sigma_sanitize_utf8($_SERVER['HTTP_USER_AGENT']);
+}
+
+// Catch uncaught exceptions and render safe 500 error page without leaking internal paths/SQL
 set_exception_handler(function (Throwable $exception) {
-    http_response_code(500);
+    error_log(sprintf(
+        '[SIGMA Uncaught %s] %s in %s:%d',
+        get_class($exception),
+        $exception->getMessage(),
+        $exception->getFile(),
+        $exception->getLine()
+    ));
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
     if (file_exists(__DIR__ . '/views/errors/crash.php')) {
         require __DIR__ . '/views/errors/crash.php';
     } else {
-        echo '<h1>500 - Internal Server Error</h1>';
-        echo '<p>' . htmlspecialchars($exception->getMessage()) . '</p>';
+        echo '<h1>500 - Kesalahan Internal Server</h1>';
+        echo '<p>Terjadi kendala teknis saat memproses permintaan Anda. Silakan coba beberapa saat lagi.</p>';
     }
 });
 

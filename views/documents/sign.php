@@ -95,9 +95,6 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
 <form id="signForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/sign" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="input_method" id="inputMethod" value="<?= htmlspecialchars($restoreTab === 'canvas' || $restoreTab === 'upload' ? $restoreTab : 'template') ?>">
     <input type="hidden" name="signature_canvas" id="signatureCanvasInput">
-    <input type="hidden" name="slot_page_number" id="slotPageNumberInput" value="<?= $pageNo ?>">
-    <input type="hidden" name="slot_x_percent" id="slotXInput" value="<?= number_format($slotX, 1, '.', '') ?>">
-    <input type="hidden" name="slot_y_percent" id="slotYInput" value="<?= number_format($slotY, 1, '.', '') ?>">
 
     <div class="row g-4">
         <!-- Kolom Kiri: Pratinjau Dokumen Interaktif & Slot Terkunci (ADR-09) -->
@@ -106,7 +103,7 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                 <div class="card-clean-header py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
                         <i class="bi bi-file-earmark-check text-success"></i>
-                        <span>Pratinjau Dokumen &amp; Penempatan Slot Tanda Tangan</span>
+                        <span>Pratinjau Dokumen &amp; Lokasi Slot Tanda Tangan (Terkunci)</span>
                     </span>
 
                     <div class="d-flex align-items-center gap-2">
@@ -122,11 +119,6 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                                 <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
-
-                        <!-- Tombol Pindahkan Slot ke Halaman Aktif -->
-                        <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnToolbarMoveSlot" title="Pindahkan slot tanda tangan ke halaman ini">
-                            <i class="bi bi-geo-alt me-1"></i> Tempatkan di Hal <span id="toolbarMoveTargetPage"><?= $pageNo ?></span>
-                        </button>
 
                         <!-- Buka Layar Penuh -->
                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
@@ -150,25 +142,22 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                         Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat melihat slot tanda tangan pada representasi lembar di bawah ini.
                     </div>
 
-                    <!-- Notifikasi Cepat jika Penandatangan Sedang di Halaman Lain -->
+                    <!-- Notifikasi Cepat jika Penandatangan Sedang Membaca Halaman Lain -->
                     <div id="slotPageNotice" class="alert alert-warning border py-2 px-3 small d-none text-start mb-2 align-items-center justify-content-between flex-wrap gap-2" style="border-radius: var(--radius-sm);">
                         <span>
                             <i class="bi bi-info-circle-fill text-warning me-1"></i>
-                            Slot tanda tangan Anda berada di <strong>Halaman <span id="slotCurrentPageNotice"><?= $pageNo ?></span></strong>.
+                            Slot tanda tangan Anda yang telah dikunci berada di <strong>Halaman <span id="slotCurrentPageNotice"><?= $pageNo ?></span></strong>.
                         </span>
                         <div class="d-flex align-items-center gap-1.5">
-                            <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnJumpToSlotPage">
-                                <i class="bi bi-arrow-left-circle me-1"></i> Buka Hal <span id="jumpTargetPage"><?= $pageNo ?></span>
-                            </button>
-                            <button type="button" class="btn btn-success btn-sm py-0.5 px-2 fw-semibold text-white" id="btnMoveToCurrentPage">
-                                <i class="bi bi-geo-alt-fill me-1"></i> Tempatkan Slot di Halaman Ini (<span id="btnMoveTargetPage">1</span>)
+                            <button type="button" class="btn btn-success btn-sm py-0.5 px-2 fw-semibold text-white" id="btnJumpToSlotPage">
+                                <i class="bi bi-arrow-left-circle me-1"></i> Kembali ke Hal Slot (<span id="jumpTargetPage"><?= $pageNo ?></span>)
                             </button>
                         </div>
                     </div>
 
-                    <!-- Wadah Kanvas Interaktif Terpadu -->
+                    <!-- Wadah Kanvas Interaktif Terpadu (Read-Only / Slot Terkunci) -->
                     <div id="pdfStageContainer" class="d-inline-block text-start position-relative d-none" style="max-width: 100%;">
-                        <div id="slotCanvasContainer" class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden" style="cursor: crosshair;">
+                        <div id="slotCanvasContainer" class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden" style="cursor: default;">
                             <!-- Canvas Elemen PDF Asli (dirender oleh PDF.js) -->
                             <canvas id="pdfSignRenderCanvas" style="display: block; width: 100%; height: auto;"></canvas>
 
@@ -302,8 +291,8 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                     <!-- Petunjuk Bawah Kanvas -->
                     <div class="text-muted mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem;">
                         <span>
-                            <i class="bi bi-hand-index-thumb me-1"></i>
-                            Klik lembar dokumen untuk menempatkan slot tanda tangan atau navigasi halaman jika ingin menandatangani di halaman lain.
+                            <i class="bi bi-lock-fill me-1 text-success"></i>
+                            Posisi slot tanda tangan telah dikunci oleh Pengaju di <strong>Halaman <?= $pageNo ?></strong>. Gunakan tombol navigasi di atas untuk membaca halaman lain.
                         </span>
                         <span class="badge bg-light text-muted border">
                             <i class="bi bi-layers me-1"></i> Menampilkan Halaman: <strong id="activePageBadge" class="text-dark"><?= $pageNo ?></strong>
@@ -703,13 +692,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const activePageBadge = document.getElementById('activePageBadge');
     const slotPageNotice = document.getElementById('slotPageNotice');
     const btnJumpToSlotPage = document.getElementById('btnJumpToSlotPage');
-    const slotPageNumberInput = document.getElementById('slotPageNumberInput');
-    const slotXInput = document.getElementById('slotXInput');
-    const slotYInput = document.getElementById('slotYInput');
-    const btnToolbarMoveSlot = document.getElementById('btnToolbarMoveSlot');
-    const toolbarMoveTargetPage = document.getElementById('toolbarMoveTargetPage');
-    const btnMoveToCurrentPage = document.getElementById('btnMoveToCurrentPage');
-    const btnMoveTargetPage = document.getElementById('btnMoveTargetPage');
     const slotCurrentPageNotice = document.getElementById('slotCurrentPageNotice');
     const jumpTargetPage = document.getElementById('jumpTargetPage');
     const activeSlotBox = document.getElementById('activeSlotBox');
@@ -866,44 +848,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (num !== currentSlotPage) {
             slotPageNotice.classList.remove('d-none');
             slotPageNotice.classList.add('d-flex');
-            if (btnToolbarMoveSlot) {
-                btnToolbarMoveSlot.classList.remove('d-none');
-                if (toolbarMoveTargetPage) toolbarMoveTargetPage.textContent = num;
-            }
             if (slotCurrentPageNotice) slotCurrentPageNotice.textContent = currentSlotPage;
             if (jumpTargetPage) jumpTargetPage.textContent = currentSlotPage;
-            if (btnMoveTargetPage) btnMoveTargetPage.textContent = num;
         } else {
             slotPageNotice.classList.add('d-none');
             slotPageNotice.classList.remove('d-flex');
-            if (btnToolbarMoveSlot) btnToolbarMoveSlot.classList.add('d-none');
         }
-    }
-
-    function moveSlotTo(targetPage, xPercent = null, yPercent = null) {
-        currentSlotPage = targetPage;
-        if (slotPageNumberInput) slotPageNumberInput.value = targetPage;
-
-        if (activeSlotBox) {
-            activeSlotBox.setAttribute('data-page', targetPage);
-            if (xPercent !== null && yPercent !== null) {
-                const w = parseFloat(activeSlotBox.style.width) || 20;
-                const h = parseFloat(activeSlotBox.style.height) || 10;
-                const clampedX = Math.max(0, Math.min(100 - w, xPercent));
-                const clampedY = Math.max(0, Math.min(100 - h, yPercent));
-                activeSlotBox.style.left = clampedX.toFixed(1) + '%';
-                activeSlotBox.style.top = clampedY.toFixed(1) + '%';
-                if (slotXInput) slotXInput.value = clampedX.toFixed(1);
-                if (slotYInput) slotYInput.value = clampedY.toFixed(1);
-            }
-        }
-
-        if (modalConfirmPageBadge) {
-            modalConfirmPageBadge.textContent = 'Halaman ' + currentSlotPage + ' dari ' + totalPages;
-        }
-
-        updateSlotVisibilityForPage(currentPage);
-        updateSlotNotice(currentPage);
     }
 
     if (window.pdfjsLib) {
@@ -1030,38 +980,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btnJumpToSlotPage) {
         btnJumpToSlotPage.addEventListener('click', function () {
             renderPage(currentSlotPage);
-        });
-    }
-
-    if (btnMoveToCurrentPage) {
-        btnMoveToCurrentPage.addEventListener('click', function () {
-            moveSlotTo(currentPage);
-        });
-    }
-
-    if (btnToolbarMoveSlot) {
-        btnToolbarMoveSlot.addEventListener('click', function () {
-            moveSlotTo(currentPage);
-        });
-    }
-
-    // Klik pada kanvas dokumen untuk langsung menempatkan slot tanda tangan pada posisi kursor di halaman aktif
-    if (slotCanvasContainer) {
-        slotCanvasContainer.addEventListener('click', function (e) {
-            if (e.target.closest('#activeSlotBox')) return;
-            const rect = slotCanvasContainer.getBoundingClientRect();
-            if (rect.width === 0 || rect.height === 0) return;
-
-            const clickX = ((e.clientX - rect.left) / rect.width) * 100;
-            const clickY = ((e.clientY - rect.top) / rect.height) * 100;
-
-            const w = activeSlotBox ? (parseFloat(activeSlotBox.style.width) || 20) : 20;
-            const h = activeSlotBox ? (parseFloat(activeSlotBox.style.height) || 10) : 10;
-
-            const newX = clickX - (w / 2);
-            const newY = clickY - (h / 2);
-
-            moveSlotTo(currentPage, newX, newY);
         });
     }
 

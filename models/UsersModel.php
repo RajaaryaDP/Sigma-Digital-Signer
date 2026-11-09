@@ -20,6 +20,10 @@ class UsersModel
      */
     public function getByEmail($email)
     {
+        $cleanEmail = trim(str_replace("\0", '', mb_scrub((string) $email, 'UTF-8')));
+        if ($cleanEmail === '') {
+            return null;
+        }
         $stmt = $this->db->prepare(
             "SELECT u.*, 
                     c.identifier AS civitas_identifier, 
@@ -30,10 +34,10 @@ class UsersModel
                     c.phone AS civitas_phone
              FROM users u
              LEFT JOIN civitas c ON u.civitas_id = c.id AND c.deleted_at IS NULL
-             WHERE u.email = ? AND u.deleted_at IS NULL
+             WHERE LOWER(u.email) = LOWER(?) AND u.deleted_at IS NULL
              LIMIT 1"
         );
-        $stmt->execute([trim($email)]);
+        $stmt->execute([$cleanEmail]);
         $user = $stmt->fetch();
         return $user ?: null;
     }
@@ -43,6 +47,10 @@ class UsersModel
      */
     public function getById($id)
     {
+        $cleanId = trim(str_replace("\0", '', mb_scrub((string) $id, 'UTF-8')));
+        if ($cleanId === '') {
+            return null;
+        }
         $stmt = $this->db->prepare(
             "SELECT u.*, 
                     c.identifier AS civitas_identifier, 
@@ -56,7 +64,7 @@ class UsersModel
              WHERE u.id = ? AND u.deleted_at IS NULL
              LIMIT 1"
         );
-        $stmt->execute([$id]);
+        $stmt->execute([$cleanId]);
         $user = $stmt->fetch();
         return $user ?: null;
     }
@@ -75,13 +83,17 @@ class UsersModel
                 LEFT JOIN civitas c ON u.civitas_id = c.id AND c.deleted_at IS NULL
                 WHERE u.deleted_at IS NULL";
 
-        if (!empty($search)) {
-            $keyword = '%' . trim($search) . '%';
-            $sql .= " AND (u.name LIKE ? OR u.email LIKE ? OR c.identifier LIKE ? OR c.department LIKE ?)";
-            $sql .= " ORDER BY u.created_at DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$keyword, $keyword, $keyword, $keyword]);
-            return $stmt->fetchAll();
+        if ($search !== null && $search !== '') {
+            $cleanSearch = trim(str_replace("\0", '', mb_scrub((string) $search, 'UTF-8')));
+            if ($cleanSearch !== '') {
+                $escapedSearch = strtr($cleanSearch, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
+                $keyword = '%' . $escapedSearch . '%';
+                $sql .= " AND (LOWER(u.name) LIKE LOWER(?) ESCAPE '\\' OR LOWER(u.email) LIKE LOWER(?) ESCAPE '\\' OR LOWER(c.identifier) LIKE LOWER(?) ESCAPE '\\' OR LOWER(c.department) LIKE LOWER(?) ESCAPE '\\')";
+                $sql .= " ORDER BY u.created_at DESC";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$keyword, $keyword, $keyword, $keyword]);
+                return $stmt->fetchAll();
+            }
         }
 
         $sql .= " ORDER BY u.created_at DESC";
@@ -104,7 +116,7 @@ class UsersModel
             $id,
             $data['civitas_id'] ?? null,
             $data['name'],
-            trim($data['email']),
+            strtolower(trim($data['email'])),
             password_hash($data['password'], PASSWORD_BCRYPT),
             $data['role'] ?? 'user',
         ]);
@@ -126,7 +138,7 @@ class UsersModel
         }
         if (isset($data['email'])) {
             $fields[] = "email = ?";
-            $params[] = trim($data['email']);
+            $params[] = strtolower(trim($data['email']));
         }
         if (!empty($data['password'])) {
             $fields[] = "password = ?";

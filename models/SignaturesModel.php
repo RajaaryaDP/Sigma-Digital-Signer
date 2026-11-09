@@ -65,6 +65,10 @@ class SignaturesModel
      */
     public function getById(string $id): ?array
     {
+        $id = str_replace("\0", '', mb_scrub($id, 'UTF-8'));
+        if ($id === '') {
+            return null;
+        }
         $stmt = $this->db->prepare(
             "SELECT s.*, d.uploader_id, u.name AS signer_name
              FROM signatures s
@@ -85,6 +89,10 @@ class SignaturesModel
      */
     public function getByVerificationToken(string $token): ?array
     {
+        $token = trim(str_replace("\0", '', mb_scrub($token, 'UTF-8')));
+        if ($token === '') {
+            return null;
+        }
         $stmt = $this->db->prepare(
             "SELECT s.*,
                     d.title AS document_title,
@@ -163,20 +171,20 @@ class SignaturesModel
                 $data['civitas_id'] ?? null,
                 $data['document_signer_id'],
                 $format,
-                $data['signature_image_path'] ?? null,
-                $data['verification_token'],
-                (int) $data['page_number'],
-                (float) $data['x_percent'],
-                (float) $data['y_percent'],
-                (float) $data['width_percent'],
-                (float) $data['height_percent'],
-                $data['signer_name_snapshot'],
-                $data['signer_identifier_snapshot'] ?? null,
-                $data['signer_type_snapshot'] ?? null,
-                $data['signer_department_snapshot'] ?? null,
-                $data['signer_position_snapshot'] ?? null,
-                $data['signer_email_snapshot'],
-                $data['ip_address'] ?? null,
+                !empty($data['signature_image_path']) ? mb_substr((string) $data['signature_image_path'], 0, 500) : null,
+                mb_substr((string) $data['verification_token'], 0, 128),
+                max(1, min(10000, (int) $data['page_number'])),
+                max(0.0, min(100.0, (float) $data['x_percent'])),
+                max(0.0, min(100.0, (float) $data['y_percent'])),
+                max(1.0, min(100.0, (float) $data['width_percent'])),
+                max(1.0, min(100.0, (float) $data['height_percent'])),
+                mb_substr(str_replace("\0", '', mb_scrub((string) $data['signer_name_snapshot'], 'UTF-8')), 0, 255),
+                !empty($data['signer_identifier_snapshot']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $data['signer_identifier_snapshot'], 'UTF-8')), 0, 64) : null,
+                !empty($data['signer_type_snapshot']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $data['signer_type_snapshot'], 'UTF-8')), 0, 50) : null,
+                !empty($data['signer_department_snapshot']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $data['signer_department_snapshot'], 'UTF-8')), 0, 150) : null,
+                !empty($data['signer_position_snapshot']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $data['signer_position_snapshot'], 'UTF-8')), 0, 150) : null,
+                mb_substr(str_replace("\0", '', mb_scrub((string) $data['signer_email_snapshot'], 'UTF-8')), 0, 255),
+                !empty($data['ip_address']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $data['ip_address'], 'UTF-8')), 0, 45) : null,
             ]);
 
             // 2. Tandai tiket penandatangan sebagai selesai (guard: hanya dari 'pending')

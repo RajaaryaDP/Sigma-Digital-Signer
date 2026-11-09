@@ -58,19 +58,63 @@ $civitasList = [
 
 $civitasMap = []; // email => civitas_id
 
-$stmtCheckCivitas  = $conn->prepare("SELECT id FROM civitas WHERE identifier = ?");
+$stmtCheckCivitas = $conn->prepare("
+    SELECT id, identifier, email, deleted_at
+    FROM civitas
+    WHERE LOWER(identifier) = LOWER(?) OR LOWER(email) = LOWER(?)
+    ORDER BY (LOWER(identifier) = LOWER(?)) DESC, deleted_at IS NULL DESC
+    LIMIT 1
+");
+$stmtResolveCivitasConflict = $conn->prepare("
+    UPDATE civitas
+    SET deleted_at = NOW(), updated_at = NOW()
+    WHERE id != ?
+      AND deleted_at IS NULL
+      AND (LOWER(identifier) = LOWER(?) OR LOWER(email) = LOWER(?))
+");
+$stmtRestoreCivitas = $conn->prepare("
+    UPDATE civitas
+    SET identifier = ?,
+        name       = ?,
+        type       = ?,
+        department = ?,
+        position   = ?,
+        email      = ?,
+        phone      = ?,
+        deleted_at = NULL,
+        updated_at = NOW()
+    WHERE id = ?
+");
 $stmtInsertCivitas = $conn->prepare("
     INSERT INTO civitas (id, identifier, name, type, department, position, email, phone, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
 ");
 
 foreach ($civitasList as $c) {
-    $stmtCheckCivitas->execute([$c['identifier']]);
+    $normEmail = strtolower(trim($c['email']));
+    $stmtCheckCivitas->execute([$c['identifier'], $normEmail, $c['identifier']]);
     $existing = $stmtCheckCivitas->fetch();
 
     if ($existing) {
+        // Pastikan tidak ada baris aktif lain yang menahan identifier/email yang sama sebelum restore/sinkronisasi
+        $stmtResolveCivitasConflict->execute([$existing['id'], $c['identifier'], $normEmail]);
+
+        if ($existing['deleted_at'] !== null || strtolower($existing['identifier']) !== strtolower($c['identifier']) || strtolower($existing['email']) !== $normEmail) {
+            $stmtRestoreCivitas->execute([
+                $c['identifier'],
+                $c['name'],
+                $c['type'],
+                $c['department'],
+                $c['position'],
+                $normEmail,
+                $c['phone'],
+                $existing['id'],
+            ]);
+            echo "  ~ Restored/synchronized Civitas {$c['identifier']} ({$c['name']}).\n";
+        } else {
+            echo "  - Civitas {$c['identifier']} ({$c['name']}) already exists.\n";
+        }
         $civitasMap[$c['email']] = $existing['id'];
-        echo "  - Civitas {$c['identifier']} ({$c['name']}) already exists.\n";
     } else {
         $civitasId = Uuid::uuid4()->toString();
         $stmtInsertCivitas->execute([
@@ -80,7 +124,7 @@ foreach ($civitasList as $c) {
             $c['type'],
             $c['department'],
             $c['position'],
-            $c['email'],
+            $normEmail,
             $c['phone'],
         ]);
         $civitasMap[$c['email']] = $civitasId;
@@ -122,27 +166,67 @@ $usersList = [
     ],
 ];
 
-$stmtCheckUser  = $conn->prepare("SELECT id FROM users WHERE email = ?");
+$stmtCheckUser = $conn->prepare("
+    SELECT id, civitas_id, role, deleted_at FROM users WHERE LOWER(email) = LOWER(?) ORDER BY deleted_at IS NULL DESC LIMIT 1
+");
+$stmtRestoreUser = $conn->prepare("
+    UPDATE users
+    SET civitas_id = ?,
+        name       = ?,
+        email      = ?,
+        password   = ?,
+        role       = ?,
+        deleted_at = NULL,
+        updated_at = NOW()
+    WHERE id = ?
+");
+$stmtSyncActiveUser = $conn->prepare("
+    UPDATE users
+    SET civitas_id = ?,
+        role       = ?,
+        updated_at = NOW()
+    WHERE id = ?
+");
 $stmtInsertUser = $conn->prepare("
     INSERT INTO users (id, civitas_id, name, email, password, role, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
 ");
 
 foreach ($usersList as $u) {
-    $stmtCheckUser->execute([$u['email']]);
-    if ($stmtCheckUser->fetch()) {
-        echo "  - User {$u['email']} already exists, skipping.\n";
+    $civitasId = $civitasMap[$u['email']] ?? null;
+    $normEmail = strtolower(trim($u['email']));
+    $stmtCheckUser->execute([$normEmail]);
+    $existingUser = $stmtCheckUser->fetch();
+
+    if ($existingUser) {
+        if ($existingUser['deleted_at'] !== null) {
+            $stmtRestoreUser->execute([
+                $civitasId,
+                $u['name'],
+                $normEmail,
+                $u['password'],
+                $u['role'],
+                $existingUser['id'],
+            ]);
+            echo "  ~ Restored soft-deleted User {$u['email']} (password & role reset to default).\n";
+        } else {
+            if (($existingUser['civitas_id'] ?? null) !== $civitasId || ($existingUser['role'] ?? '') !== $u['role']) {
+                $stmtSyncActiveUser->execute([$civitasId, $u['role'], $existingUser['id']]);
+                echo "  ~ Synchronized active User {$u['email']} -> Civitas: {$civitasId}\n";
+            } else {
+                echo "  - User {$u['email']} already exists, skipping.\n";
+            }
+        }
         continue;
     }
 
     $userId = Uuid::uuid4()->toString();
-    $civitasId = $civitasMap[$u['email']] ?? null;
 
     $stmtInsertUser->execute([
         $userId,
         $civitasId,
         $u['name'],
-        $u['email'],
+        strtolower($u['email']),
         $u['password'],
         $u['role'],
     ]);
