@@ -1,7 +1,12 @@
 <?php
 $title = 'Tanda Tangani Dokumen — ' . htmlspecialchars($doc['title']) . ' — SIGMA';
 require_once __DIR__ . '/../layout/header.php';
+?>
 
+<!-- Pustaka Mozilla PDF.js untuk rendering lembar dokumen langsung di kanvas interaktif (ADR-09) -->
+<script src="<?= BASE_URL ?>/assets/js/pdf.min.js"></script>
+
+<?php
 // Slot milik penandatangan aktif (terkunci, ADR-08)
 $slotX    = (float) $signer['x_percent'];
 $slotY    = (float) $signer['y_percent'];
@@ -90,97 +95,219 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
 <form id="signForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/sign" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="input_method" id="inputMethod" value="<?= htmlspecialchars($restoreTab === 'canvas' || $restoreTab === 'upload' ? $restoreTab : 'template') ?>">
     <input type="hidden" name="signature_canvas" id="signatureCanvasInput">
+    <input type="hidden" name="slot_page_number" id="slotPageNumberInput" value="<?= $pageNo ?>">
+    <input type="hidden" name="slot_x_percent" id="slotXInput" value="<?= number_format($slotX, 1, '.', '') ?>">
+    <input type="hidden" name="slot_y_percent" id="slotYInput" value="<?= number_format($slotY, 1, '.', '') ?>">
 
     <div class="row g-4">
-        <!-- Kolom Kiri: Pratinjau Dokumen & Slot Terkunci -->
+        <!-- Kolom Kiri: Pratinjau Dokumen Interaktif & Slot Terkunci (ADR-09) -->
         <div class="col-lg-7">
             <div class="card-clean mb-4">
-                <div class="card-clean-header py-2.5 px-3 d-flex justify-content-between align-items-center">
+                <div class="card-clean-header py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
-                        <i class="bi bi-file-earmark-pdf text-danger"></i>
-                        <span>Pratinjau Lembar Berkas Dokumen</span>
+                        <i class="bi bi-file-earmark-check text-success"></i>
+                        <span>Pratinjau Dokumen &amp; Penempatan Slot Tanda Tangan</span>
                     </span>
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
-                        <i class="bi bi-arrows-fullscreen me-1"></i> Layar Penuh
-                    </a>
-                </div>
-                <div class="card-clean-body p-0">
-                    <iframe src="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview"
-                            style="width: 100%; height: 460px; border: none;" title="Pratinjau PDF"></iframe>
-                </div>
-            </div>
 
-            <div class="card-clean mb-4">
-                <div class="card-clean-header py-2.5 px-3 d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
-                        <i class="bi bi-bounding-box text-success"></i>
-                        <span>Slot Tanda Tangan Anda — Halaman <?= $pageNo ?> (Terkunci)</span>
-                    </span>
-                    <span class="badge bg-light text-dark border"><i class="bi bi-lock me-1"></i>Dikunci Pengaju</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Toolbar Navigasi Halaman PDF -->
+                        <div class="btn-group btn-group-sm" role="group" id="pdfNavToolbar">
+                            <button type="button" class="btn btn-outline-secondary" id="btnPrevPage" title="Halaman Sebelumnya" disabled>
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <span class="btn btn-outline-secondary disabled text-dark fw-medium px-2.5" id="pageIndicator" style="font-size: 0.75rem;">
+                                Hal <span id="pageNumDisplay"><?= $pageNo ?></span> dari <span id="pageTotalDisplay">1</span>
+                            </span>
+                            <button type="button" class="btn btn-outline-secondary" id="btnNextPage" title="Halaman Berikutnya" disabled>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <!-- Tombol Pindahkan Slot ke Halaman Aktif -->
+                        <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnToolbarMoveSlot" title="Pindahkan slot tanda tangan ke halaman ini">
+                            <i class="bi bi-geo-alt me-1"></i> Tempatkan di Hal <span id="toolbarMoveTargetPage"><?= $pageNo ?></span>
+                        </button>
+
+                        <!-- Buka Layar Penuh -->
+                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
+                            <i class="bi bi-arrows-fullscreen me-1"></i> Layar Penuh
+                        </a>
+                    </div>
                 </div>
-                <div class="card-clean-body p-3 bg-light text-center">
-                    <!-- Kanvas Representasi Lembar PDF (Rasio A4 = 1 : 1.414) -->
-                    <div class="d-inline-block text-start" style="max-width: 100%;">
-                        <div id="slotCanvasContainer" class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden"
-                             style="width: 480px; height: 678px; max-width: 100%;">
-                            <!-- Watermark latar lembar -->
-                            <div class="position-absolute w-100 h-100 d-flex flex-column align-items-center justify-content-center pointer-events-none opacity-25" style="user-select: none;">
+
+                <div class="card-clean-body p-3 bg-light text-center position-relative" style="min-height: 480px;">
+                    <!-- Loading Spinner saat PDF.js memuat lembar berkas -->
+                    <div id="pdfLoadingSpinner" class="py-5 text-center">
+                        <div class="spinner-border text-success" role="status" style="width: 2.5rem; height: 2.5rem;">
+                            <span class="visually-hidden">Memuat PDF...</span>
+                        </div>
+                        <div class="text-muted small mt-2 fw-medium">Memuat halaman dokumen PDF asli...</div>
+                    </div>
+
+                    <!-- Alert Fallback jika PDF.js gagal atau offline -->
+                    <div id="pdfFallbackAlert" class="alert alert-warning py-2 px-3 small d-none text-start mb-3" style="border-radius: var(--radius-md);">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat melihat slot tanda tangan pada representasi lembar di bawah ini.
+                    </div>
+
+                    <!-- Notifikasi Cepat jika Penandatangan Sedang di Halaman Lain -->
+                    <div id="slotPageNotice" class="alert alert-warning border py-2 px-3 small d-none text-start mb-2 align-items-center justify-content-between flex-wrap gap-2" style="border-radius: var(--radius-sm);">
+                        <span>
+                            <i class="bi bi-info-circle-fill text-warning me-1"></i>
+                            Slot tanda tangan Anda berada di <strong>Halaman <span id="slotCurrentPageNotice"><?= $pageNo ?></span></strong>.
+                        </span>
+                        <div class="d-flex align-items-center gap-1.5">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnJumpToSlotPage">
+                                <i class="bi bi-arrow-left-circle me-1"></i> Buka Hal <span id="jumpTargetPage"><?= $pageNo ?></span>
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm py-0.5 px-2 fw-semibold text-white" id="btnMoveToCurrentPage">
+                                <i class="bi bi-geo-alt-fill me-1"></i> Tempatkan Slot di Halaman Ini (<span id="btnMoveTargetPage">1</span>)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Wadah Kanvas Interaktif Terpadu -->
+                    <div id="pdfStageContainer" class="d-inline-block text-start position-relative d-none" style="max-width: 100%;">
+                        <div id="slotCanvasContainer" class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden" style="cursor: crosshair;">
+                            <!-- Canvas Elemen PDF Asli (dirender oleh PDF.js) -->
+                            <canvas id="pdfSignRenderCanvas" style="display: block; width: 100%; height: auto;"></canvas>
+
+                            <!-- Watermark Latar (Hanya aktif jika PDF.js fallback) -->
+                            <div id="fallbackWatermark" class="position-absolute w-100 h-100 d-none flex-column align-items-center justify-content-center pointer-events-none opacity-25" style="user-select: none;">
                                 <i class="bi bi-file-earmark-text display-1 text-muted"></i>
                                 <span class="fw-semibold text-muted small mt-2">Lembar Halaman <?= $pageNo ?></span>
                             </div>
 
-                            <!-- Kotak slot milik penandatangan lain (teredam) -->
-                            <?php foreach ($allSigners as $s): ?>
-                                <?php if ($s['id'] === $signer['id']) continue; ?>
-                                <?php
-                                    $ox = (float) $s['x_percent'];
-                                    $oy = (float) $s['y_percent'];
-                                    $ow = (float) $s['width_percent'] > 0 ? (float) $s['width_percent'] : 20.0;
-                                    $oh = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
-                                    if ($ox == 0 && $oy == 0) continue;
-                                ?>
-                                <div class="position-absolute rounded border bg-light d-flex flex-column align-items-center justify-content-center"
-                                     style="left: <?= $ox ?>%; top: <?= $oy ?>%; width: <?= $ow ?>%; height: <?= $oh ?>%;
-                                            border-color: #cbd5e1 !important; border-width: 1px !important; opacity: 0.55; z-index: 5;">
-                                    <span class="text-muted text-truncate" style="font-size: 0.6rem; max-width: 95%;">
-                                        <i class="bi bi-lock-fill me-0.5"></i><?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
+                            <!-- Overlay Lapisan Kotak Slot Tanda Tangan (Persis di atas PDF) -->
+                            <div id="slotOverlayContainer" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;">
+                                
+                                <!-- 1. Tanda Tangan yang Sudah Ditempatkan oleh Pihak Sebelumnya ($signaturesPlaced) -->
+                                <?php if (!empty($signaturesPlaced)): ?>
+                                    <?php foreach ($signaturesPlaced as $sig): ?>
+                                        <?php
+                                            $sx = (float) $sig['x_percent'];
+                                            $sy = (float) $sig['y_percent'];
+                                            $sw = (float) $sig['width_percent'] > 0 ? (float) $sig['width_percent'] : 20.0;
+                                            $sh = (float) $sig['height_percent'] > 0 ? (float) $sig['height_percent'] : 10.0;
+                                            $sp = (int) $sig['page_number'] > 0 ? (int) $sig['page_number'] : 1;
+                                            $isPlacedQrOnly = ($sig['signature_format'] ?? '') === 'qr_only' || empty($sig['signature_image_path']);
+                                        ?>
+                                        <div class="position-absolute rounded border text-center overflow-hidden bg-white shadow-xs"
+                                             data-page="<?= $sp ?>"
+                                             style="left: <?= $sx ?>%; top: <?= $sy ?>%; width: <?= $sw ?>%; height: <?= $sh ?>%;
+                                                    border-color: #10b981 !important; border-width: 1.5px !important; z-index: 15; pointer-events: auto;"
+                                             title="Telah ditandatangani oleh <?= htmlspecialchars($sig['signer_name_snapshot']) ?>">
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle position-absolute top-0 start-0 m-1 px-1 py-0.5" style="font-size: 0.58rem; z-index: 5;">
+                                                <i class="bi bi-check-circle-fill me-0.5"></i> <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                            </span>
+                                            <?php if ($isPlacedQrOnly): ?>
+                                                <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-success p-1">
+                                                    <i class="bi bi-qr-code" style="font-size: 1.6rem;"></i>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle mt-0.5" style="font-size: 0.52rem;">Hanya QR Code</span>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="position-absolute" style="inset: 8% 8% 18% 8%;">
+                                                    <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
+                                                         alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                                         style="width: 100%; height: 100%; object-fit: contain;">
+                                                </div>
+                                                <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center bg-white shadow-xs rounded border border-success-subtle text-success"
+                                                     style="width: 16%; height: 16%; min-width: 24px; min-height: 24px; font-size: 0.65rem; z-index: 5;"
+                                                     title="QR Verifikasi Resmi">
+                                                    <i class="bi bi-qr-code"></i>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
 
-                            <!-- Slot aktif milik penandatangan saat ini -->
-                            <div id="activeSlotBox" class="position-absolute rounded border text-center overflow-hidden"
-                                 style="left: <?= $slotX ?>%; top: <?= $slotY ?>%; width: <?= $slotW ?>%; height: <?= $slotH ?>%;
-                                        background-color: rgba(16, 185, 129, 0.08); border-color: #059669 !important; border-width: 2px !important;
-                                        z-index: 10; animation: slotPulse 2.2s ease-in-out infinite;">
-                                <span class="badge bg-success position-absolute top-0 start-0 m-1 px-1.5 py-0.5" style="font-size: 0.62rem;">
-                                    Slot Anda &bull; Step <?= (int) $signer['step_order'] ?>
-                                </span>
-                                <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
-                                <div class="position-absolute" style="inset: 8% 8% 18% 8%;">
-                                    <img id="slotPreviewImg" src="" alt="Pratinjau tanda tangan"
-                                         class="d-none"
-                                         style="width: 100%; height: 100%; object-fit: contain;"
-                                         title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
-                                    <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
-                                        <span class="text-muted" style="font-size: 0.65rem;">
-                                            <i class="bi bi-pen me-1"></i>Pilih metode tanda tangan untuk melihat pratinjau
+                                <!-- 2. Kotak Slot Milik Penandatangan Lain yang Sedang Menunggu Giliran -->
+                                <?php foreach ($allSigners as $s): ?>
+                                    <?php
+                                        if ($s['id'] === $signer['id'] || $s['status'] === 'signed') continue;
+                                        $ox = (float) $s['x_percent'];
+                                        $oy = (float) $s['y_percent'];
+                                        $ow = (float) $s['width_percent'] > 0 ? (float) $s['width_percent'] : 20.0;
+                                        $oh = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
+                                        $op = (int) $s['page_number'] > 0 ? (int) $s['page_number'] : 1;
+                                        if ($ox == 0 && $oy == 0) continue;
+                                    ?>
+                                    <div class="position-absolute rounded border bg-light d-flex flex-column align-items-center justify-content-center"
+                                         data-page="<?= $op ?>"
+                                         style="left: <?= $ox ?>%; top: <?= $oy ?>%; width: <?= $ow ?>%; height: <?= $oh ?>%;
+                                                border-color: #cbd5e1 !important; border-width: 1px dashed !important; opacity: 0.7; z-index: 10; pointer-events: auto;">
+                                        <span class="badge bg-light text-muted border text-truncate mb-0.5" style="font-size: 0.58rem; max-width: 95%;">
+                                            <i class="bi bi-clock me-0.5"></i>Step <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
+                                        </span>
+                                        <span class="text-muted" style="font-size: 0.55rem;">[Menunggu Giliran]</span>
+                                    </div>
+                                <?php endforeach; ?>
+
+                                <!-- 3. Slot Aktif Milik Penandatangan Saat Ini (Terkunci & Live Preview) -->
+                                <div id="activeSlotBox" class="position-absolute rounded border text-center overflow-hidden"
+                                     data-page="<?= $pageNo ?>"
+                                     style="left: <?= $slotX ?>%; top: <?= $slotY ?>%; width: <?= $slotW ?>%; height: <?= $slotH ?>%;
+                                            background-color: rgba(16, 185, 129, 0.08); border-color: #059669 !important; border-width: 2px !important;
+                                            z-index: 20; animation: slotPulse 2.2s ease-in-out infinite; pointer-events: auto;">
+                                    <span class="badge bg-success position-absolute top-0 start-0 m-1 px-1.5 py-0.5" style="font-size: 0.62rem; z-index: 5;">
+                                        Slot Anda &bull; Step <?= (int) $signer['step_order'] ?>
+                                    </span>
+
+                                    <!-- Tampilan Preview: Format QR + Tanda Tangan + Nama -->
+                                    <div id="slotViewQrAndSig" class="w-100 h-100 position-relative">
+                                        <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
+                                        <div class="position-absolute" style="inset: 10% 8% 28% 8%;">
+                                            <img id="slotPreviewImg" src="" alt="Pratinjau tanda tangan"
+                                                 class="d-none"
+                                                 style="width: 100%; height: 100%; object-fit: contain;"
+                                                 title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
+                                            <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                                <span class="text-muted" style="font-size: 0.62rem;">
+                                                    <i class="bi bi-pen me-1"></i>Pilih metode tanda tangan
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <!-- Nama Penandatangan di bawah goresan (Academic Official Style) -->
+                                        <div class="position-absolute bottom-0 start-0 w-100 px-1 text-center" style="margin-bottom: 2px; line-height: 1.15;">
+                                            <div class="text-dark fw-bold text-truncate" style="font-size: 0.62rem; text-decoration: underline;">
+                                                <?= htmlspecialchars($profileName) ?>
+                                            </div>
+                                            <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
+                                                <div class="text-muted text-truncate" style="font-size: 0.52rem;">
+                                                    NIP/NIM. <?= htmlspecialchars($profileIdent) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <!-- Stempel QR placeholder di pojok kanan bawah -->
+                                        <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
+                                             style="width: 16%; height: 16%; min-width: 24px; min-height: 24px; font-size: 0.65rem; z-index: 5;"
+                                             title="QR Code verifikasi akan dibubuhkan otomatis di samping tanda tangan">
+                                            <i class="bi bi-qr-code text-dark"></i>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tampilan Preview: Format Hanya Kode QR -->
+                                    <div id="slotViewQrOnly" class="w-100 h-100 position-relative d-none flex-column align-items-center justify-content-center text-success p-1">
+                                        <i class="bi bi-qr-code" style="font-size: 1.85rem;"></i>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle mt-1" style="font-size: 0.58rem; font-weight: 600;">
+                                            SIGMA PNJ Verified
                                         </span>
                                     </div>
                                 </div>
-                                <!-- Stempel QR placeholder -->
-                                <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
-                                     style="width: 16%; height: 16%; min-width: 28px; min-height: 28px; font-size: 0.7rem;"
-                                     title="QR Code verifikasi akan dibubuhkan otomatis di samping tanda tangan">
-                                    <i class="bi bi-qr-code text-dark"></i>
-                                    <span style="font-size: 0.45rem; line-height: 1;">QR</span>
-                                </div>
+
                             </div>
                         </div>
                     </div>
-                    <div class="text-muted mt-2" style="font-size: 0.75rem;">
-                        <i class="bi bi-hand-index-thumb me-1"></i>
-                        Posisi slot dikunci oleh pengaju. Pratinjau tanda tangan tampil di tengah kotak dengan rasio aspek asli (fit-contain).
+
+                    <!-- Petunjuk Bawah Kanvas -->
+                    <div class="text-muted mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem;">
+                        <span>
+                            <i class="bi bi-hand-index-thumb me-1"></i>
+                            Klik lembar dokumen untuk menempatkan slot tanda tangan atau navigasi halaman jika ingin menandatangani di halaman lain.
+                        </span>
+                        <span class="badge bg-light text-muted border">
+                            <i class="bi bi-layers me-1"></i> Menampilkan Halaman: <strong id="activePageBadge" class="text-dark"><?= $pageNo ?></strong>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -191,139 +318,199 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
             <div class="card-clean mb-4">
                 <div class="card-clean-header py-3 px-3">
                     <div>
-                        <h6 class="fw-bold text-dark mb-0">Metode Tanda Tangan</h6>
-                        <small class="text-muted">Pilih template tersimpan, gores di kanvas, atau unggah PNG transparan</small>
+                        <h6 class="fw-bold text-dark mb-0">Format &amp; Metode Tanda Tangan</h6>
+                        <small class="text-muted">Pilih jenis tampilan pengesahan dan metode tanda tangan</small>
                     </div>
                 </div>
                 <div class="card-clean-body p-3">
 
-                    <!-- Tab Metode -->
-                    <ul class="nav nav-pills nav-fill mb-3" id="methodTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= $restoreTab === 'template' ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
-                                    id="tab-template-btn" data-bs-toggle="pill" data-bs-target="#tab-template" type="button" role="tab">
-                                <i class="bi bi-person-badge"></i> Template Tersimpan
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= ($restoreTab === 'canvas' || $restoreTab === null) ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
-                                    id="tab-canvas-btn" data-bs-toggle="pill" data-bs-target="#tab-canvas" type="button" role="tab">
-                                <i class="bi bi-brush"></i> Gores Kanvas
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link <?= $restoreTab === 'upload' ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
-                                    id="tab-upload-btn" data-bs-toggle="pill" data-bs-target="#tab-upload" type="button" role="tab">
-                                <i class="bi bi-cloud-arrow-up"></i> Upload PNG
-                            </button>
-                        </li>
-                    </ul>
-
-                    <div class="tab-content" id="methodTabsContent">
-                        <!-- TAB 1: Template Tersimpan -->
-                        <div class="tab-pane fade <?= $restoreTab === 'template' ? 'show active' : '' ?>" id="tab-template" role="tabpanel">
-                            <?php if (empty($templates)): ?>
-                                <div class="alert alert-warning py-2.5 px-3 small d-flex align-items-start gap-2 mb-0" style="border-radius: var(--radius-md);">
-                                    <i class="bi bi-exclamation-circle-fill mt-0.5"></i>
-                                    <div>
-                                        <strong>Anda belum memiliki template tanda tangan (BUG-08).</strong><br>
-                                        Silakan gunakan tab <em>"Gores Kanvas"</em> atau <em>"Upload PNG"</em>, atau buat template terlebih dahulu di menu
-                                        <a href="<?= BASE_URL ?>/user-signatures/create" target="_blank" class="fw-semibold">Template TTD</a>.
+                    <!-- Pilihan Format Tanda Tangan (QR + TTD + Nama vs Hanya QR) -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark mb-2 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-ui-radios-grid text-success"></i>
+                            <span>Pilih Format Tampilan:</span>
+                        </label>
+                        <input type="hidden" name="signature_format" id="signatureFormatInput" value="qr_and_signature">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="border rounded-3 p-2.5 h-100 format-card active border-success bg-light text-center"
+                                     id="btnFormatQrAndSig" role="button" style="cursor: pointer; transition: all 0.2s ease;">
+                                    <div class="d-flex align-items-center justify-content-center gap-1 text-success mb-1">
+                                        <i class="bi bi-pen-fill fs-5"></i>
+                                        <i class="bi bi-plus-lg small"></i>
+                                        <i class="bi bi-qr-code fs-6"></i>
                                     </div>
-                                </div>
-                            <?php else: ?>
-                                <?php if (!$defaultTemplateId): ?>
-                                    <div class="alert alert-info py-2 px-3 small mb-2 d-flex align-items-center gap-2" style="border-radius: var(--radius-md);">
-                                        <i class="bi bi-info-circle-fill"></i>
-                                        <span>Tidak ada template default — silakan pilih salah satu di bawah atau gunakan metode lain.</span>
-                                    </div>
-                                <?php endif; ?>
-                                <div class="row g-2">
-                                    <?php foreach ($templates as $tpl): ?>
-                                        <?php
-                                            $tplId = $tpl['id'];
-                                            $isChecked = ($tplId === $defaultTemplateId);
-                                        ?>
-                                        <div class="col-6">
-                                            <label class="d-block border rounded-3 p-2 h-100 position-relative <?= $isChecked ? 'border-success bg-light' : '' ?>"
-                                                   style="cursor: pointer; transition: all 0.15s ease;" id="tplLabel_<?= htmlspecialchars($tplId) ?>">
-                                                <input type="radio" name="template_id" value="<?= htmlspecialchars($tplId) ?>"
-                                                       class="form-check-input position-absolute top-0 end-0 mt-1.5 me-1.5 template-radio"
-                                                       <?= $isChecked ? 'checked' : '' ?>>
-                                                <div class="sig-card-preview checkerboard-bg mb-1" style="height: 100px;">
-                                                    <img src="<?= BASE_URL ?>/user-signatures/<?= htmlspecialchars($tplId) ?>/preview"
-                                                         alt="<?= htmlspecialchars($tpl['label'] ?: 'Template') ?>" loading="lazy">
-                                                </div>
-                                                <div class="text-truncate small fw-semibold text-dark" style="font-size: 0.72rem;">
-                                                    <?= htmlspecialchars($tpl['label'] ?: 'Tanda Tangan') ?>
-                                                    <?php if ((int) $tpl['is_default'] === 1): ?>
-                                                        <span class="badge bg-success ms-1" style="font-size: 0.58rem;">Default</span>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-
-                        <!-- TAB 2: Gores Kanvas Digital -->
-                        <div class="tab-pane fade <?= ($restoreTab === 'canvas' || $restoreTab === null) ? 'show active' : '' ?>" id="tab-canvas" role="tabpanel">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 bg-light border rounded-top border-bottom-0 small">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size: 0.72rem;">Warna:</span>
-                                    <button type="button" class="btn btn-sm btn-color p-0 rounded-circle active" data-color="#0f172a" title="Hitam Klasik"
-                                            style="width: 20px; height: 20px; background: #0f172a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
-                                    <button type="button" class="btn btn-sm btn-color p-0 rounded-circle" data-color="#1e3a8a" title="Biru Resmi Dokumen"
-                                            style="width: 20px; height: 20px; background: #1e3a8a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
-                                    <span class="text-muted ms-1" style="font-size: 0.72rem;">Ketebalan:</span>
-                                    <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="1.8" style="font-size: 0.7rem;">Tipis</button>
-                                    <button type="button" class="btn btn-sm btn-pnj-primary btn-width py-0.5 px-2 active" data-width="2.8" style="font-size: 0.7rem;">Sedang</button>
-                                    <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="4.2" style="font-size: 0.7rem;">Tebal</button>
-                                </div>
-                                <button type="button" id="btnClearCanvas" class="btn btn-subtle btn-sm text-danger border-danger-subtle d-inline-flex align-items-center gap-1 py-1 px-2.5" style="font-size: 0.72rem;">
-                                    <i class="bi bi-eraser-fill"></i> Bersihkan
-                                </button>
-                            </div>
-                            <div class="sig-canvas-wrapper rounded-top-0" style="border-radius: 0;">
-                                <canvas id="sigCanvas" class="sig-canvas" style="height: 170px;"></canvas>
-                                <div class="sig-baseline-hint">
-                                    <span><i class="bi bi-pencil me-1"></i>Goreskan tanda tangan Anda di sini</span>
-                                    <span>Garis Dasar</span>
-                                </div>
-                            </div>
-                            <div class="form-text mt-1 text-muted" style="font-size: 0.72rem;">
-                                <i class="bi bi-info-circle me-1"></i>Mendukung sentuhan layar HP/tablet. Goresan diproses dengan latar belakang transparan.
-                            </div>
-                        </div>
-
-                        <!-- TAB 3: Upload PNG Transparan -->
-                        <div class="tab-pane fade <?= $restoreTab === 'upload' ? 'show active' : '' ?>" id="tab-upload" role="tabpanel">
-                            <div class="sig-upload-box" id="dropZone" style="padding: 1.5rem 1rem;">
-                                <input type="file" name="signature_file" id="signatureFileInput" accept="image/png" class="d-none">
-                                <div id="uploadPrompt">
-                                    <div class="text-success fs-2 mb-1"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-                                    <div class="fw-bold text-dark small mb-1">Klik untuk Memilih atau Seret ke Sini</div>
-                                    <div class="text-muted small mb-2">Hanya <strong>PNG transparan (.png)</strong>, maksimal 2 MB.</div>
-                                    <span class="btn btn-subtle btn-sm px-3"><i class="bi bi-folder2-open me-1"></i> Pilih Berkas PNG</span>
-                                </div>
-                                <div id="uploadPreviewWrapper" class="d-none">
-                                    <div class="checkerboard-bg p-2 rounded border mx-auto d-inline-flex align-items-center justify-content-center mb-2" style="max-width: 280px; height: 130px; overflow: hidden;">
-                                        <img id="uploadPreviewImg" src="" alt="Pratinjau Berkas" style="max-height: 100%; max-width: 100%; object-fit: contain;">
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-center gap-2">
-                                        <span id="uploadFileName" class="small fw-semibold text-dark text-truncate" style="max-width: 210px;"></span>
-                                        <button type="button" id="btnRemoveFile" class="btn btn-subtle btn-sm text-danger border-danger-subtle py-0.5 px-2" style="font-size: 0.72rem;">
-                                            <i class="bi bi-x-circle me-1"></i> Ganti File
-                                        </button>
+                                    <div class="fw-bold text-dark small" style="font-size: 0.78rem;">QR + TTD + Nama</div>
+                                    <div class="text-muted mt-0.5" style="font-size: 0.65rem; line-height: 1.25;">
+                                        Coretan tanda tangan, nama resmi, dan kode QR
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-text mt-1 text-muted" style="font-size: 0.72rem;">
-                                <i class="bi bi-lightbulb me-1"></i>Gunakan gambar berlatar transparan agar menyatu dengan lembar PDF tanpa menutupi teks.
+                            <div class="col-6">
+                                <div class="border rounded-3 p-2.5 h-100 format-card text-center"
+                                     id="btnFormatQrOnly" role="button" style="cursor: pointer; transition: all 0.2s ease;">
+                                    <div class="d-flex align-items-center justify-content-center text-primary mb-1">
+                                        <i class="bi bi-qr-code fs-4"></i>
+                                    </div>
+                                    <div class="fw-bold text-dark small" style="font-size: 0.78rem;">Hanya Kode QR</div>
+                                    <div class="text-muted mt-0.5" style="font-size: 0.65rem; line-height: 1.25;">
+                                        Hanya kode QR verifikasi resmi tanpa coretan
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Bagian Metode Goresan (Khusus Format QR + TTD + Nama) -->
+                    <div id="scribbleMethodSection">
+                        <div class="border-top pt-3 mb-2">
+                            <div class="small fw-bold text-dark mb-2 d-flex align-items-center gap-1.5">
+                                <i class="bi bi-palette text-success"></i>
+                                <span>Pilih Sumber Goresan Tanda Tangan:</span>
+                            </div>
+                        </div>
+
+                        <!-- Tab Metode -->
+                        <ul class="nav nav-pills nav-fill mb-3" id="methodTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link <?= $restoreTab === 'template' ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
+                                        id="tab-template-btn" data-bs-toggle="pill" data-bs-target="#tab-template" type="button" role="tab">
+                                    <i class="bi bi-person-badge"></i> Template Tersimpan
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link <?= ($restoreTab === 'canvas' || $restoreTab === null) ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
+                                        id="tab-canvas-btn" data-bs-toggle="pill" data-bs-target="#tab-canvas" type="button" role="tab">
+                                    <i class="bi bi-brush"></i> Gores Kanvas
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link <?= $restoreTab === 'upload' ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
+                                        id="tab-upload-btn" data-bs-toggle="pill" data-bs-target="#tab-upload" type="button" role="tab">
+                                    <i class="bi bi-cloud-arrow-up"></i> Upload PNG
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="methodTabsContent">
+                            <!-- TAB 1: Template Tersimpan -->
+                            <div class="tab-pane fade <?= $restoreTab === 'template' ? 'show active' : '' ?>" id="tab-template" role="tabpanel">
+                                <?php if (empty($templates)): ?>
+                                    <div class="alert alert-warning py-2.5 px-3 small d-flex align-items-start gap-2 mb-0" style="border-radius: var(--radius-md);">
+                                        <i class="bi bi-exclamation-circle-fill mt-0.5"></i>
+                                        <div>
+                                            <strong>Anda belum memiliki template tanda tangan (BUG-08).</strong><br>
+                                            Silakan gunakan tab <em>"Gores Kanvas"</em> atau <em>"Upload PNG"</em>, atau buat template terlebih dahulu di menu
+                                            <a href="<?= BASE_URL ?>/user-signatures/create" target="_blank" class="fw-semibold">Template TTD</a>.
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <?php if (!$defaultTemplateId): ?>
+                                        <div class="alert alert-info py-2 px-3 small mb-2 d-flex align-items-center gap-2" style="border-radius: var(--radius-md);">
+                                            <i class="bi bi-info-circle-fill"></i>
+                                            <span>Tidak ada template default — silakan pilih salah satu di bawah atau gunakan metode lain.</span>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="row g-2">
+                                        <?php foreach ($templates as $tpl): ?>
+                                            <?php
+                                                $tplId = $tpl['id'];
+                                                $isChecked = ($tplId === $defaultTemplateId);
+                                            ?>
+                                            <div class="col-6">
+                                                <label class="d-block border rounded-3 p-2 h-100 position-relative <?= $isChecked ? 'border-success bg-light' : '' ?>"
+                                                       style="cursor: pointer; transition: all 0.15s ease;" id="tplLabel_<?= htmlspecialchars($tplId) ?>">
+                                                    <input type="radio" name="template_id" value="<?= htmlspecialchars($tplId) ?>"
+                                                           class="form-check-input position-absolute top-0 end-0 mt-1.5 me-1.5 template-radio"
+                                                           <?= $isChecked ? 'checked' : '' ?>>
+                                                    <div class="sig-card-preview checkerboard-bg mb-1" style="height: 100px;">
+                                                        <img src="<?= BASE_URL ?>/user-signatures/<?= htmlspecialchars($tplId) ?>/preview"
+                                                             alt="<?= htmlspecialchars($tpl['label'] ?: 'Template') ?>" loading="lazy">
+                                                    </div>
+                                                    <div class="text-truncate small fw-semibold text-dark" style="font-size: 0.72rem;">
+                                                        <?= htmlspecialchars($tpl['label'] ?: 'Tanda Tangan') ?>
+                                                        <?php if ((int) $tpl['is_default'] === 1): ?>
+                                                            <span class="badge bg-success ms-1" style="font-size: 0.58rem;">Default</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- TAB 2: Gores Kanvas Digital -->
+                            <div class="tab-pane fade <?= ($restoreTab === 'canvas' || $restoreTab === null) ? 'show active' : '' ?>" id="tab-canvas" role="tabpanel">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 bg-light border rounded-top border-bottom-0 small">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted" style="font-size: 0.72rem;">Warna:</span>
+                                        <button type="button" class="btn btn-sm btn-color p-0 rounded-circle active" data-color="#0f172a" title="Hitam Klasik"
+                                                style="width: 20px; height: 20px; background: #0f172a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
+                                        <button type="button" class="btn btn-sm btn-color p-0 rounded-circle" data-color="#1e3a8a" title="Biru Resmi Dokumen"
+                                                style="width: 20px; height: 20px; background: #1e3a8a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
+                                        <span class="text-muted ms-1" style="font-size: 0.72rem;">Ketebalan:</span>
+                                        <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="1.8" style="font-size: 0.7rem;">Tipis</button>
+                                        <button type="button" class="btn btn-sm btn-pnj-primary btn-width py-0.5 px-2 active" data-width="2.8" style="font-size: 0.7rem;">Sedang</button>
+                                        <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="4.2" style="font-size: 0.7rem;">Tebal</button>
+                                    </div>
+                                    <button type="button" id="btnClearCanvas" class="btn btn-subtle btn-sm text-danger border-danger-subtle d-inline-flex align-items-center gap-1 py-1 px-2.5" style="font-size: 0.72rem;">
+                                        <i class="bi bi-eraser-fill"></i> Bersihkan
+                                    </button>
+                                </div>
+                                <div class="sig-canvas-wrapper rounded-top-0" style="border-radius: 0;">
+                                    <canvas id="sigCanvas" class="sig-canvas" style="height: 170px;"></canvas>
+                                    <div class="sig-baseline-hint">
+                                        <span><i class="bi bi-pencil me-1"></i>Goreskan tanda tangan Anda di sini</span>
+                                        <span>Garis Dasar</span>
+                                    </div>
+                                </div>
+                                <div class="form-text mt-1 text-muted" style="font-size: 0.72rem;">
+                                    <i class="bi bi-info-circle me-1"></i>Mendukung sentuhan layar HP/tablet. Goresan diproses dengan latar belakang transparan.
+                                </div>
+                            </div>
+
+                            <!-- TAB 3: Upload PNG Transparan -->
+                            <div class="tab-pane fade <?= $restoreTab === 'upload' ? 'show active' : '' ?>" id="tab-upload" role="tabpanel">
+                                <div class="sig-upload-box" id="dropZone" style="padding: 1.5rem 1rem;">
+                                    <input type="file" name="signature_file" id="signatureFileInput" accept="image/png" class="d-none">
+                                    <div id="uploadPrompt">
+                                        <div class="text-success fs-2 mb-1"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                                        <div class="fw-bold text-dark small mb-1">Klik untuk Memilih atau Seret ke Sini</div>
+                                        <div class="text-muted small mb-2">Hanya <strong>PNG transparan (.png)</strong>, maksimal 2 MB.</div>
+                                        <span class="btn btn-subtle btn-sm px-3"><i class="bi bi-folder2-open me-1"></i> Pilih Berkas PNG</span>
+                                    </div>
+                                    <div id="uploadPreviewWrapper" class="d-none">
+                                        <div class="checkerboard-bg p-2 rounded border mx-auto d-inline-flex align-items-center justify-content-center mb-2" style="max-width: 280px; height: 130px; overflow: hidden;">
+                                            <img id="uploadPreviewImg" src="" alt="Pratinjau Berkas" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-center gap-2">
+                                            <span id="uploadFileName" class="small fw-semibold text-dark text-truncate" style="max-width: 210px;"></span>
+                                            <button type="button" id="btnRemoveFile" class="btn btn-subtle btn-sm text-danger border-danger-subtle py-0.5 px-2" style="font-size: 0.72rem;">
+                                                <i class="bi bi-x-circle me-1"></i> Ganti File
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-text mt-1 text-muted" style="font-size: 0.72rem;">
+                                    <i class="bi bi-lightbulb me-1"></i>Gunakan gambar berlatar transparan agar menyatu dengan lembar PDF tanpa menutupi teks.
+                                </div>
+                            </div>
+                        </div>
+                    </div> <!-- end scribbleMethodSection -->
+
+                    <!-- Bagian Informasi Format Hanya Kode QR -->
+                    <div id="qrOnlyInfoSection" class="alert alert-primary py-3 px-3 d-none mb-0" style="border-radius: var(--radius-md);">
+                        <div class="d-flex align-items-start gap-2.5">
+                            <i class="bi bi-info-circle-fill text-primary fs-5 mt-0.5"></i>
+                            <div class="small">
+                                <strong>Format Hanya Kode QR Aktif:</strong><br>
+                                Dokumen akan disahkan secara elektronik dengan stempel Kode QR verifikasi resmi SIGMA PNJ yang ditempatkan langsung di tengah slot Anda.<br>
+                                <span class="text-muted mt-1 d-block">Anda tidak perlu menggambar kanvas atau memilih template fisik. Klik tombol <strong>Tanda Tangani &amp; Terbitkan</strong> di bawah untuk langsung memproses pengesahan.</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -335,6 +522,10 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                             Ringkasan Konfirmasi
                         </div>
                         <ul class="list-unstyled small d-flex flex-column gap-1.5 mb-0">
+                            <li class="d-flex justify-content-between">
+                                <span class="text-muted">Format Pengesahan</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold" id="summaryFormatLabel">QR + TTD + Nama</span>
+                            </li>
                             <li class="d-flex justify-content-between">
                                 <span class="text-muted">Penandatangan</span>
                                 <span class="fw-semibold text-dark"><?= htmlspecialchars($profileName) ?></span>
@@ -388,15 +579,39 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                         Apakah Anda yakin membubuhi tanda tangan resmi pada dokumen
                         <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong>?
                     </p>
-                    <div class="checkerboard-bg rounded border p-3 mb-3 d-flex align-items-center justify-content-center" style="height: 110px;">
-                        <img id="modalPreviewImg" src="" alt="Pratinjau tanda tangan" class="d-none"
-                             style="max-height: 100%; max-width: 100%; object-fit: contain;">
-                        <span id="modalPreviewEmpty" class="text-muted small">Belum ada pratinjau tanda tangan.</span>
+                    <div class="d-flex align-items-center justify-content-between p-2 mb-2 bg-light rounded border small">
+                        <span class="text-muted"><i class="bi bi-ui-radios-grid me-1"></i>Format Tanda Tangan:</span>
+                        <span class="badge bg-success-subtle text-success border border-success fw-bold" id="modalConfirmFormatBadge">
+                            QR + Tanda Tangan + Nama
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between p-2 mb-3 bg-light rounded border small">
+                        <span class="text-muted"><i class="bi bi-file-earmark-text me-1"></i>Halaman Penempatan:</span>
+                        <span class="badge bg-success-subtle text-success border border-success fw-bold" id="modalConfirmPageBadge">
+                            Halaman <?= $pageNo ?>
+                        </span>
+                    </div>
+                    <div class="checkerboard-bg rounded border p-3 mb-3 d-flex align-items-center justify-content-center" style="height: 120px;">
+                        <!-- Preview Format QR + TTD + Nama -->
+                        <div id="modalPreviewQrAndSig" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center">
+                            <img id="modalPreviewImg" src="" alt="Pratinjau tanda tangan" class="d-none"
+                                 style="max-height: 65px; max-width: 100%; object-fit: contain;">
+                            <span id="modalPreviewEmpty" class="text-muted small">Belum ada pratinjau tanda tangan.</span>
+                            <div id="modalPreviewName" class="fw-bold text-dark small mt-1 text-decoration-underline d-none">
+                                <?= htmlspecialchars($profileName) ?>
+                            </div>
+                        </div>
+                        <!-- Preview Format Hanya Kode QR -->
+                        <div id="modalPreviewQrOnly" class="d-none text-center text-success py-1">
+                            <i class="bi bi-qr-code fs-1 d-block mb-1"></i>
+                            <div class="fw-bold small">Stempel QR Code Verifikasi Resmi</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">(Format: Hanya Kode QR)</div>
+                        </div>
                     </div>
                     <div class="alert alert-warning py-2.5 px-3 small mb-0 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
                         <i class="bi bi-exclamation-triangle-fill mt-0.5"></i>
                         <div>
-                            Tindakan ini <strong>tidak dapat dibatalkan</strong>. Tanda tangan visual beserta stempel QR verifikasi
+                            Tindakan ini <strong>tidak dapat dibatalkan</strong>. Pengesahan dokumen beserta stempel QR verifikasi
                             identitas Anda akan tercatat permanen pada jejak audit dokumen.
                         </div>
                     </div>
@@ -474,6 +689,46 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalPreviewEmpty = document.getElementById('modalPreviewEmpty');
     const btnConfirmSign = document.getElementById('btnConfirmSign');
 
+    // ── Referensi Elemen PDF.js Viewer & Stage ──
+    const loadingSpinner = document.getElementById('pdfLoadingSpinner');
+    const fallbackAlert = document.getElementById('pdfFallbackAlert');
+    const stageContainer = document.getElementById('pdfStageContainer');
+    const slotCanvasContainer = document.getElementById('slotCanvasContainer');
+    const renderCanvas = document.getElementById('pdfSignRenderCanvas');
+    const fallbackWatermark = document.getElementById('fallbackWatermark');
+    const btnPrevPage = document.getElementById('btnPrevPage');
+    const btnNextPage = document.getElementById('btnNextPage');
+    const pageNumDisplay = document.getElementById('pageNumDisplay');
+    const pageTotalDisplay = document.getElementById('pageTotalDisplay');
+    const activePageBadge = document.getElementById('activePageBadge');
+    const slotPageNotice = document.getElementById('slotPageNotice');
+    const btnJumpToSlotPage = document.getElementById('btnJumpToSlotPage');
+    const slotPageNumberInput = document.getElementById('slotPageNumberInput');
+    const slotXInput = document.getElementById('slotXInput');
+    const slotYInput = document.getElementById('slotYInput');
+    const btnToolbarMoveSlot = document.getElementById('btnToolbarMoveSlot');
+    const toolbarMoveTargetPage = document.getElementById('toolbarMoveTargetPage');
+    const btnMoveToCurrentPage = document.getElementById('btnMoveToCurrentPage');
+    const btnMoveTargetPage = document.getElementById('btnMoveTargetPage');
+    const slotCurrentPageNotice = document.getElementById('slotCurrentPageNotice');
+    const jumpTargetPage = document.getElementById('jumpTargetPage');
+    const activeSlotBox = document.getElementById('activeSlotBox');
+    const modalConfirmPageBadge = document.getElementById('modalConfirmPageBadge');
+
+    // ── Referensi Format Tanda Tangan (QR Only vs QR + TTD + Nama) ──
+    const signatureFormatInput = document.getElementById('signatureFormatInput');
+    const btnFormatQrAndSig = document.getElementById('btnFormatQrAndSig');
+    const btnFormatQrOnly = document.getElementById('btnFormatQrOnly');
+    const scribbleMethodSection = document.getElementById('scribbleMethodSection');
+    const qrOnlyInfoSection = document.getElementById('qrOnlyInfoSection');
+    const summaryFormatLabel = document.getElementById('summaryFormatLabel');
+    const slotViewQrAndSig = document.getElementById('slotViewQrAndSig');
+    const slotViewQrOnly = document.getElementById('slotViewQrOnly');
+    const modalConfirmFormatBadge = document.getElementById('modalConfirmFormatBadge');
+    const modalPreviewQrAndSig = document.getElementById('modalPreviewQrAndSig');
+    const modalPreviewQrOnly = document.getElementById('modalPreviewQrOnly');
+    const modalPreviewName = document.getElementById('modalPreviewName');
+
     // ── Status input ──
     let hasDrawn = false;
     let hasTemplate = <?= json_encode(!empty($templates)) ?>;
@@ -481,6 +736,93 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentWidth = 2.8;
     let selectedTemplateId = <?= json_encode($defaultTemplateId) ?>;
     let uploadDataUrl = null;
+
+    // ── Pengaturan Format Tanda Tangan ──
+    function setSignatureFormat(format) {
+        if (!signatureFormatInput) return;
+        signatureFormatInput.value = format;
+
+        if (format === 'qr_only') {
+            if (btnFormatQrOnly) btnFormatQrOnly.classList.add('active', 'border-primary', 'bg-light');
+            if (btnFormatQrAndSig) btnFormatQrAndSig.classList.remove('active', 'border-success', 'bg-light');
+            if (scribbleMethodSection) scribbleMethodSection.classList.add('d-none');
+            if (qrOnlyInfoSection) qrOnlyInfoSection.classList.remove('d-none');
+
+            if (summaryFormatLabel) {
+                summaryFormatLabel.textContent = 'Hanya Kode QR';
+                summaryFormatLabel.className = 'badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold';
+            }
+            if (slotViewQrAndSig) slotViewQrAndSig.classList.add('d-none');
+            if (slotViewQrOnly) {
+                slotViewQrOnly.classList.remove('d-none');
+                slotViewQrOnly.classList.add('d-flex');
+            }
+            if (modalConfirmFormatBadge) {
+                modalConfirmFormatBadge.textContent = 'Hanya Kode QR';
+                modalConfirmFormatBadge.className = 'badge bg-primary-subtle text-primary border border-primary fw-bold';
+            }
+            if (modalPreviewQrAndSig) modalPreviewQrAndSig.classList.add('d-none');
+            if (modalPreviewQrOnly) modalPreviewQrOnly.classList.remove('d-none');
+
+            // Format Hanya QR: langsung aktifkan tombol konfirmasi tanpa goresan kanvas
+            if (btnOpenConfirm) btnOpenConfirm.disabled = false;
+        } else {
+            if (btnFormatQrAndSig) btnFormatQrAndSig.classList.add('active', 'border-success', 'bg-light');
+            if (btnFormatQrOnly) btnFormatQrOnly.classList.remove('active', 'border-primary', 'bg-light');
+            if (scribbleMethodSection) scribbleMethodSection.classList.remove('d-none');
+            if (qrOnlyInfoSection) qrOnlyInfoSection.classList.add('d-none');
+
+            if (summaryFormatLabel) {
+                summaryFormatLabel.textContent = 'QR + TTD + Nama';
+                summaryFormatLabel.className = 'badge bg-success-subtle text-success border border-success-subtle fw-semibold';
+            }
+            if (slotViewQrAndSig) slotViewQrAndSig.classList.remove('d-none');
+            if (slotViewQrOnly) {
+                slotViewQrOnly.classList.add('d-none');
+                slotViewQrOnly.classList.remove('d-flex');
+            }
+            if (modalConfirmFormatBadge) {
+                modalConfirmFormatBadge.textContent = 'QR + Tanda Tangan + Nama';
+                modalConfirmFormatBadge.className = 'badge bg-success-subtle text-success border border-success fw-bold';
+            }
+            if (modalPreviewQrAndSig) modalPreviewQrAndSig.classList.remove('d-none');
+            if (modalPreviewQrOnly) modalPreviewQrOnly.classList.add('d-none');
+
+            // Cek apakah coretan tanda tangan sudah tersedia
+            checkScribbleValidity();
+        }
+    }
+
+    function checkScribbleValidity() {
+        if (!signatureFormatInput || signatureFormatInput.value === 'qr_only') {
+            if (btnOpenConfirm) btnOpenConfirm.disabled = false;
+            return;
+        }
+
+        let valid = false;
+        if (inputMethod.value === 'canvas') {
+            valid = hasDrawn;
+        } else if (inputMethod.value === 'upload') {
+            valid = (uploadDataUrl !== null);
+        } else {
+            const checked = document.querySelector('.template-radio:checked');
+            valid = (checked !== null);
+        }
+
+        if (btnOpenConfirm) btnOpenConfirm.disabled = !valid;
+    }
+
+    if (btnFormatQrAndSig) {
+        btnFormatQrAndSig.addEventListener('click', function () {
+            setSignatureFormat('qr_and_signature');
+        });
+    }
+
+    if (btnFormatQrOnly) {
+        btnFormatQrOnly.addEventListener('click', function () {
+            setSignatureFormat('qr_only');
+        });
+    }
 
     // ── Pratinjau slot (fit-contain via CSS object-fit) ──
     function showSlotPreview(src) {
@@ -490,7 +832,11 @@ document.addEventListener('DOMContentLoaded', function () {
             slotPreviewEmpty.classList.remove('d-none');
             modalPreviewImg.classList.add('d-none');
             modalPreviewEmpty.classList.remove('d-none');
-            btnOpenConfirm.disabled = true;
+            if (modalPreviewName) modalPreviewName.classList.add('d-none');
+
+            if (signatureFormatInput && signatureFormatInput.value === 'qr_and_signature') {
+                btnOpenConfirm.disabled = true;
+            }
             return;
         }
         slotPreviewImg.src = src;
@@ -499,7 +845,236 @@ document.addEventListener('DOMContentLoaded', function () {
         modalPreviewImg.src = src;
         modalPreviewImg.classList.remove('d-none');
         modalPreviewEmpty.classList.add('d-none');
+        if (modalPreviewName) modalPreviewName.classList.remove('d-none');
+
         btnOpenConfirm.disabled = false;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Integrasi Mozilla PDF.js: Render Lembar Berkas PDF Asli (ADR-09)
+    // ─────────────────────────────────────────────────────────────
+    const pdfUrl = <?= json_encode(BASE_URL . '/documents/' . $doc['id'] . '/preview') ?>;
+    let currentSlotPage = <?= (int) $pageNo ?>;
+    let pdfDoc = null;
+    let currentPage = currentSlotPage;
+    let totalPages = 1;
+    let isRendering = false;
+    let pageRenderingQueue = null;
+
+    function updateSlotNotice(num) {
+        if (!slotPageNotice) return;
+        if (num !== currentSlotPage) {
+            slotPageNotice.classList.remove('d-none');
+            slotPageNotice.classList.add('d-flex');
+            if (btnToolbarMoveSlot) {
+                btnToolbarMoveSlot.classList.remove('d-none');
+                if (toolbarMoveTargetPage) toolbarMoveTargetPage.textContent = num;
+            }
+            if (slotCurrentPageNotice) slotCurrentPageNotice.textContent = currentSlotPage;
+            if (jumpTargetPage) jumpTargetPage.textContent = currentSlotPage;
+            if (btnMoveTargetPage) btnMoveTargetPage.textContent = num;
+        } else {
+            slotPageNotice.classList.add('d-none');
+            slotPageNotice.classList.remove('d-flex');
+            if (btnToolbarMoveSlot) btnToolbarMoveSlot.classList.add('d-none');
+        }
+    }
+
+    function moveSlotTo(targetPage, xPercent = null, yPercent = null) {
+        currentSlotPage = targetPage;
+        if (slotPageNumberInput) slotPageNumberInput.value = targetPage;
+
+        if (activeSlotBox) {
+            activeSlotBox.setAttribute('data-page', targetPage);
+            if (xPercent !== null && yPercent !== null) {
+                const w = parseFloat(activeSlotBox.style.width) || 20;
+                const h = parseFloat(activeSlotBox.style.height) || 10;
+                const clampedX = Math.max(0, Math.min(100 - w, xPercent));
+                const clampedY = Math.max(0, Math.min(100 - h, yPercent));
+                activeSlotBox.style.left = clampedX.toFixed(1) + '%';
+                activeSlotBox.style.top = clampedY.toFixed(1) + '%';
+                if (slotXInput) slotXInput.value = clampedX.toFixed(1);
+                if (slotYInput) slotYInput.value = clampedY.toFixed(1);
+            }
+        }
+
+        if (modalConfirmPageBadge) {
+            modalConfirmPageBadge.textContent = 'Halaman ' + currentSlotPage + ' dari ' + totalPages;
+        }
+
+        updateSlotVisibilityForPage(currentPage);
+        updateSlotNotice(currentPage);
+    }
+
+    if (window.pdfjsLib) {
+        try {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = <?= json_encode(BASE_URL . '/assets/js/pdf.worker.min.js') ?>;
+        } catch (e) {
+            console.warn('Worker configuration notice:', e);
+        }
+
+        pdfjsLib.getDocument({ url: pdfUrl, withCredentials: true }).promise.then(function (loadedPdf) {
+            pdfDoc = loadedPdf;
+            totalPages = loadedPdf.numPages;
+            if (pageTotalDisplay) pageTotalDisplay.textContent = totalPages;
+
+            currentPage = Math.min(totalPages, Math.max(1, currentSlotPage));
+
+            if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            if (stageContainer) stageContainer.classList.remove('d-none');
+
+            renderPage(currentPage);
+        }).catch(function (error) {
+            console.warn('PDF.js gagal memuat berkas:', error);
+            initFallbackMode();
+        });
+    } else {
+        initFallbackMode();
+    }
+
+    function initFallbackMode() {
+        if (loadingSpinner) loadingSpinner.classList.add('d-none');
+        if (fallbackAlert) fallbackAlert.classList.remove('d-none');
+        if (stageContainer) {
+            stageContainer.classList.remove('d-none');
+            if (slotCanvasContainer) {
+                slotCanvasContainer.style.width = '480px';
+                slotCanvasContainer.style.height = '678px';
+            }
+            if (renderCanvas) renderCanvas.style.display = 'none';
+            if (fallbackWatermark) {
+                fallbackWatermark.classList.remove('d-none');
+                fallbackWatermark.classList.add('d-flex');
+            }
+        }
+        updateSlotVisibilityForPage(currentSlotPage);
+        updateSlotNotice(currentSlotPage);
+    }
+
+    function renderPage(num) {
+        if (!pdfDoc) return;
+
+        if (isRendering) {
+            pageRenderingQueue = num;
+            return;
+        }
+        isRendering = true;
+        currentPage = num;
+
+        if (pageNumDisplay) pageNumDisplay.textContent = num;
+        if (activePageBadge) activePageBadge.textContent = num;
+        if (btnPrevPage) btnPrevPage.disabled = (num <= 1);
+        if (btnNextPage) btnNextPage.disabled = (num >= totalPages);
+
+        updateSlotNotice(num);
+
+        pdfDoc.getPage(num).then(function (page) {
+            const parentWidth = stageContainer.parentElement.clientWidth || 560;
+            const targetWidth = Math.min(620, Math.max(340, parentWidth - 32));
+            const unscaledViewport = page.getViewport({ scale: 1.0 });
+            const scale = targetWidth / unscaledViewport.width;
+            const viewport = page.getViewport({ scale: scale });
+
+            const rCtx = renderCanvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+
+            renderCanvas.width = Math.floor(viewport.width * dpr);
+            renderCanvas.height = Math.floor(viewport.height * dpr);
+            renderCanvas.style.width = Math.floor(viewport.width) + 'px';
+            renderCanvas.style.height = Math.floor(viewport.height) + 'px';
+
+            slotCanvasContainer.style.width = Math.floor(viewport.width) + 'px';
+            slotCanvasContainer.style.height = Math.floor(viewport.height) + 'px';
+
+            const renderContext = {
+                canvasContext: rCtx,
+                viewport: viewport,
+                transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null
+            };
+
+            const renderTask = page.render(renderContext);
+            renderTask.promise.then(function () {
+                isRendering = false;
+                if (pageRenderingQueue !== null) {
+                    const queuedPage = pageRenderingQueue;
+                    pageRenderingQueue = null;
+                    renderPage(queuedPage);
+                } else {
+                    updateSlotVisibilityForPage(currentPage);
+                }
+            }).catch(function (err) {
+                if (err.name !== 'RenderingCancelledException') {
+                    console.error('Render error:', err);
+                }
+                isRendering = false;
+            });
+        });
+    }
+
+    if (btnPrevPage) {
+        btnPrevPage.addEventListener('click', function () {
+            if (currentPage > 1) {
+                renderPage(currentPage - 1);
+            }
+        });
+    }
+
+    if (btnNextPage) {
+        btnNextPage.addEventListener('click', function () {
+            if (currentPage < totalPages) {
+                renderPage(currentPage + 1);
+            }
+        });
+    }
+
+    if (btnJumpToSlotPage) {
+        btnJumpToSlotPage.addEventListener('click', function () {
+            renderPage(currentSlotPage);
+        });
+    }
+
+    if (btnMoveToCurrentPage) {
+        btnMoveToCurrentPage.addEventListener('click', function () {
+            moveSlotTo(currentPage);
+        });
+    }
+
+    if (btnToolbarMoveSlot) {
+        btnToolbarMoveSlot.addEventListener('click', function () {
+            moveSlotTo(currentPage);
+        });
+    }
+
+    // Klik pada kanvas dokumen untuk langsung menempatkan slot tanda tangan pada posisi kursor di halaman aktif
+    if (slotCanvasContainer) {
+        slotCanvasContainer.addEventListener('click', function (e) {
+            if (e.target.closest('#activeSlotBox')) return;
+            const rect = slotCanvasContainer.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            const clickX = ((e.clientX - rect.left) / rect.width) * 100;
+            const clickY = ((e.clientY - rect.top) / rect.height) * 100;
+
+            const w = activeSlotBox ? (parseFloat(activeSlotBox.style.width) || 20) : 20;
+            const h = activeSlotBox ? (parseFloat(activeSlotBox.style.height) || 10) : 10;
+
+            const newX = clickX - (w / 2);
+            const newY = clickY - (h / 2);
+
+            moveSlotTo(currentPage, newX, newY);
+        });
+    }
+
+    function updateSlotVisibilityForPage(page) {
+        const overlayItems = document.querySelectorAll('#slotOverlayContainer [data-page]');
+        overlayItems.forEach(el => {
+            const p = parseInt(el.getAttribute('data-page'), 10) || 1;
+            if (p === page) {
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        });
     }
 
     // ── Kanvas: HiDPI-safe (replikasi mitigasi BUG-04) ──
@@ -543,7 +1118,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', function () {
+        resizeCanvas();
+        if (pdfDoc && !isRendering) {
+            renderPage(currentPage);
+        }
+    });
 
     function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
@@ -833,6 +1413,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Buka Modal Konfirmasi (Trigger Ganda Bootstrap + JS) ──
     btnOpenConfirm.addEventListener('click', function () {
         if (this.disabled) return;
+        if (modalConfirmPageBadge) {
+            modalConfirmPageBadge.textContent = 'Halaman ' + currentSlotPage + (totalPages > 1 ? (' dari ' + totalPages) : '');
+        }
         const modalEl = document.getElementById('modalConfirm');
         if (modalEl && typeof bootstrap !== 'undefined') {
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -842,27 +1425,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Konfirmasi final (validasi + submit) ──
     btnConfirmSign.addEventListener('click', function () {
-        if (inputMethod.value === 'canvas') {
-            if (!hasDrawn) {
-                alert('Silakan goreskan tanda tangan Anda pada kanvas terlebih dahulu.');
-                return;
-            }
-            const trimmedData = getTrimmedCanvasData();
-            if (!trimmedData) {
-                alert('Kanvas tanda tangan masih kosong.');
-                return;
-            }
-            sigInput.value = trimmedData;
-        } else if (inputMethod.value === 'upload') {
-            if (!fileInput.files || fileInput.files.length === 0) {
-                alert('Silakan pilih berkas gambar PNG tanda tangan untuk diunggah.');
-                return;
-            }
-        } else {
-            const checked = document.querySelector('.template-radio:checked');
-            if (!checked) {
-                alert('Silakan pilih salah satu template tanda tangan tersimpan.');
-                return;
+        const isQrOnly = (signatureFormatInput && signatureFormatInput.value === 'qr_only');
+
+        if (!isQrOnly) {
+            if (inputMethod.value === 'canvas') {
+                if (!hasDrawn) {
+                    alert('Silakan goreskan tanda tangan Anda pada kanvas terlebih dahulu.');
+                    return;
+                }
+                const trimmedData = getTrimmedCanvasData();
+                if (!trimmedData) {
+                    alert('Kanvas tanda tangan masih kosong.');
+                    return;
+                }
+                sigInput.value = trimmedData;
+            } else if (inputMethod.value === 'upload') {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('Silakan pilih berkas gambar PNG tanda tangan untuk diunggah.');
+                    return;
+                }
+            } else {
+                const checked = document.querySelector('.template-radio:checked');
+                if (!checked) {
+                    alert('Silakan pilih salah satu template tanda tangan tersimpan.');
+                    return;
+                }
             }
         }
 

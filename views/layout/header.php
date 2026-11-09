@@ -10,6 +10,7 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($title ?? 'SIGMA — Politeknik Negeri Jakarta') ?></title>
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/logo.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -24,9 +25,7 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
         <div class="pnj-navbar-inner">
             <!-- Brand Identity -->
             <a href="<?= BASE_URL ?>/" class="pnj-brand" title="Halaman Utama SIGMA PNJ">
-                <div class="pnj-brand-icon">
-                    <i class="bi bi-shield-shaded"></i>
-                </div>
+                <img src="<?= BASE_URL ?>/assets/img/logo.png" alt="SIGMA" class="pnj-brand-logo" width="38" height="38" style="object-fit: contain;">
                 <div class="pnj-brand-text">
                     <span class="pnj-brand-title">SIGMA</span>
                     <span class="pnj-brand-sub">Politeknik Negeri Jakarta (PNJ)</span>
@@ -67,18 +66,6 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                             </a>
                         </li>
                     <?php else: ?>
-                        <li>
-                            <a href="<?= BASE_URL ?>/#tentang" class="pnj-nav-link">
-                                <i class="bi bi-info-circle"></i>
-                                <span>Tentang</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="<?= BASE_URL ?>/#fitur" class="pnj-nav-link">
-                                <i class="bi bi-stars"></i>
-                                <span>Fitur</span>
-                            </a>
-                        </li>
                         <li>
                             <a href="<?= BASE_URL ?>/#alur" class="pnj-nav-link">
                                 <i class="bi bi-diagram-3"></i>

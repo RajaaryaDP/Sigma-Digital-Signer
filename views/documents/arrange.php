@@ -4,7 +4,7 @@ require_once __DIR__ . '/../layout/header.php';
 ?>
 
 <!-- Pustaka Mozilla PDF.js untuk rendering lembar dokumen langsung di kanvas interaktif -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/pdf.min.js"></script>
 
 <!-- Header Breadcrumb & Status -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
@@ -66,6 +66,9 @@ require_once __DIR__ . '/../layout/header.php';
                                 <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
+                        <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnPlaceOnCurrentPage" title="Pindahkan slot penandatangan aktif ke halaman yang sedang dibuka">
+                            <i class="bi bi-geo-alt me-1"></i> Tempatkan Slot di Hal <span id="toolbarCurrentPageNum">1</span>
+                        </button>
                     </div>
                 </div>
 
@@ -82,6 +85,17 @@ require_once __DIR__ . '/../layout/header.php';
                     <div id="pdfFallbackAlert" class="alert alert-warning py-2 px-3 small d-none text-start mb-3" style="border-radius: var(--radius-md);">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
                         Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat mengatur koordinat pada kanvas representasi rasio A4 di bawah ini.
+                    </div>
+
+                    <!-- Alert Peringatan Perbedaan Halaman Slot Aktif vs Halaman Tampil -->
+                    <div id="slotPageDiffAlert" class="alert alert-warning py-1.5 px-2.5 small d-none align-items-center justify-content-between mb-2 text-start flex-wrap gap-2" style="border-radius: var(--radius-sm);">
+                        <span>
+                            <i class="bi bi-info-circle-fill text-warning me-1"></i>
+                            Slot <strong id="diffSignerName">Penandatangan</strong> saat ini berada di <strong>Halaman <span id="diffSignerPageNum">1</span></strong>.
+                        </span>
+                        <button type="button" class="btn btn-warning btn-sm py-0.5 px-2 text-dark fw-semibold" id="btnDiffMoveSlot">
+                            <i class="bi bi-geo-alt-fill me-1"></i> Pindahkan Slot ke Halaman <span id="diffCurrentPageNum">1</span>
+                        </button>
                     </div>
 
                     <!-- Wadah Kanvas Interaktif Terpadu -->
@@ -321,6 +335,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const pageNumDisplay = document.getElementById('pageNumDisplay');
     const pageTotalDisplay = document.getElementById('pageTotalDisplay');
     const activePageBadge = document.getElementById('activePageBadge');
+    const btnPlaceOnCurrentPage = document.getElementById('btnPlaceOnCurrentPage');
+    const toolbarCurrentPageNum = document.getElementById('toolbarCurrentPageNum');
+    const slotPageDiffAlert = document.getElementById('slotPageDiffAlert');
+    const diffSignerName = document.getElementById('diffSignerName');
+    const diffSignerPageNum = document.getElementById('diffSignerPageNum');
+    const diffCurrentPageNum = document.getElementById('diffCurrentPageNum');
+    const btnDiffMoveSlot = document.getElementById('btnDiffMoveSlot');
 
     let activeSignerId = slotBoxes.length > 0 ? slotBoxes[0].getAttribute('data-signer-id') : null;
 
@@ -335,7 +356,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let pageRenderingQueue = null;
 
     if (window.pdfjsLib) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        try {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = <?= json_encode(BASE_URL . '/assets/js/pdf.worker.min.js') ?>;
+        } catch (e) {
+            console.warn('Worker configuration notice:', e);
+        }
         
         pdfjsLib.getDocument({ url: pdfUrl, withCredentials: true }).promise.then(function (loadedPdf) {
             pdfDoc = loadedPdf;
@@ -455,6 +480,53 @@ document.addEventListener('DOMContentLoaded', function () {
         return input ? (parseInt(input.value, 10) || 1) : 1;
     }
 
+    // Pembaruan Alert & Tombol Penempatan Halaman Slot Aktif
+    function updateActiveSlotPageAlert() {
+        if (!activeSignerId) return;
+        const signerPage = getSignerPage(activeSignerId);
+        const card = document.getElementById('cardSigner_' + activeSignerId);
+        const signerName = card ? (card.querySelector('.fw-bold.text-dark.small')?.textContent?.trim() || 'Penandatangan') : 'Penandatangan';
+
+        if (signerPage !== currentPage) {
+            if (slotPageDiffAlert) {
+                slotPageDiffAlert.classList.remove('d-none');
+                slotPageDiffAlert.classList.add('d-flex');
+                if (diffSignerName) diffSignerName.textContent = signerName;
+                if (diffSignerPageNum) diffSignerPageNum.textContent = signerPage;
+                if (diffCurrentPageNum) diffCurrentPageNum.textContent = currentPage;
+            }
+            if (btnPlaceOnCurrentPage) {
+                btnPlaceOnCurrentPage.classList.remove('d-none');
+                if (toolbarCurrentPageNum) toolbarCurrentPageNum.textContent = currentPage;
+            }
+        } else {
+            if (slotPageDiffAlert) {
+                slotPageDiffAlert.classList.add('d-none');
+                slotPageDiffAlert.classList.remove('d-flex');
+            }
+            if (btnPlaceOnCurrentPage) {
+                btnPlaceOnCurrentPage.classList.add('d-none');
+            }
+        }
+    }
+
+    function moveActiveSlotToCurrentPage() {
+        if (!activeSignerId) return;
+        const pageInput = document.getElementById('page_' + activeSignerId);
+        if (pageInput) pageInput.value = currentPage;
+        const box = document.getElementById('slotBox_' + activeSignerId);
+        if (box) box.setAttribute('data-signer-page', currentPage);
+        updateSlotVisibilityForPage(currentPage);
+        updateActiveSlotPageAlert();
+    }
+
+    if (btnPlaceOnCurrentPage) {
+        btnPlaceOnCurrentPage.addEventListener('click', moveActiveSlotToCurrentPage);
+    }
+    if (btnDiffMoveSlot) {
+        btnDiffMoveSlot.addEventListener('click', moveActiveSlotToCurrentPage);
+    }
+
     // Filter Slot: Hanya tampilkan slot yang berada pada halaman yang sedang aktif dirender
     function updateSlotVisibilityForPage(page) {
         slotBoxes.forEach(box => {
@@ -484,6 +556,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
+
+        updateActiveSlotPageAlert();
     }
 
     // Fungsi memilih signer aktif
@@ -513,7 +587,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const targetPage = getSignerPage(signerId);
             if (targetPage !== currentPage && targetPage >= 1 && targetPage <= totalPages) {
                 renderPage(targetPage);
+            } else {
+                updateActiveSlotPageAlert();
             }
+        } else {
+            updateActiveSlotPageAlert();
         }
     }
 
@@ -556,6 +634,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderPage(pVal);
             } else {
                 updateSlotVisibilityForPage(currentPage);
+                updateActiveSlotPageAlert();
             }
         });
     });
@@ -693,10 +772,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (xInput) xInput.value = newX.toFixed(1);
         if (yInput) yInput.value = newY.toFixed(1);
-        if (pageInput && parseInt(pageInput.value, 10) !== currentPage) {
+        if (pageInput) {
             pageInput.value = currentPage;
             box.setAttribute('data-signer-page', currentPage);
             updateSlotVisibilityForPage(currentPage);
+            updateActiveSlotPageAlert();
         }
     });
 

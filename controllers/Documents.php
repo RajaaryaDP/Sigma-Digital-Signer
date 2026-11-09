@@ -812,121 +812,134 @@ class Documents
             exit;
         }
 
+        $signatureFormat = trim($_POST['signature_format'] ?? 'qr_and_signature');
+        if (!in_array($signatureFormat, ['qr_and_signature', 'qr_only'], true)) {
+            $signatureFormat = 'qr_and_signature';
+        }
+
         $inputMethod = trim($_POST['input_method'] ?? 'canvas');
         $errors      = [];
 
-        // Salinan fisik independen ke storage/signatures/documents/{signature_id}.png (BUG-06)
         $signatureId       = Uuid::uuid4()->toString();
         $verificationToken = Uuid::uuid4()->toString();
-        $signatureDir      = $this->storageDir . '/signatures/documents';
-        if (!is_dir($signatureDir)) {
-            mkdir($signatureDir, 0755, true);
-        }
-        $destPath = $signatureDir . '/' . $signatureId . '.png';
-        $dbPath   = 'signatures/documents/' . $signatureId . '.png';
+        $destPath          = null;
+        $dbPath            = null;
 
-        if ($inputMethod === 'template') {
-            // Menggunakan template tersimpan milik user → salin (copy) agar independen
-            $templateId = trim($_POST['template_id'] ?? '');
-            $template   = $this->signatureModel->getById($templateId, $this->userId);
-            if (!$template) {
-                $errors['signature'] = 'Template tanda tangan tidak valid atau bukan milik Anda.';
-            } else {
-                $srcPath = $this->storageDir . '/' . ltrim($template['image_path'], '/\\');
-                if (!file_exists($srcPath) || !is_readable($srcPath)) {
-                    $errors['signature'] = 'Berkas template tanda tangan tidak tersedia di storage server.';
-                } elseif (!copy($srcPath, $destPath)) {
-                    $errors['signature'] = 'Gagal membuat salinan independen tanda tangan di storage server.';
-                }
+        if ($signatureFormat === 'qr_only') {
+            // Format Hanya Kode QR: tidak memerlukan berkas fisik tanda tangan
+            $dbPath = null;
+        } else {
+            // Format QR + Tanda Tangan + Nama: buat salinan fisik terisolasi (BUG-06)
+            $signatureDir = $this->storageDir . '/signatures/documents';
+            if (!is_dir($signatureDir)) {
+                mkdir($signatureDir, 0755, true);
             }
-        } elseif ($inputMethod === 'canvas') {
-            // Goresan kanvas baru → tulis langsung ke salinan terisolasi
-            $canvasData = trim($_POST['signature_canvas'] ?? '');
+            $destPath = $signatureDir . '/' . $signatureId . '.png';
+            $dbPath   = 'signatures/documents/' . $signatureId . '.png';
 
-            if (empty($canvasData)) {
-                $errors['signature'] = 'Silakan bubuhkan goresan tanda tangan Anda pada kanvas.';
-            } elseif (!preg_match('/^data:image\/png;base64,(.+)$/', $canvasData, $matches)) {
-                $errors['signature'] = 'Format data kanvas tanda tangan tidak valid.';
-            } else {
-                $decoded = base64_decode($matches[1], true);
-                if ($decoded === false || strlen($decoded) < 100) {
-                    $errors['signature'] = 'Gambar tanda tangan dari kanvas tidak terbaca atau kosong.';
+            if ($inputMethod === 'template') {
+                // Menggunakan template tersimpan milik user → salin (copy) agar independen
+                $templateId = trim($_POST['template_id'] ?? '');
+                $template   = $this->signatureModel->getById($templateId, $this->userId);
+                if (!$template) {
+                    $errors['signature'] = 'Template tanda tangan tidak valid atau bukan milik Anda.';
                 } else {
-                    $imgInfo = @getimagesizefromstring($decoded);
-                    if ($imgInfo === false || $imgInfo['mime'] !== 'image/png') {
-                        $errors['signature'] = 'Hasil kanvas harus berupa gambar PNG yang valid.';
-                    } elseif (file_put_contents($destPath, $decoded) === false) {
-                        $errors['signature'] = 'Gagal menyimpan berkas tanda tangan ke penyimpanan privat server.';
+                    $srcPath = $this->storageDir . '/' . ltrim($template['image_path'], '/\\');
+                    if (!file_exists($srcPath) || !is_readable($srcPath)) {
+                        $errors['signature'] = 'Berkas template tanda tangan tidak tersedia di storage server.';
+                    } elseif (!copy($srcPath, $destPath)) {
+                        $errors['signature'] = 'Gagal membuat salinan independen tanda tangan di storage server.';
                     }
                 }
-            }
-        } elseif ($inputMethod === 'upload') {
-            // Unggah PNG transparan sekali pakai → wajib lolos validasi alpha channel (BUG-05)
-            if (!isset($_FILES['signature_file']) || $_FILES['signature_file']['error'] === UPLOAD_ERR_NO_FILE) {
-                $errors['signature'] = 'Silakan pilih berkas gambar tanda tangan PNG untuk diunggah.';
-            } elseif ($_FILES['signature_file']['error'] !== UPLOAD_ERR_OK) {
-                $errors['signature'] = 'Terjadi kesalahan saat mengunggah berkas tanda tangan.';
-            } else {
-                $file = $_FILES['signature_file'];
-                if ($file['size'] > 2 * 1024 * 1024) {
-                    $errors['signature'] = 'Ukuran berkas tanda tangan melebihi batas maksimal 2 MB.';
+            } elseif ($inputMethod === 'canvas') {
+                // Goresan kanvas baru → tulis langsung ke salinan terisolasi
+                $canvasData = trim($_POST['signature_canvas'] ?? '');
+
+                if (empty($canvasData)) {
+                    $errors['signature'] = 'Silakan bubuhkan goresan tanda tangan Anda pada kanvas.';
+                } elseif (!preg_match('/^data:image\/png;base64,(.+)$/', $canvasData, $matches)) {
+                    $errors['signature'] = 'Format data kanvas tanda tangan tidak valid.';
                 } else {
-                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $mime = finfo_file($finfo, $file['tmp_name']);
-                    finfo_close($finfo);
-
-                    if ($mime !== 'image/png') {
-                        $errors['signature'] = 'Berkas tanda tangan wajib berformat gambar PNG transparan (.png).';
+                    $decoded = base64_decode($matches[1], true);
+                    if ($decoded === false || strlen($decoded) < 100) {
+                        $errors['signature'] = 'Gambar tanda tangan dari kanvas tidak terbaca atau kosong.';
                     } else {
-                        $im = @imagecreatefrompng($file['tmp_name']);
-                        if ($im === false) {
-                            $errors['signature'] = 'Berkas gambar PNG tanda tangan rusak atau tidak dapat diproses.';
+                        $imgInfo = @getimagesizefromstring($decoded);
+                        if ($imgInfo === false || $imgInfo['mime'] !== 'image/png') {
+                            $errors['signature'] = 'Hasil kanvas harus berupa gambar PNG yang valid.';
+                        } elseif (file_put_contents($destPath, $decoded) === false) {
+                            $errors['signature'] = 'Gagal menyimpan berkas tanda tangan ke penyimpanan privat server.';
+                        }
+                    }
+                }
+            } elseif ($inputMethod === 'upload') {
+                // Unggah PNG transparan sekali pakai → wajib lolos validasi alpha channel (BUG-05)
+                if (!isset($_FILES['signature_file']) || $_FILES['signature_file']['error'] === UPLOAD_ERR_NO_FILE) {
+                    $errors['signature'] = 'Silakan pilih berkas gambar tanda tangan PNG untuk diunggah.';
+                } elseif ($_FILES['signature_file']['error'] !== UPLOAD_ERR_OK) {
+                    $errors['signature'] = 'Terjadi kesalahan saat mengunggah berkas tanda tangan.';
+                } else {
+                    $file = $_FILES['signature_file'];
+                    if ($file['size'] > 2 * 1024 * 1024) {
+                        $errors['signature'] = 'Ukuran berkas tanda tangan melebihi batas maksimal 2 MB.';
+                    } else {
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mime = finfo_file($finfo, $file['tmp_name']);
+                        finfo_close($finfo);
+
+                        if ($mime !== 'image/png') {
+                            $errors['signature'] = 'Berkas tanda tangan wajib berformat gambar PNG transparan (.png).';
                         } else {
-                            $w = imagesx($im);
-                            $h = imagesy($im);
-                            $hasAlpha = false;
+                            $im = @imagecreatefrompng($file['tmp_name']);
+                            if ($im === false) {
+                                $errors['signature'] = 'Berkas gambar PNG tanda tangan rusak atau tidak dapat diproses.';
+                            } else {
+                                $w = imagesx($im);
+                                $h = imagesy($im);
+                                $hasAlpha = false;
 
-                            // Sampling titik sudut & tepi
-                            $sampleCoords = [
-                                [0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1],
-                                [intdiv($w, 2), 0], [intdiv($w, 2), $h - 1],
-                                [0, intdiv($h, 2)], [$w - 1, intdiv($h, 2)]
-                            ];
-                            foreach ($sampleCoords as $coord) {
-                                $rgba = imagecolorsforindex($im, imagecolorat($im, $coord[0], $coord[1]));
-                                if ($rgba['alpha'] > 10) {
-                                    $hasAlpha = true;
-                                    break;
+                                // Sampling titik sudut & tepi
+                                $sampleCoords = [
+                                    [0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1],
+                                    [intdiv($w, 2), 0], [intdiv($w, 2), $h - 1],
+                                    [0, intdiv($h, 2)], [$w - 1, intdiv($h, 2)]
+                                ];
+                                foreach ($sampleCoords as $coord) {
+                                    $rgba = imagecolorsforindex($im, imagecolorat($im, $coord[0], $coord[1]));
+                                    if ($rgba['alpha'] > 10) {
+                                        $hasAlpha = true;
+                                        break;
+                                    }
                                 }
-                            }
 
-                            // Grid sampling melompat jika tepi belum mendeteksi alpha
-                            if (!$hasAlpha) {
-                                $stepX = max(1, intdiv($w, 50));
-                                $stepY = max(1, intdiv($h, 50));
-                                for ($y = 0; $y < $h && !$hasAlpha; $y += $stepY) {
-                                    for ($x = 0; $x < $w; $x += $stepX) {
-                                        $rgba = imagecolorsforindex($im, imagecolorat($im, $x, $y));
-                                        if ($rgba['alpha'] > 10) {
-                                            $hasAlpha = true;
-                                            break;
+                                // Grid sampling melompat jika tepi belum mendeteksi alpha
+                                if (!$hasAlpha) {
+                                    $stepX = max(1, intdiv($w, 50));
+                                    $stepY = max(1, intdiv($h, 50));
+                                    for ($y = 0; $y < $h && !$hasAlpha; $y += $stepY) {
+                                        for ($x = 0; $x < $w; $x += $stepX) {
+                                            $rgba = imagecolorsforindex($im, imagecolorat($im, $x, $y));
+                                            if ($rgba['alpha'] > 10) {
+                                                $hasAlpha = true;
+                                                break;
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            imagedestroy($im);
+                                imagedestroy($im);
 
-                            if (!$hasAlpha) {
-                                $errors['signature'] = 'Gambar PNG tidak memiliki latar belakang transparan. Harap gunakan gambar tanda tangan berlatar transparan agar tidak menutupi teks dokumen.';
-                            } elseif (!move_uploaded_file($file['tmp_name'], $destPath)) {
-                                $errors['signature'] = 'Gagal memindahkan berkas tanda tangan ke penyimpanan privat.';
+                                if (!$hasAlpha) {
+                                    $errors['signature'] = 'Gambar PNG tidak memiliki latar belakang transparan. Harap gunakan gambar tanda tangan berlatar transparan agar tidak menutupi teks dokumen.';
+                                } elseif (!move_uploaded_file($file['tmp_name'], $destPath)) {
+                                    $errors['signature'] = 'Gagal memindahkan berkas tanda tangan ke penyimpanan privat.';
+                                }
                             }
                         }
                     }
                 }
+            } else {
+                $errors['signature'] = 'Metode input tanda tangan tidak dikenali.';
             }
-        } else {
-            $errors['signature'] = 'Metode input tanda tangan tidak dikenali.';
         }
 
         // Jika ada error validasi, render ulang halaman penandatanganan
@@ -941,6 +954,32 @@ class Documents
         // Snapshot biodata resmi civitas penandatangan (ADR-03 — immutable)
         $userProfile = $this->usersModel->getById($this->userId);
 
+        // Penyesuaian halaman dan posisi slot tanda tangan dari antarmuka penandatanganan
+        $effectivePage   = (int) ($signer['page_number'] ?: 1);
+        $effectiveX      = (float) $signer['x_percent'];
+        $effectiveY      = (float) $signer['y_percent'];
+        $effectiveWidth  = (float) $signer['width_percent'] > 0 ? (float) $signer['width_percent'] : 20.0;
+        $effectiveHeight = (float) $signer['height_percent'] > 0 ? (float) $signer['height_percent'] : 10.0;
+
+        if (isset($_POST['slot_page_number']) && (int) $_POST['slot_page_number'] >= 1) {
+            $effectivePage = (int) $_POST['slot_page_number'];
+            if (isset($_POST['slot_x_percent']) && $_POST['slot_x_percent'] !== '') {
+                $effectiveX = max(0.0, min(100.0 - $effectiveWidth, (float) $_POST['slot_x_percent']));
+            }
+            if (isset($_POST['slot_y_percent']) && $_POST['slot_y_percent'] !== '') {
+                $effectiveY = max(0.0, min(100.0 - $effectiveHeight, (float) $_POST['slot_y_percent']));
+            }
+
+            // Sinkronisasi pembaruan ke tabel document_signers
+            $this->model->updateSignerSlot((string) $signer['id'], (string) $doc['id'], [
+                'page_number'    => $effectivePage,
+                'x_percent'      => $effectiveX,
+                'y_percent'      => $effectiveY,
+                'width_percent'  => $effectiveWidth,
+                'height_percent' => $effectiveHeight,
+            ]);
+        }
+
         try {
             $result = $this->signaturesModel->signDocument([
                 'id'                         => $signatureId,
@@ -949,12 +988,13 @@ class Documents
                 'signer_id'                  => $this->userId,
                 'civitas_id'                 => $userProfile['civitas_id'] ?? null,
                 'document_signer_id'         => $signer['id'],
+                'signature_format'           => $signatureFormat,
                 'signature_image_path'       => $dbPath,
-                'page_number'                => (int) $signer['page_number'],
-                'x_percent'                  => (float) $signer['x_percent'],
-                'y_percent'                  => (float) $signer['y_percent'],
-                'width_percent'              => (float) $signer['width_percent'],
-                'height_percent'             => (float) $signer['height_percent'],
+                'page_number'                => $effectivePage,
+                'x_percent'                  => $effectiveX,
+                'y_percent'                  => $effectiveY,
+                'width_percent'              => $effectiveWidth,
+                'height_percent'             => $effectiveHeight,
                 'signer_name_snapshot'       => $userProfile['civitas_name'] ?: $userProfile['name'],
                 'signer_identifier_snapshot' => $userProfile['civitas_identifier'] ?? null,
                 'signer_type_snapshot'       => $userProfile['civitas_type'] ?? null,
@@ -972,7 +1012,8 @@ class Documents
                 'signer_name'        => $userProfile['civitas_name'] ?: $userProfile['name'],
                 'step_order'         => (int) $signer['step_order'],
                 'verification_token' => $verificationToken,
-                'method'             => $inputMethod,
+                'format'             => $signatureFormat,
+                'method'             => $signatureFormat === 'qr_only' ? 'qr_only' : $inputMethod,
             ], $doc['id']);
 
             if ($result === 'completed') {
@@ -1010,7 +1051,7 @@ class Documents
             }
         } catch (\Throwable $e) {
             // Hapus salinan fisik bila transaksi gagal
-            if (file_exists($destPath)) {
+            if ($destPath !== null && file_exists($destPath)) {
                 @unlink($destPath);
             }
 

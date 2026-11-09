@@ -354,17 +354,34 @@ foreach ($signers as $s) {
             <div class="card-clean-body p-3">
                 <div class="d-flex flex-column gap-3">
                     <?php foreach ($signatures as $sig): ?>
+                        <?php $isQrOnly = ($sig['signature_format'] ?? '') === 'qr_only' || empty($sig['signature_image_path']); ?>
                         <div class="d-flex align-items-center gap-3 border rounded-3 p-2.5">
                             <div class="checkerboard-bg rounded border flex-shrink-0 d-flex align-items-center justify-content-center"
                                  style="width: 150px; height: 75px; overflow: hidden;">
-                                <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
-                                     alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
-                                     style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                <?php if ($isQrOnly): ?>
+                                    <div class="d-flex flex-column align-items-center justify-content-center text-success p-1 text-center">
+                                        <i class="bi bi-qr-code fs-3"></i>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle mt-0.5" style="font-size: 0.58rem;">Hanya QR Code</span>
+                                    </div>
+                                <?php else: ?>
+                                    <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
+                                         alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                         style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                <?php endif; ?>
                             </div>
                             <div class="flex-grow-1 min-width-0">
                                 <div class="fw-bold text-dark small">
                                     <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
                                     <span class="badge bg-success ms-1" style="font-size: 0.62rem;">Tertanda</span>
+                                    <?php if ($isQrOnly): ?>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-0.5" style="font-size: 0.62rem;">
+                                            <i class="bi bi-qr-code me-0.5"></i>Hanya QR
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-0.5" style="font-size: 0.62rem;">
+                                            <i class="bi bi-pen me-0.5"></i>QR + TTD
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="text-muted" style="font-size: 0.75rem;">
                                     <?= htmlspecialchars($sig['signer_position_snapshot'] ?: '-') ?>

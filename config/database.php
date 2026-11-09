@@ -2,9 +2,9 @@
 
 $driver  = 'mysql';
 $host    = 'localhost';
-$db_name = 'pbl_ti_2025_c_denidwiprasetya';
+$db_name = 'pbl_ti_2025_a_raja';
 $user    = 'root';
-$pass    = '';
+$pass    = 'raja123';
 
 try {
     $conn = new PDO("mysql:host={$host};dbname={$db_name};charset=utf8mb4", $user, $pass);

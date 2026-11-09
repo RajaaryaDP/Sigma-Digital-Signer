@@ -164,6 +164,8 @@ class PdfStamper
                 // Jika ada tanda tangan pada halaman ini
                 if (isset($signaturesByPage[$p])) {
                     foreach ($signaturesByPage[$p] as $sig) {
+                        $sigFormat = $sig['signature_format'] ?? 'qr_and_signature';
+
                         // Batasi koordinat dan persentase secara defensif
                         $xPercent = max(0.0, min(95.0, (float)$sig['x_percent']));
                         $yPercent = max(0.0, min(95.0, (float)$sig['y_percent']));
@@ -183,74 +185,145 @@ class PdfStamper
                             $yPt = max(0.0, $pageH - $hPt - 7.0);
                         }
 
-                        // 1. Tempelkan Goresan Tanda Tangan Fisik (Prinsip fit-contain BUG-07)
-                        $sigImgPath = $storageDir . '/' . ltrim($sig['signature_image_path'], '/\\');
-                        if (file_exists($sigImgPath) && is_readable($sigImgPath)) {
-                            list($origW, $origH) = @getimagesize($sigImgPath);
-                            if ($origW > 0 && $origH > 0) {
-                                $scale   = min($wPt / $origW, $hPt / $origH);
-                                $renderW = $origW * $scale;
-                                $renderH = $origH * $scale;
-                                $renderX = $xPt + ($wPt - $renderW) / 2;
-                                $renderY = $yPt + ($hPt - $renderH) / 2;
-                                $pdf->Image($sigImgPath, $renderX, $renderY, $renderW, $renderH);
-                            } else {
-                                $pdf->Image($sigImgPath, $xPt, $yPt, $wPt, $hPt);
-                            }
-                        }
+                        if ($sigFormat === 'qr_only') {
+                            // ── FORMAT 1: HANYA KODE QR ──
+                            // Tempelkan QR Code verifikasi langsung di tengah kotak slot (tanpa coretan & tanpa nama)
+                            if (!empty($sig['verification_token'])) {
+                                $token = $sig['verification_token'];
+                                $qrTempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR
+                                    . 'sigma_qr_' . $token . '_' . bin2hex(random_bytes(4)) . '.png';
+                                $verifyUrl  = $verifyBaseUrl . $token;
 
-                        // 2. Tempelkan Stempel QR Code Verifikasi Civitas
-                        if (!empty($sig['verification_token'])) {
-                            $token = $sig['verification_token'];
-                            // Nama file temp unik per proses (mencegah tabrakan antar request konkuren)
-                            $qrTempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR
-                                . 'sigma_qr_' . $token . '_' . bin2hex(random_bytes(4)) . '.png';
-                            $verifyUrl  = $verifyBaseUrl . $token;
+                                try {
+                                    $qrGen->render($verifyUrl, $qrTempFile);
 
-                            try {
-                                $qrGen->render($verifyUrl, $qrTempFile);
+                                    if (file_exists($qrTempFile)) {
+                                        // Dimensi QR proporsional terhadap kotak slot
+                                        $qrDim = min(22.0, max(12.0, min($wPt * 0.82, $hPt * 0.78)));
+                                        $qrX   = $xPt + ($wPt - $qrDim) / 2.0;
+                                        $qrY   = $yPt + ($hPt - $qrDim) / 2.0 - 1.2;
+                                        if ($qrY < $yPt) {
+                                            $qrY = $yPt;
+                                        }
 
-                                if (file_exists($qrTempFile)) {
-                                    // Ukuran QR code: proporsional terhadap kotak slot (max 20mm, min 14mm)
-                                    $qrDim = min(20.0, max(14.0, $wPt * 0.35));
+                                        $pdf->Image($qrTempFile, $qrX, $qrY, $qrDim, $qrDim);
 
-                                    // Penempatan Cerdas (Smart Boundary Placement):
-                                    // Pastikan QR code tidak hilang jika slot diletakkan di tepi bawah dokumen
-                                    if ($yPt + $hPt + $qrDim + 4.0 <= $pageH - 6.0) {
-                                        // Opsi A: Tepat di bawah slot tanda tangan (rata tengah)
-                                        $qrX = $xPt + ($wPt - $qrDim) / 2.0;
-                                        $qrY = $yPt + $hPt + 1.5;
-                                    } elseif ($xPt + $wPt + $qrDim + 2.0 <= $pageW) {
-                                        // Opsi B: Di sebelah kanan slot jika bagian bawah mepet batas lembar
-                                        $qrX = $xPt + $wPt + 2.0;
-                                        $qrY = max(2.0, min($pageH - $qrDim - 8.0, $yPt + ($hPt - $qrDim) / 2.0));
-                                    } elseif ($xPt - $qrDim - 2.0 >= 2.0) {
-                                        // Opsi C: Di sebelah kiri slot jika sisi kanan tidak cukup
-                                        $qrX = $xPt - $qrDim - 2.0;
-                                        $qrY = max(2.0, min($pageH - $qrDim - 8.0, $yPt + ($hPt - $qrDim) / 2.0));
-                                    } else {
-                                        // Opsi D: Fallback batas aman lembar bawah
-                                        $qrX = max(2.0, min($pageW - $qrDim - 2.0, $xPt + ($wPt - $qrDim) / 2.0));
-                                        $qrY = max(2.0, $pageH - $qrDim - 9.0);
+                                        // Label teks stempel resmi di bawah QR code
+                                        $pdf->SetFont('Helvetica', '', 5);
+                                        $pdf->SetTextColor(6, 78, 59); // PNJ Green
+                                        $captionY = min($pageH - 2.5, $qrY + $qrDim + 0.3);
+                                        $pdf->SetXY($xPt, $captionY);
+                                        $pdf->Cell($wPt, 2.5, 'SIGMA PNJ Verified', 0, 0, 'C');
                                     }
-
-                                    $pdf->Image($qrTempFile, $qrX, $qrY, $qrDim, $qrDim);
-
-                                    // Label teks stempel resmi di bawah QR code
-                                    $pdf->SetFont('Helvetica', '', 5);
-                                    $pdf->SetTextColor(6, 78, 59); // PNJ Green
-                                    $captionX = max(0.0, $qrX - 4.0);
-                                    $captionY = min($pageH - 2.5, $qrY + $qrDim + 0.3);
-                                    $captionW = min($pageW - $captionX, $qrDim + 8.0);
-                                    $pdf->SetXY($captionX, $captionY);
-                                    $pdf->Cell($captionW, 2.5, 'SIGMA PNJ Verified', 0, 0, 'C');
+                                } catch (\Throwable $qe) {
+                                    error_log("Gagal membuat QR Code untuk token {$token}: " . $qe->getMessage());
+                                } finally {
+                                    if (file_exists($qrTempFile)) {
+                                        @unlink($qrTempFile);
+                                    }
                                 }
-                            } catch (\Throwable $qe) {
-                                // Fallback jika rendering QR code bermasalah
-                                error_log("Gagal membuat QR Code untuk token {$token}: " . $qe->getMessage());
-                            } finally {
-                                if (file_exists($qrTempFile)) {
-                                    @unlink($qrTempFile);
+                            }
+                        } else {
+                            // ── FORMAT 2: KODE QR + CORETAN TANDA TANGAN + NAMA PENANDATANGAN ──
+                            // 1. Tempelkan Goresan Tanda Tangan Fisik (fit-contain BUG-07 pada area atas slot)
+                            $scribbleH  = max(4.0, $hPt * 0.60);
+                            $sigImgPath = !empty($sig['signature_image_path']) ? ($storageDir . '/' . ltrim($sig['signature_image_path'], '/\\')) : '';
+                            if (!empty($sigImgPath) && file_exists($sigImgPath) && is_readable($sigImgPath)) {
+                                list($origW, $origH) = @getimagesize($sigImgPath);
+                                if ($origW > 0 && $origH > 0) {
+                                    $scale   = min($wPt / $origW, $scribbleH / $origH);
+                                    $renderW = $origW * $scale;
+                                    $renderH = $origH * $scale;
+                                    $renderX = $xPt + ($wPt - $renderW) / 2;
+                                    $renderY = $yPt + ($scribbleH - $renderH) / 2;
+                                    $pdf->Image($sigImgPath, $renderX, $renderY, $renderW, $renderH);
+                                } else {
+                                    $pdf->Image($sigImgPath, $xPt, $yPt, $wPt, $scribbleH);
+                                }
+                            }
+
+                            // 2. Cetak Nama Penandatangan Resmi (Tebal & Bergaris Bawah) dan NIP/NIM di bawah coretan
+                            $signerName = trim($sig['signer_name_snapshot'] ?? '');
+                            if ($signerName !== '') {
+                                $nameY = $yPt + $scribbleH + 0.4;
+                                $fontSizeName = min(7.5, max(5.0, $wPt / (strlen($signerName) * 0.55)));
+                                $pdf->SetFont('Helvetica', 'BU', $fontSizeName);
+                                $pdf->SetTextColor(15, 23, 42); // slate-900
+                                $pdf->SetXY($xPt, $nameY);
+                                $pdf->Cell($wPt, 3.0, $signerName, 0, 1, 'C');
+
+                                // Identitas NIP/NIM atau Jabatan jika ada
+                                $signerId  = trim($sig['signer_identifier_snapshot'] ?? '');
+                                $signerPos = trim($sig['signer_position_snapshot'] ?? '');
+                                $subText   = '';
+                                if ($signerId !== '') {
+                                    $subText = (strpos($signerId, 'NIP') === false && strpos($signerId, 'NIM') === false) ? ('NIP/NIM. ' . $signerId) : $signerId;
+                                } elseif ($signerPos !== '') {
+                                    $subText = $signerPos;
+                                }
+
+                                if ($subText !== '') {
+                                    $fontSizeSub = min(6.0, max(4.2, $wPt / (strlen($subText) * 0.55)));
+                                    $pdf->SetFont('Helvetica', '', $fontSizeSub);
+                                    $pdf->SetTextColor(71, 85, 105); // slate-600
+                                    $pdf->SetXY($xPt, $nameY + 3.0);
+                                    $pdf->Cell($wPt, 2.5, $subText, 0, 0, 'C');
+                                }
+                            }
+
+                            // 3. Tempelkan Stempel QR Code Verifikasi Civitas di samping / bawah slot
+                            if (!empty($sig['verification_token'])) {
+                                $token = $sig['verification_token'];
+                                // Nama file temp unik per proses (mencegah tabrakan antar request konkuren)
+                                $qrTempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR
+                                    . 'sigma_qr_' . $token . '_' . bin2hex(random_bytes(4)) . '.png';
+                                $verifyUrl  = $verifyBaseUrl . $token;
+
+                                try {
+                                    $qrGen->render($verifyUrl, $qrTempFile);
+
+                                    if (file_exists($qrTempFile)) {
+                                        // Ukuran QR code: proporsional terhadap kotak slot (max 20mm, min 14mm)
+                                        $qrDim = min(20.0, max(14.0, $wPt * 0.35));
+
+                                        // Penempatan Cerdas (Smart Boundary Placement):
+                                        // Pastikan QR code tidak hilang jika slot diletakkan di tepi bawah dokumen
+                                        if ($yPt + $hPt + $qrDim + 4.0 <= $pageH - 6.0) {
+                                            // Opsi A: Tepat di bawah slot tanda tangan (rata tengah)
+                                            $qrX = $xPt + ($wPt - $qrDim) / 2.0;
+                                            $qrY = $yPt + $hPt + 1.5;
+                                        } elseif ($xPt + $wPt + $qrDim + 2.0 <= $pageW) {
+                                            // Opsi B: Di sebelah kanan slot jika bagian bawah mepet batas lembar
+                                            $qrX = $xPt + $wPt + 2.0;
+                                            $qrY = max(2.0, min($pageH - $qrDim - 8.0, $yPt + ($hPt - $qrDim) / 2.0));
+                                        } elseif ($xPt - $qrDim - 2.0 >= 2.0) {
+                                            // Opsi C: Di sebelah kiri slot jika sisi kanan tidak cukup
+                                            $qrX = $xPt - $qrDim - 2.0;
+                                            $qrY = max(2.0, min($pageH - $qrDim - 8.0, $yPt + ($hPt - $qrDim) / 2.0));
+                                        } else {
+                                            // Opsi D: Fallback batas aman lembar bawah
+                                            $qrX = max(2.0, min($pageW - $qrDim - 2.0, $xPt + ($wPt - $qrDim) / 2.0));
+                                            $qrY = max(2.0, $pageH - $qrDim - 9.0);
+                                        }
+
+                                        $pdf->Image($qrTempFile, $qrX, $qrY, $qrDim, $qrDim);
+
+                                        // Label teks stempel resmi di bawah QR code
+                                        $pdf->SetFont('Helvetica', '', 5);
+                                        $pdf->SetTextColor(6, 78, 59); // PNJ Green
+                                        $captionX = max(0.0, $qrX - 4.0);
+                                        $captionY = min($pageH - 2.5, $qrY + $qrDim + 0.3);
+                                        $captionW = min($pageW - $captionX, $qrDim + 8.0);
+                                        $pdf->SetXY($captionX, $captionY);
+                                        $pdf->Cell($captionW, 2.5, 'SIGMA PNJ Verified', 0, 0, 'C');
+                                    }
+                                } catch (\Throwable $qe) {
+                                    // Fallback jika rendering QR code bermasalah
+                                    error_log("Gagal membuat QR Code untuk token {$token}: " . $qe->getMessage());
+                                } finally {
+                                    if (file_exists($qrTempFile)) {
+                                        @unlink($qrTempFile);
+                                    }
                                 }
                             }
                         }

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk — SIGMA Politeknik Negeri Jakarta</title>
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/logo.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -154,6 +155,7 @@
                 <div class="brand-icon-box">
                     <i class="bi bi-shield-shaded"></i>
                 </div>
+                <img src="<?= BASE_URL ?>/assets/img/logo.png" alt="SIGMA" width="44" height="44" style="object-fit: contain;">
                 <div>
                     <h5 class="fw-bold text-dark mb-0">SIGMA</h5>
                     <small class="text-muted">Politeknik Negeri Jakarta (PNJ)</small>
