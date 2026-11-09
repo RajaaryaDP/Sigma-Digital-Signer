@@ -106,7 +106,7 @@ $segments = explode('/', $path);
 
 define('BASE_URL', $base === '' ? '' : '/' . $base);
 
-$noIdActions = ['create', 'store', 'login', 'logout'];
+$noIdActions = ['create', 'store', 'login', 'logout', 'register', 'import', 'template'];
 
 // Routing alias & default controller
 $rawPage = strtolower($segments[0] ?? '');
@@ -114,6 +114,9 @@ if ($rawPage === '' || $rawPage === 'home' || $rawPage === 'landing') {
     $page = 'home';
 } elseif ($rawPage === 'login') {
     $page = 'auth';
+} elseif ($rawPage === 'register') {
+    $page = 'auth';
+    $segments[1] = 'register';
 } elseif ($rawPage === 'logout') {
     $page = 'auth';
     $segments[1] = 'logout';
@@ -189,12 +192,15 @@ if (!class_exists($controllerName)) {
 }
 
 // Pengecualian metode ganda (GET + POST):
-//  - Auth::login     → menampilkan form (GET) & memproses kredensial (POST)
-//  - Documents::sign → menampilkan halaman penandatanganan (GET) & menyimpan tanda tangan (POST)
-$isAuthLogin = ($controllerName === 'Auth' && $action === 'login');
-$isDocSign   = ($controllerName === 'Documents' && $action === 'sign');
+//  - Auth::login      → menampilkan form (GET) & memproses kredensial (POST)
+//  - Auth::register   → menampilkan form registrasi (GET) & memproses pendaftaran (POST)
+//  - Civitas::import  → menampilkan form/pratinjau CSV (GET) & memproses pratinjau/commit CSV (POST)
+//  - Documents::sign  → menampilkan halaman penandatanganan (GET) & menyimpan tanda tangan (POST)
+$isAuthAction    = ($controllerName === 'Auth' && in_array($action, ['login', 'register'], true));
+$isCivitasImport = ($controllerName === 'Civitas' && $action === 'import');
+$isDocSign       = ($controllerName === 'Documents' && $action === 'sign');
 
-if (!$isAuthLogin && !$isDocSign) {
+if (!$isAuthAction && !$isCivitasImport && !$isDocSign) {
     if (($expectsPost && $method !== 'POST') || (!$expectsPost && $method !== 'GET')) {
         http_response_code(404);
         echo '404 - Action method not allowed';

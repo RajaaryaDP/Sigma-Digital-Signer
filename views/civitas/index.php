@@ -8,7 +8,15 @@ require_once __DIR__ . '/../layout/header.php';
         <h4 class="fw-bold text-dark mb-1">Master Data Civitas Kampus</h4>
         <p class="text-muted small mb-0">Direktori profil resmi Dosen, Mahasiswa, dan Tenaga Kependidikan untuk validasi QR Code & Tanda Tangan.</p>
     </div>
-    <div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="<?= BASE_URL ?>/civitas/template" class="btn btn-subtle d-inline-flex align-items-center gap-2" title="Unduh template resmi CSV">
+            <i class="bi bi-file-earmark-arrow-down"></i>
+            <span>Template CSV</span>
+        </a>
+        <a href="<?= BASE_URL ?>/civitas/import" class="btn btn-subtle d-inline-flex align-items-center gap-2" style="border-color: #a7f3d0; background: #ecfdf5; color: #065f46;">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            <span>Import CSV Massal</span>
+        </a>
         <a href="<?= BASE_URL ?>/civitas/create" class="btn btn-pnj-primary d-inline-flex align-items-center gap-2">
             <i class="bi bi-person-plus-fill"></i>
             <span>Tambah Data Civitas</span>
