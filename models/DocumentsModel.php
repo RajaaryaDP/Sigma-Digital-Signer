@@ -94,6 +94,10 @@ class DocumentsModel
      */
     public function getById(string $id): ?array
     {
+        $id = trim(str_replace("\0", '', mb_scrub($id, 'UTF-8')));
+        if ($id === '') {
+            return null;
+        }
         $stmt = $this->db->prepare(
             "SELECT d.*, 
                     u.name AS uploader_name, 
@@ -264,11 +268,11 @@ class DocumentsModel
         $stmt->execute([
             $id,
             $data['uploader_id'],
-            $data['title'],
-            $data['description'] ?? null,
-            $data['file_path'],
-            $data['file_name_original'],
-            $data['file_size'],
+            mb_substr(str_replace("\0", '', mb_scrub((string) $data['title'], 'UTF-8')), 0, 500),
+            isset($data['description']) && $data['description'] !== null ? str_replace("\0", '', mb_scrub((string) $data['description'], 'UTF-8')) : null,
+            mb_substr(str_replace("\0", '', mb_scrub((string) $data['file_path'], 'UTF-8')), 0, 500),
+            mb_substr(str_replace("\0", '', mb_scrub((string) $data['file_name_original'], 'UTF-8')), 0, 255),
+            max(0, (int) $data['file_size']),
             $data['file_hash'],
             $data['signature_type'],
         ]);
@@ -368,8 +372,8 @@ class DocumentsModel
             $data['document_id'],
             $data['user_id'],
             $data['invited_by'],
-            $data['step_order'],
-            $data['role_title'] ?? null,
+            max(1, min(1000, (int) $data['step_order'])),
+            !empty($data['role_title']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $data['role_title'], 'UTF-8')), 0, 150) : null,
         ]);
         return $id;
     }
@@ -398,11 +402,11 @@ class DocumentsModel
              WHERE id = ? AND document_id = ? AND deleted_at IS NULL"
         );
         return $stmt->execute([
-            $slot['page_number'],
-            $slot['x_percent'],
-            $slot['y_percent'],
-            $slot['width_percent'],
-            $slot['height_percent'],
+            max(1, min(10000, (int) $slot['page_number'])),
+            max(0.0, min(100.0, (float) $slot['x_percent'])),
+            max(0.0, min(100.0, (float) $slot['y_percent'])),
+            max(1.0, min(100.0, (float) $slot['width_percent'])),
+            max(1.0, min(100.0, (float) $slot['height_percent'])),
             $signerId,
             $documentId,
         ]);

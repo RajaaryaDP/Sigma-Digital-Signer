@@ -37,8 +37,8 @@ class Civitas
      */
     public function index()
     {
-        $search = trim($_GET['q'] ?? '');
-        $type   = trim($_GET['type'] ?? '');
+        $search = isset($_GET['q']) && is_string($_GET['q']) ? trim($_GET['q']) : '';
+        $type   = isset($_GET['type']) && is_string($_GET['type']) ? trim($_GET['type']) : '';
 
         $civitasList = $this->civitasModel->getCivitas($search, $type);
         $counts      = $this->civitasModel->countByType();
@@ -74,13 +74,13 @@ class Civitas
     public function store()
     {
         $data = [
-            'identifier'  => trim($_POST['identifier'] ?? ''),
-            'name'        => trim($_POST['name'] ?? ''),
-            'type'        => trim($_POST['type'] ?? ''),
-            'department'  => trim($_POST['department'] ?? ''),
-            'position'    => trim($_POST['position'] ?? ''),
-            'email'       => trim($_POST['email'] ?? ''),
-            'phone'       => trim($_POST['phone'] ?? ''),
+            'identifier'  => isset($_POST['identifier']) && is_string($_POST['identifier']) ? trim($_POST['identifier']) : '',
+            'name'        => isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '',
+            'type'        => isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '',
+            'department'  => isset($_POST['department']) && is_string($_POST['department']) ? trim($_POST['department']) : '',
+            'position'    => isset($_POST['position']) && is_string($_POST['position']) ? trim($_POST['position']) : '',
+            'email'       => isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '',
+            'phone'       => isset($_POST['phone']) && is_string($_POST['phone']) ? trim($_POST['phone']) : '',
             'avatar_path' => null,
         ];
 
@@ -97,25 +97,33 @@ class Civitas
             return;
         }
 
-        $newId = $this->civitasModel->create($data);
+        try {
+            $newId = $this->civitasModel->create($data);
 
-        // Catat mutasi penambahan ke riwayat audit trail
-        $this->auditModel->log(
-            $_SESSION['user']['id'],
-            'civitas.create',
-            [
-                'civitas_id' => $newId,
-                'identifier' => $data['identifier'],
-                'name'       => $data['name'],
-                'type'       => $data['type'],
-                'department' => $data['department'],
-            ]
-        );
+            // Catat mutasi penambahan ke riwayat audit trail
+            $this->auditModel->log(
+                $_SESSION['user']['id'],
+                'civitas.create',
+                [
+                    'civitas_id' => $newId,
+                    'identifier' => $data['identifier'],
+                    'name'       => $data['name'],
+                    'type'       => $data['type'],
+                    'department' => $data['department'],
+                ]
+            );
 
-        $_SESSION['flash'] = [
-            'type'    => 'success',
-            'message' => 'Data civitas "' . htmlspecialchars($data['name']) . '" berhasil ditambahkan.'
-        ];
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Data civitas "' . htmlspecialchars($data['name']) . '" berhasil ditambahkan.'
+            ];
+        } catch (\Throwable $e) {
+            error_log('[Civitas::store] ' . $e->getMessage());
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Gagal menyimpan data civitas karena kendala pada basis data. Pastikan NIM/NIP dan Email belum terdaftar.'
+            ];
+        }
 
         header('Location: ' . BASE_URL . '/civitas');
         exit;
@@ -157,13 +165,13 @@ class Civitas
         }
 
         $data = [
-            'identifier'  => trim($_POST['identifier'] ?? ''),
-            'name'        => trim($_POST['name'] ?? ''),
-            'type'        => trim($_POST['type'] ?? ''),
-            'department'  => trim($_POST['department'] ?? ''),
-            'position'    => trim($_POST['position'] ?? ''),
-            'email'       => trim($_POST['email'] ?? ''),
-            'phone'       => trim($_POST['phone'] ?? ''),
+            'identifier'  => isset($_POST['identifier']) && is_string($_POST['identifier']) ? trim($_POST['identifier']) : '',
+            'name'        => isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '',
+            'type'        => isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '',
+            'department'  => isset($_POST['department']) && is_string($_POST['department']) ? trim($_POST['department']) : '',
+            'position'    => isset($_POST['position']) && is_string($_POST['position']) ? trim($_POST['position']) : '',
+            'email'       => isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '',
+            'phone'       => isset($_POST['phone']) && is_string($_POST['phone']) ? trim($_POST['phone']) : '',
             'avatar_path' => $civitas['avatar_path'],
         ];
 
@@ -180,24 +188,32 @@ class Civitas
             return;
         }
 
-        $this->civitasModel->update($id, $data);
+        try {
+            $this->civitasModel->update($id, $data);
 
-        // Catat mutasi perubahan ke riwayat audit trail
-        $this->auditModel->log(
-            $_SESSION['user']['id'],
-            'civitas.update',
-            [
-                'civitas_id' => $id,
-                'identifier' => $data['identifier'],
-                'name'       => $data['name'],
-                'type'       => $data['type'],
-            ]
-        );
+            // Catat mutasi perubahan ke riwayat audit trail
+            $this->auditModel->log(
+                $_SESSION['user']['id'],
+                'civitas.update',
+                [
+                    'civitas_id' => $id,
+                    'identifier' => $data['identifier'],
+                    'name'       => $data['name'],
+                    'type'       => $data['type'],
+                ]
+            );
 
-        $_SESSION['flash'] = [
-            'type'    => 'success',
-            'message' => 'Data civitas "' . htmlspecialchars($data['name']) . '" berhasil diperbarui.'
-        ];
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Data civitas "' . htmlspecialchars($data['name']) . '" berhasil diperbarui.'
+            ];
+        } catch (\Throwable $e) {
+            error_log('[Civitas::update] ' . $e->getMessage());
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Gagal memperbarui data civitas karena kendala pada basis data.'
+            ];
+        }
 
         header('Location: ' . BASE_URL . '/civitas');
         exit;
@@ -216,23 +232,31 @@ class Civitas
             exit;
         }
 
-        $this->civitasModel->delete($id);
+        try {
+            $this->civitasModel->delete($id);
 
-        // Catat mutasi penghapusan ke audit trail
-        $this->auditModel->log(
-            $_SESSION['user']['id'],
-            'civitas.delete',
-            [
-                'civitas_id' => $id,
-                'identifier' => $civitas['identifier'],
-                'name'       => $civitas['name'],
-            ]
-        );
+            // Catat mutasi penghapusan ke audit trail
+            $this->auditModel->log(
+                $_SESSION['user']['id'],
+                'civitas.delete',
+                [
+                    'civitas_id' => $id,
+                    'identifier' => $civitas['identifier'],
+                    'name'       => $civitas['name'],
+                ]
+            );
 
-        $_SESSION['flash'] = [
-            'type'    => 'success',
-            'message' => 'Data civitas "' . htmlspecialchars($civitas['name']) . '" (' . htmlspecialchars($civitas['identifier']) . ') telah dihapus.'
-        ];
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Data civitas "' . htmlspecialchars($civitas['name']) . '" (' . htmlspecialchars($civitas['identifier']) . ') telah dihapus.'
+            ];
+        } catch (\Throwable $e) {
+            error_log('[Civitas::delete] ' . $e->getMessage());
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Gagal menghapus data civitas karena kendala pada basis data.'
+            ];
+        }
 
         header('Location: ' . BASE_URL . '/civitas');
         exit;
@@ -245,10 +269,10 @@ class Civitas
     {
         $errors = [];
 
-        // 1. Validasi Identifier (NIM / NIP)
+        // 1. Validasi Identifier (NIM / NIP) — VARCHAR(64), batas bisnis 50 karakter
         if (empty($data['identifier'])) {
             $errors['identifier'] = 'Nomor identitas (NIM/NIP) wajib diisi.';
-        } elseif (strlen($data['identifier']) > 50) {
+        } elseif (mb_strlen($data['identifier']) > 50) {
             $errors['identifier'] = 'Panjang NIM/NIP maksimal 50 karakter.';
         } else {
             $existing = $this->civitasModel->getByIdentifier($data['identifier'], $excludeId);
@@ -257,10 +281,10 @@ class Civitas
             }
         }
 
-        // 2. Validasi Nama Lengkap
+        // 2. Validasi Nama Lengkap — VARCHAR(255)
         if (empty($data['name'])) {
             $errors['name'] = 'Nama lengkap beserta gelar resmi wajib diisi.';
-        } elseif (strlen($data['name']) > 255) {
+        } elseif (mb_strlen($data['name']) > 255) {
             $errors['name'] = 'Panjang nama maksimal 255 karakter.';
         }
 
@@ -269,19 +293,25 @@ class Civitas
             $errors['type'] = 'Pilih kategori civitas yang valid (Dosen, Mahasiswa, atau Tenaga Kependidikan).';
         }
 
-        // 4. Validasi Jurusan / Unit Kerja
+        // 4. Validasi Jurusan / Unit Kerja — VARCHAR(150)
         if (empty($data['department'])) {
             $errors['department'] = 'Jurusan / Program Studi / Unit Kerja wajib diisi.';
+        } elseif (mb_strlen($data['department']) > 150) {
+            $errors['department'] = 'Panjang Jurusan / Unit Kerja maksimal 150 karakter.';
         }
 
-        // 5. Validasi Jabatan Resmi
+        // 5. Validasi Jabatan Resmi — VARCHAR(150)
         if (empty($data['position'])) {
             $errors['position'] = 'Jabatan / peran resmi wajib diisi (contoh: Mahasiswa Aktif, Dosen Pembimbing, Ketua Jurusan).';
+        } elseif (mb_strlen($data['position']) > 150) {
+            $errors['position'] = 'Panjang jabatan / peran resmi maksimal 150 karakter.';
         }
 
-        // 6. Validasi Email Institusi
+        // 6. Validasi Email Institusi — VARCHAR(255)
         if (empty($data['email'])) {
             $errors['email'] = 'Alamat email institusi wajib diisi.';
+        } elseif (mb_strlen($data['email']) > 255) {
+            $errors['email'] = 'Panjang alamat email maksimal 255 karakter.';
         } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Format email tidak valid.';
         } else {
@@ -289,6 +319,11 @@ class Civitas
             if ($existingEmail) {
                 $errors['email'] = 'Email "' . htmlspecialchars($data['email']) . '" sudah digunakan oleh civitas lain.';
             }
+        }
+
+        // 7. Validasi Nomor Telepon — VARCHAR(32)
+        if (!empty($data['phone']) && mb_strlen($data['phone']) > 32) {
+            $errors['phone'] = 'Panjang nomor telepon maksimal 32 karakter.';
         }
 
         return $errors;

@@ -35,12 +35,16 @@ class UserSignaturesModel
      */
     public function getById(string $id, ?string $userId = null): ?array
     {
+        $id = trim(str_replace("\0", '', mb_scrub($id, 'UTF-8')));
+        if ($id === '') {
+            return null;
+        }
         $sql = "SELECT * FROM user_signatures WHERE id = ? AND deleted_at IS NULL";
         $params = [$id];
 
         if (!empty($userId)) {
             $sql .= " AND user_id = ?";
-            $params[] = $userId;
+            $params[] = trim(str_replace("\0", '', mb_scrub($userId, 'UTF-8')));
         }
 
         $sql .= " LIMIT 1";
@@ -85,8 +89,8 @@ class UserSignaturesModel
     {
         $id = Uuid::uuid4()->toString();
         $userId = $data['user_id'];
-        $label = !empty($data['label']) ? trim($data['label']) : null;
-        $imagePath = $data['image_path'];
+        $label = !empty($data['label']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['label'], 'UTF-8'))), 0, 100) : null;
+        $imagePath = mb_substr(str_replace("\0", '', mb_scrub((string) $data['image_path'], 'UTF-8')), 0, 500);
 
         $existingCount = $this->countByUserId($userId);
         $isDefault = ($existingCount === 0 || !empty($data['is_default'])) ? 1 : 0;
@@ -163,7 +167,9 @@ class UserSignaturesModel
             return false;
         }
 
-        $label = array_key_exists('label', $data) ? trim($data['label']) : $target['label'];
+        $label = array_key_exists('label', $data)
+            ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['label'], 'UTF-8'))), 0, 100)
+            : $target['label'];
         $isDefault = isset($data['is_default']) ? ($data['is_default'] ? 1 : 0) : $target['is_default'];
 
         try {
