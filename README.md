@@ -20,9 +20,9 @@ Repositori ini memuat seluruh kode sumber aplikasi web **SIGMA (Sistem Tanda Tan
 ---
 
 ## 🛠️ Persyaratan Lingkungan
-- PHP 8.1+ (dengan ekstensi `pdo_mysql`, `gd`, `fileinfo`)
+- PHP 8.1+ (dengan ekstensi `pdo_pgsql`, `gd`, `fileinfo`)
 - Composer
-- MySQL / MariaDB (Laragon / XAMPP)
+- PostgreSQL 14+
 
 ---
 
@@ -34,8 +34,8 @@ Jalankan perintah ini langsung di dalam folder proyek:
 # 1. Pasang dependensi
 composer install
 
-# 2. Buat database MySQL kosong sesuai nama di config/database.php
-#    (misalnya melalui Laragon > Database > phpMyAdmin)
+# 2. Pastikan server PostgreSQL berjalan dan database sesuai config/database.php tersedia
+#    (role aplikasi dan database akan dicoba disiapkan oleh config/database.php)
 
 # 3. Migrasi skema database SIGMA
 composer migrate
