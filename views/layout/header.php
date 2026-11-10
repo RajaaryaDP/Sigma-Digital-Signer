@@ -9,7 +9,7 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title ?? 'SIGMA — Politeknik Negeri Jakarta') ?></title>
+    <title><?= htmlspecialchars($title ?? 'SIGMA | Politeknik Negeri Jakarta') ?></title>
     <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/logo.png">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -67,9 +67,15 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                         </li>
                     <?php else: ?>
                         <li>
-                            <a href="<?= BASE_URL ?>/#alur" class="pnj-nav-link">
-                                <i class="bi bi-diagram-3"></i>
-                                <span>Alur Kerja</span>
+                            <a href="<?= BASE_URL ?>/#fitur" class="pnj-nav-link">
+                                <i class="bi bi-grid"></i>
+                                <span>Fitur</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?= BASE_URL ?>/#tentang" class="pnj-nav-link">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Tentang</span>
                             </a>
                         </li>
                     <?php endif; ?>
