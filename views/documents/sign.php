@@ -26,6 +26,8 @@ $profileName   = $userProfile['civitas_name'] ?: $userProfile['name'];
 $profileIdent  = $userProfile['civitas_identifier'] ?? '-';
 $profileDept   = $userProfile['civitas_department'] ?? '-';
 $profilePos    = $userProfile['civitas_position'] ?? '-';
+// Label identitas pada kotak tanda tangan: NIM untuk mahasiswa, NIP untuk dosen/tendik
+$profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM' : 'NIP';
 ?>
 
 <!-- Back Link -->
@@ -243,35 +245,41 @@ $profilePos    = $userProfile['civitas_position'] ?? '-';
                                     </span>
 
                                     <!-- Tampilan Preview: Format QR + Tanda Tangan + Nama -->
-                                    <div id="slotViewQrAndSig" class="w-100 h-100 position-relative">
-                                        <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
-                                        <div class="position-absolute" style="inset: 10% 8% 28% 8%;">
-                                            <img id="slotPreviewImg" src="" alt="Pratinjau tanda tangan"
-                                                 class="d-none"
-                                                 style="width: 100%; height: 100%; object-fit: contain;"
-                                                 title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
-                                            <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
-                                                <span class="text-muted" style="font-size: 0.62rem;">
-                                                    <i class="bi bi-pen me-1"></i>Pilih metode tanda tangan
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <!-- Nama Penandatangan di bawah goresan (Academic Official Style) -->
-                                        <div class="position-absolute bottom-0 start-0 w-100 px-1 text-center" style="margin-bottom: 2px; line-height: 1.15;">
-                                            <div class="text-dark fw-bold text-truncate" style="font-size: 0.62rem; text-decoration: underline;">
-                                                <?= htmlspecialchars($profileName) ?>
-                                            </div>
-                                            <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
-                                                <div class="text-muted text-truncate" style="font-size: 0.52rem;">
-                                                    NIP/NIM. <?= htmlspecialchars($profileIdent) ?>
+                                    <div id="slotViewQrAndSig" class="w-100 h-100 position-relative d-flex align-items-stretch">
+                                        <!-- Kolom kiri: coretan tanda tangan, nama, garis pemisah, dan NIP/NIM -->
+                                        <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 2px 3px 3px 4px; min-width: 0;">
+                                            <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
+                                            <div class="position-relative flex-grow-1" style="min-height: 0;">
+                                                <img id="slotPreviewImg" src="" alt="Pratinjau tanda tangan"
+                                                     class="d-none"
+                                                     style="width: 100%; height: 100%; object-fit: contain;"
+                                                     title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
+                                                <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                                    <span class="text-muted" style="font-size: 0.58rem;">
+                                                        <i class="bi bi-pen me-1"></i>Pilih metode tanda tangan
+                                                    </span>
                                                 </div>
-                                            <?php endif; ?>
+                                            </div>
+                                            <!-- Identitas penandatangan: Nama, garis, NIP/NIM -->
+                                            <div class="text-center" style="line-height: 1.15; min-width: 0;">
+                                                <div class="text-dark fw-bold text-truncate" style="font-size: 0.6rem;">
+                                                    <?= htmlspecialchars($profileName) ?>
+                                                </div>
+                                                <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
+                                                <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
+                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
+                                                        <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
-                                        <!-- Stempel QR placeholder di pojok kanan bawah -->
-                                        <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
-                                             style="width: 16%; height: 16%; min-width: 24px; min-height: 24px; font-size: 0.65rem; z-index: 5;"
-                                             title="QR Code verifikasi akan dibubuhkan otomatis di samping tanda tangan">
-                                            <i class="bi bi-qr-code text-dark"></i>
+                                        <!-- Kolom kanan: QR Code verifikasi di dalam kotak slot -->
+                                        <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
+                                            <div class="d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
+                                                 style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 1rem;"
+                                                 title="QR Code verifikasi dibubuhkan otomatis di dalam kotak, di sebelah kanan identitas">
+                                                <i class="bi bi-qr-code text-dark"></i>
+                                            </div>
                                         </div>
                                     </div>
 
