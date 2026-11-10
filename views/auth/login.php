@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
-        /* Design read: the supplied navy/lavender split separates SIGMA identity from the sign-in task. ENERGY 2 / RHYTHM 2 / MOTION 1; the existing system sans and logo keep the experience familiar. */
+        /* Design read: the supplied blue image at 20% supports the brand panel while keeping the SIGMA logo focal; ENERGY 2 / RHYTHM 2 / MOTION 1. */
         :root {
             color-scheme: light;
             --navy: #1d2748;
@@ -87,10 +87,13 @@
 
         .brand-panel {
             isolation: isolate;
-            background:
-                radial-gradient(ellipse at 18% 82%, rgba(84, 105, 151, 0.18), transparent 38%),
-                radial-gradient(ellipse at 76% 18%, rgba(97, 112, 153, 0.13), transparent 34%),
-                var(--navy);
+            background-color: var(--navy);
+            background-image:
+                linear-gradient(rgba(29, 39, 72, 0.8), rgba(29, 39, 72, 0.8)),
+                url("<?= BASE_URL ?>/assets/img/login-background.png");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
             color: var(--white);
         }
 
