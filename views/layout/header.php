@@ -35,12 +35,6 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
             <!-- Horizontal Navigation Links -->
             <nav class="pnj-nav-container">
                 <ul class="pnj-nav-menu">
-                    <li>
-                        <a href="<?= BASE_URL ?>/" class="pnj-nav-link <?= ($page === 'home' || $page === '') ? 'active' : '' ?>">
-                            <i class="bi bi-house-door"></i>
-                            <span>Beranda</span>
-                        </a>
-                    </li>
 
                     <?php if ($currentUser): ?>
                         <li>

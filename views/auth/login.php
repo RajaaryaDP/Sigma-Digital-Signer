@@ -182,11 +182,15 @@
 
         .notice {
             margin: 0 0 18px;
-            padding: 12px 14px;
+            padding: 8px 14px;
             border: 1px solid transparent;
-            border-radius: 7px;
-            font-size: 0.875rem;
-            line-height: 1.45;
+            border-radius: 999px;
+            font-size: 0.84rem;
+            line-height: 1.4;
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
         }
 
         .notice p {
@@ -301,6 +305,47 @@
             margin: 6px 0 0;
             color: #76232e;
             font-size: 0.8rem;
+        }
+
+        .captcha-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .captcha-img {
+            display: block;
+            border-radius: 7px;
+            border: 1px solid var(--line);
+            height: 46px;
+            width: 140px;
+            background: #f6f5fb;
+            object-fit: contain;
+        }
+
+        .captcha-refresh {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 7px;
+            border: 1px solid var(--line);
+            background: var(--field);
+            color: var(--ink);
+            font-size: 1.15rem;
+            transition: background-color 140ms ease, border-color 140ms ease;
+        }
+
+        .captcha-refresh:hover {
+            background: #e2ddec;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .captcha-refresh:active {
+            background: #d9d0e6;
         }
 
         .submit-button {
@@ -592,6 +637,43 @@
                         <?php endif; ?>
                     </div>
 
+                    <div class="field">
+                        <label for="inputCaptcha">Kode Captcha</label>
+                        <div class="captcha-box">
+                            <img
+                                src="<?= BASE_URL ?>/auth/captcha?t=<?= time() ?>"
+                                alt="Kode Captcha"
+                                id="captchaImg"
+                                class="captcha-img"
+                                width="140"
+                                height="46">
+                            <button
+                                type="button"
+                                id="btnRefreshCaptcha"
+                                class="captcha-refresh"
+                                aria-label="Muat ulang kode captcha"
+                                title="Muat ulang captcha">
+                                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="field-control <?= isset($errors['captcha']) ? 'has-error' : '' ?>">
+                            <input
+                                type="text"
+                                id="inputCaptcha"
+                                name="captcha"
+                                placeholder="Masukkan 5 karakter di atas"
+                                maxlength="5"
+                                autocomplete="off"
+                                autocapitalize="characters"
+                                aria-invalid="<?= isset($errors['captcha']) ? 'true' : 'false' ?>"
+                                <?= isset($errors['captcha']) ? 'aria-describedby="captchaError"' : '' ?>
+                                required>
+                        </div>
+                        <?php if (isset($errors['captcha'])): ?>
+                            <p class="field-error" id="captchaError"><?= htmlspecialchars($errors['captcha']) ?></p>
+                        <?php endif; ?>
+                    </div>
+
                     <button class="submit-button" type="submit" id="submitButton">
                         <span class="submit-label">Masuk</span>
                         <span class="submit-arrow" aria-hidden="true">&rarr;</span>
@@ -625,6 +707,14 @@
         const submitButton = document.getElementById('submitButton');
         const passwordInput = document.getElementById('inputPassword');
         const togglePasswordButton = document.getElementById('togglePasswordBtn');
+        const captchaImg = document.getElementById('captchaImg');
+        const btnRefreshCaptcha = document.getElementById('btnRefreshCaptcha');
+
+        if (btnRefreshCaptcha && captchaImg) {
+            btnRefreshCaptcha.addEventListener('click', function () {
+                captchaImg.src = '<?= BASE_URL ?>/auth/captcha?t=' + new Date().getTime();
+            });
+        }
 
         togglePasswordButton.addEventListener('click', function () {
             const showPassword = passwordInput.type === 'password';

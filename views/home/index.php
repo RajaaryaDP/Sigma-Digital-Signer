@@ -1071,7 +1071,7 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                         </svg>
                     </a>
                     <a
-                        href="https://www.youtube.com/@PoliteknikNegeriJakartaOfficial"
+                        href="https://youtube.com/@pnjtvofficial?si=ih_3GZwn0Xq7s-3g"
                         class="social-link"
                         target="_blank"
                         rel="noopener noreferrer"

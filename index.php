@@ -106,7 +106,7 @@ $segments = explode('/', $path);
 
 define('BASE_URL', $base === '' ? '' : '/' . $base);
 
-$noIdActions = ['create', 'store', 'login', 'logout'];
+$noIdActions = ['create', 'store', 'login', 'logout', 'captcha'];
 
 // Routing alias & default controller
 $rawPage = strtolower($segments[0] ?? '');
