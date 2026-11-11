@@ -515,8 +515,19 @@ class Documents
                     }
                     $w = max(5.0, min(50.0, is_scalar($slot['width_percent'] ?? null) ? (float) $slot['width_percent'] : 20.0));
                     $h = max(3.0, min(30.0, is_scalar($slot['height_percent'] ?? null) ? (float) $slot['height_percent'] : 10.0));
-                    $x = max(0.0, min(100.0 - $w, is_scalar($slot['x_percent'] ?? null) ? (float) $slot['x_percent'] : 0.0));
-                    $y = max(0.0, min(100.0 - $h, is_scalar($slot['y_percent'] ?? null) ? (float) $slot['y_percent'] : 0.0));
+
+                    // Penanda eksplisit mencegah posisi pratinjau (fallback tampilan) tersimpan
+                    // sebagai slot resmi saat pengguna belum benar-benar menempatkannya.
+                    $hasConfiguredFlag = array_key_exists('slot_configured', $slot);
+                    $isConfigured = !$hasConfiguredFlag
+                        || (is_scalar($slot['slot_configured']) && (string) $slot['slot_configured'] === '1');
+
+                    $x = $isConfigured
+                        ? max(0.0, min(100.0 - $w, is_scalar($slot['x_percent'] ?? null) ? (float) $slot['x_percent'] : 0.0))
+                        : 0.0;
+                    $y = $isConfigured
+                        ? max(0.0, min(100.0 - $h, is_scalar($slot['y_percent'] ?? null) ? (float) $slot['y_percent'] : 0.0))
+                        : 0.0;
                     $p = max(1, min(10000, is_scalar($slot['page_number'] ?? null) ? (int) $slot['page_number'] : 1));
 
                     $this->model->updateSignerSlot((string) $signerId, (string) $id, [

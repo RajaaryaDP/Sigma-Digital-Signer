@@ -207,4 +207,161 @@ class CivitasModel
         );
         return $stmt->execute([$id]);
     }
+
+    /**
+     * Mencocokkan pasangan NIM/NIP (identifier) dan Email secara presisi (case-insensitive)
+     * pada data civitas aktif untuk Pintu Filter 2 Registrasi Mandiri (Task 11).
+     */
+    public function findForRegistration(string $identifier, string $email): ?array
+    {
+        $cleanIdentifier = trim(str_replace("\0", '', mb_scrub($identifier, 'UTF-8')));
+        $cleanEmail      = trim(str_replace("\0", '', mb_scrub($email, 'UTF-8')));
+
+        if ($cleanIdentifier === '' || $cleanEmail === '') {
+            return null;
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM civitas
+             WHERE LOWER(identifier) = LOWER(?)
+               AND LOWER(email) = LOWER(?)
+               AND deleted_at IS NULL
+             LIMIT 1"
+        );
+        $stmt->execute([$cleanIdentifier, $cleanEmail]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    /**
+     * Mengambil peta seluruh identifier dan email aktif (lowercase) dalam 1 kueri
+     * untuk kebutuhan pratinjau cepat Import CSV Massal (Task 10).
+     */
+    public function getExistingLookupMap(): array
+    {
+        $stmt = $this->db->query(
+            "SELECT LOWER(identifier) AS identifier_key, LOWER(email) AS email_key
+             FROM civitas
+             WHERE deleted_at IS NULL"
+        );
+        $rows = $stmt->fetchAll();
+
+        $identifiers = [];
+        $emails      = [];
+        foreach ($rows as $r) {
+            if (!empty($r['identifier_key'])) {
+                $identifiers[$r['identifier_key']] = true;
+            }
+            if (!empty($r['email_key'])) {
+                $emails[$r['email_key']] = true;
+            }
+        }
+
+        return [
+            'identifiers' => $identifiers,
+            'emails'      => $emails,
+        ];
+    }
+
+    /**
+     * Menyimpan banyak data civitas sekaligus secara atomik di dalam transaksi database (Task 10).
+     * Baris yang duplikat (identifier atau email sudah terdaftar) akan dilewati (skip),
+     * sedangkan kegagalan sistem/anomali database akan memicu rollBack() menyeluruh.
+     *
+     * @param array $rows Daftar baris civitas tervalidasi
+     * @return array ['inserted' => int, 'skipped' => int, 'inserted_ids' => array]
+     */
+    public function bulkImport(array $rows): array
+    {
+        $inserted    = 0;
+        $skipped     = 0;
+        $insertedIds = [];
+
+        $ownTransaction = !$this->db->inTransaction();
+        if ($ownTransaction) {
+            $this->db->beginTransaction();
+        }
+
+        try {
+            $lookup          = $this->getExistingLookupMap();
+            $seenIdentifiers = $lookup['identifiers'];
+            $seenEmails      = $lookup['emails'];
+
+            $stmt = $this->db->prepare(
+                "INSERT INTO civitas (
+                    id, identifier, name, type, department, position, email, phone, avatar_path, created_at, updated_at
+                 ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, NULL, NOW(), NOW()
+                 ) ON CONFLICT DO NOTHING"
+            );
+
+            foreach ($rows as $row) {
+                $identifier = mb_substr(trim(str_replace("\0", '', mb_scrub((string) ($row['identifier'] ?? ''), 'UTF-8'))), 0, 64);
+                $name       = mb_substr(trim(str_replace("\0", '', mb_scrub((string) ($row['name'] ?? ''), 'UTF-8'))), 0, 255);
+                $type       = strtolower(trim(str_replace("\0", '', mb_scrub((string) ($row['type'] ?? ''), 'UTF-8'))));
+                $department = mb_substr(trim(str_replace("\0", '', mb_scrub((string) ($row['department'] ?? ''), 'UTF-8'))), 0, 150);
+                $position   = mb_substr(trim(str_replace("\0", '', mb_scrub((string) ($row['position'] ?? ''), 'UTF-8'))), 0, 150);
+                $email      = mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) ($row['email'] ?? ''), 'UTF-8')))), 0, 255);
+                $phoneRaw   = trim(str_replace("\0", '', mb_scrub((string) ($row['phone'] ?? ''), 'UTF-8')));
+                $phone      = ($phoneRaw !== '') ? mb_substr($phoneRaw, 0, 32) : null;
+
+                if (
+                    $identifier === '' ||
+                    $name === '' ||
+                    !in_array($type, ['dosen', 'mahasiswa', 'tendik'], true) ||
+                    $department === '' ||
+                    $position === '' ||
+                    $email === '' ||
+                    !filter_var($email, FILTER_VALIDATE_EMAIL)
+                ) {
+                    $skipped++;
+                    continue;
+                }
+
+                $idKey    = strtolower($identifier);
+                $emailKey = strtolower($email);
+
+                if (isset($seenIdentifiers[$idKey]) || isset($seenEmails[$emailKey])) {
+                    $skipped++;
+                    continue;
+                }
+
+                $newId = Uuid::uuid4()->toString();
+                $stmt->execute([
+                    $newId,
+                    $identifier,
+                    $name,
+                    $type,
+                    $department,
+                    $position,
+                    $email,
+                    $phone,
+                ]);
+
+                if ($stmt->rowCount() > 0) {
+                    $inserted++;
+                    $insertedIds[]           = $newId;
+                    $seenIdentifiers[$idKey] = true;
+                    $seenEmails[$emailKey]   = true;
+                } else {
+                    $skipped++;
+                }
+            }
+
+            if ($ownTransaction) {
+                $this->db->commit();
+            }
+
+            return [
+                'inserted'     => $inserted,
+                'skipped'      => $skipped,
+                'inserted_ids' => $insertedIds,
+            ];
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
 }

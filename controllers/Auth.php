@@ -1,20 +1,23 @@
 <?php
 
 require_once __DIR__ . '/../models/UsersModel.php';
+require_once __DIR__ . '/../models/CivitasModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
 require_once __DIR__ . '/../core/Loader.php';
 
 class Auth
 {
     private $userModel;
+    private $civitasModel;
     private $auditModel;
     private $load;
 
     public function __construct()
     {
-        $this->userModel  = new UsersModel();
-        $this->auditModel = new AuditLogModel();
-        $this->load       = new Loader();
+        $this->userModel    = new UsersModel();
+        $this->civitasModel = new CivitasModel();
+        $this->auditModel   = new AuditLogModel();
+        $this->load         = new Loader();
     }
 
     /**
@@ -109,6 +112,169 @@ class Auth
 
         // Tampilan formulir login (GET)
         $this->load->view('views/auth/login.php');
+    }
+
+    /**
+     * Menampilkan formulir registrasi mandiri (GET) atau memproses aktivasi akun civitas (POST)
+     * Dilengkapi 4 Pintu Filter Keamanan (Task 11):
+     *  1. Validasi Domain Email Resmi (@stu.pnj.ac.id, @pnj.ac.id, @sigma.local)
+     *  2. Whitelist Match Gate (Pencocokan Ganda NIM/NIP + Email terhadap Master Data Civitas)
+     *  3. Anti-Impersonation Lock (Nama, Kategori, Jurusan, Jabatan, & Peran dikunci dari Master Civitas)
+     *  4. Proteksi Akun Ganda (Menolak jika civitas_id atau email sudah terdaftar di tabel users)
+     */
+    public function register()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $identifier      = isset($_POST['identifier']) && is_string($_POST['identifier']) ? trim($_POST['identifier']) : '';
+            $name            = isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '';
+            $email           = isset($_POST['email']) && is_string($_POST['email']) ? strtolower(trim($_POST['email'])) : '';
+            $password        = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
+            $passwordConfirm = isset($_POST['password_confirm']) && is_string($_POST['password_confirm']) ? $_POST['password_confirm'] : '';
+
+            $errors = [];
+            $old    = [
+                'identifier' => $identifier,
+                'name'       => $name,
+                'email'      => $email,
+            ];
+
+            // Validasi NIM / NIP
+            if ($identifier === '') {
+                $errors['identifier'] = 'Nomor identitas (NIM / NIP) wajib diisi.';
+            } elseif (mb_strlen($identifier) > 50) {
+                $errors['identifier'] = 'Panjang NIM / NIP maksimal 50 karakter.';
+            }
+
+            // Validasi Nama Lengkap
+            if ($name === '') {
+                $errors['name'] = 'Nama lengkap wajib diisi.';
+            } elseif (mb_strlen($name) > 255) {
+                $errors['name'] = 'Panjang nama lengkap maksimal 255 karakter.';
+            }
+
+            // Pintu Filter 1: Validasi Format & Domain Email Resmi Kampus
+            $allowedDomains = ['stu.pnj.ac.id', 'pnj.ac.id', 'sigma.local'];
+            $emailDomain    = '';
+
+            if ($email === '') {
+                $errors['email'] = 'Alamat email resmi kampus wajib diisi.';
+            } elseif (mb_strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors['email'] = 'Format alamat email tidak valid.';
+            } else {
+                $atPos       = strrpos($email, '@');
+                $emailDomain = ($atPos !== false) ? strtolower(substr($email, $atPos + 1)) : '';
+
+                if (!in_array($emailDomain, $allowedDomains, true)) {
+                    $errors['email'] = 'Domain email ditolak. Gunakan email resmi kampus (@stu.pnj.ac.id untuk Mahasiswa, @pnj.ac.id untuk Dosen/Tendik, atau @sigma.local). Email publik (@gmail.com, @yahoo.com, dll) tidak diizinkan.';
+                }
+            }
+
+            // Validasi Keamanan Kata Sandi (Minimal 8 Karakter & Konfirmasi)
+            if ($password === '') {
+                $errors['password'] = 'Password wajib diisi.';
+            } elseif (mb_strlen($password) < 8) {
+                $errors['password'] = 'Password wajib terdiri dari minimal 8 karakter.';
+            } elseif (mb_strlen($password) > 72) {
+                $errors['password'] = 'Password maksimal 72 karakter.';
+            }
+
+            if ($passwordConfirm === '') {
+                $errors['password_confirm'] = 'Konfirmasi password wajib diisi.';
+            } elseif ($password !== $passwordConfirm) {
+                $errors['password_confirm'] = 'Konfirmasi password tidak cocok dengan password yang Anda masukkan.';
+            }
+
+            // Pintu Filter 2: Pencocokan Ganda terhadap Master Data Civitas (Whitelist Match Gate)
+            $matchedCivitas = null;
+            if (!isset($errors['identifier']) && !isset($errors['email'])) {
+                $matchedCivitas = $this->civitasModel->findForRegistration($identifier, $email);
+
+                if (!$matchedCivitas) {
+                    $this->auditModel->log(
+                        null,
+                        'user.register_failed',
+                        [
+                            'reason'               => 'civitas_mismatch',
+                            'attempted_identifier' => mb_substr($identifier, 0, 64),
+                            'attempted_email'      => mb_substr($email, 0, 255),
+                        ]
+                    );
+
+                    $errors['general'] = 'Verifikasi gagal: Kombinasi NIM/NIP dan Email tidak ditemukan atau tidak cocok pada Master Data Civitas Kampus. Pastikan NIM/NIP dan Email sesuai dengan data yang terdaftar di Admin.';
+                } else {
+                    // Validasi kesesuaian domain dengan kategori civitas
+                    if ($emailDomain === 'stu.pnj.ac.id' && $matchedCivitas['type'] !== 'mahasiswa') {
+                        $errors['email'] = 'Domain @stu.pnj.ac.id hanya diperuntukkan bagi civitas berkategori Mahasiswa.';
+                    } elseif ($emailDomain === 'pnj.ac.id' && !in_array($matchedCivitas['type'], ['dosen', 'tendik'], true)) {
+                        $errors['email'] = 'Civitas Mahasiswa wajib menggunakan domain @stu.pnj.ac.id.';
+                    }
+                }
+            }
+
+            // Pintu Filter 4: Proteksi Akun Ganda (Cek berdasarkan civitas_id maupun email)
+            if (empty($errors) && $matchedCivitas) {
+                $existingByCivitas = $this->userModel->getByCivitasId($matchedCivitas['id']);
+                $existingByEmail   = $this->userModel->getByEmail($matchedCivitas['email']);
+
+                if ($existingByCivitas || $existingByEmail) {
+                    $errors['general'] = 'Akun untuk NIM/NIP atau Email civitas ini sudah terdaftar dan aktif di sistem. Silakan langsung masuk melalui halaman Login.';
+                }
+            }
+
+            if (!empty($errors)) {
+                $this->load->view('views/auth/register.php', [
+                    'errors' => $errors,
+                    'old'    => $old,
+                ]);
+                return;
+            }
+
+            // Pintu Filter 3: Proteksi Anti-Impersonasi (Kunci Nama, Email, Peran, & Identitas dari Master Civitas)
+            try {
+                $newUserId = $this->userModel->create([
+                    'civitas_id' => $matchedCivitas['id'],
+                    'name'       => $matchedCivitas['name'],
+                    'email'      => strtolower($matchedCivitas['email']),
+                    'password'   => $password,
+                    'role'       => 'user',
+                ]);
+
+                // Catat keberhasilan registrasi mandiri ke tabel audit_logs
+                $this->auditModel->log(
+                    $newUserId,
+                    'user.registered',
+                    [
+                        'civitas_id' => $matchedCivitas['id'],
+                        'identifier' => $matchedCivitas['identifier'],
+                        'type'       => $matchedCivitas['type'],
+                        'department' => $matchedCivitas['department'],
+                    ]
+                );
+
+                // Aktivasi instan tanpa dependensi SMTP: arahkan langsung ke halaman login
+                $_SESSION['flash'] = [
+                    'type'    => 'success',
+                    'message' => 'Registrasi berhasil! Akun resmi untuk ' . $matchedCivitas['name'] . ' (' . $matchedCivitas['identifier'] . ') telah aktif. Silakan masuk dengan password yang baru Anda buat.'
+                ];
+
+                header('Location: ' . BASE_URL . '/auth?email=' . urlencode(strtolower($matchedCivitas['email'])));
+                exit;
+            } catch (\Throwable $e) {
+                error_log('[Auth::register] ' . $e->getMessage());
+                $errors['general'] = 'Gagal memproses pendaftaran karena kendala basis data atau akun telah terdaftar.';
+                $this->load->view('views/auth/register.php', [
+                    'errors' => $errors,
+                    'old'    => $old,
+                ]);
+                return;
+            }
+        }
+
+        // Tampilan formulir registrasi mandiri (GET)
+        $this->load->view('views/auth/register.php', [
+            'errors' => [],
+            'old'    => [],
+        ]);
     }
 
     /**

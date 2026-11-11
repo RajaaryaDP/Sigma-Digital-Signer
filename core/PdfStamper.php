@@ -224,54 +224,133 @@ class PdfStamper
                                 }
                             }
                         } else {
-                            // ── FORMAT 2: KODE QR + CORETAN TANDA TANGAN + NAMA PENANDATANGAN ──
-                            // 1. Tempelkan Goresan Tanda Tangan Fisik (fit-contain BUG-07 pada area atas slot)
-                            $scribbleH  = max(4.0, $hPt * 0.60);
+                            // ── FORMAT 2: KODE QR + CORETAN TANDA TANGAN + NAMA & NIP/NIM (SEMUA DI DALAM KOTAK SLOT) ──
+                            // Tata letak di dalam kotak slot:
+                            //   ┌──────────────────────┬──────────┐
+                            //   │ (Coretan TTD)        │          │
+                            //   │ Nama Penandatangan   │    QR    │
+                            //   │ ──────────────────   │          │
+                            //   │ NIP/NIM: 1234567890  │ Verified │
+                            //   └──────────────────────┴──────────┘
+                            $pad   = 1.0;  // padding internal kotak (mm)
+                            $gap   = 1.5;  // jarak antara kolom identitas dan QR (mm)
+                            $capH  = 2.4;  // tinggi teks caption di bawah QR (mm)
+
+                            // Dimensi QR persegi di kolom kanan (proporsional terhadap kotak slot)
+                            $qrDim = max(8.0, min($hPt - 2 * $pad - $capH, $wPt * 0.40, 26.0));
+                            $qrX   = $xPt + $wPt - $pad - $qrDim;
+                            $qrY   = $yPt + max($pad, ($hPt - $qrDim - $capH) / 2.0);
+
+                            // Kolom kiri: coretan + nama + garis + NIP/NIM
+                            $leftX = $xPt + $pad;
+                            $leftW = max(10.0, $wPt - $qrDim - $gap - 2 * $pad);
+
+                            // Siapkan teks identitas (Helvetica core font → Latin-1)
+                            $signerName = self::toLatin1(trim((string)($sig['signer_name_snapshot'] ?? '')));
+                            $signerId   = self::toLatin1(trim((string)($sig['signer_identifier_snapshot'] ?? '')));
+                            $signerPos  = self::toLatin1(trim((string)($sig['signer_position_snapshot'] ?? '')));
+                            $signerType = strtolower(trim((string)($sig['signer_type_snapshot'] ?? '')));
+                            $idLabel    = ($signerType === 'mahasiswa') ? 'NIM' : (($signerType === '') ? 'NIP/NIM' : 'NIP');
+
+                            $subText = '';
+                            if ($signerId !== '') {
+                                $subText = $idLabel . ': ' . $signerId;
+                            } elseif ($signerPos !== '') {
+                                $subText = $signerPos;
+                            }
+
+                            // Nama: kecilkan font hingga muat, jika masih panjang bungkus maksimal 3 baris
+                            $nameLines = [];
+                            $nameFont  = 6.5;
+                            $nameLH    = 2.8;
+                            if ($signerName !== '') {
+                                $pdf->SetFont('Helvetica', 'B', $nameFont);
+                                while ($nameFont > 4.8 && $pdf->GetStringWidth($signerName) > $leftW) {
+                                    $nameFont -= 0.3;
+                                    $pdf->SetFont('Helvetica', 'B', $nameFont);
+                                }
+                                if ($pdf->GetStringWidth($signerName) <= $leftW) {
+                                    $nameLines = [$signerName];
+                                } else {
+                                    $cur = '';
+                                    foreach (preg_split('/\s+/', $signerName) as $word) {
+                                        $try = ($cur === '') ? $word : $cur . ' ' . $word;
+                                        if ($pdf->GetStringWidth($try) <= $leftW || $cur === '') {
+                                            $cur = $try;
+                                        } else {
+                                            $nameLines[] = $cur;
+                                            $cur = $word;
+                                        }
+                                    }
+                                    if ($cur !== '') {
+                                        $nameLines[] = $cur;
+                                    }
+                                    $nameLines = array_slice($nameLines, 0, 3);
+                                }
+                                $nameLH = $nameFont * 0.3528 * 1.25;
+                            }
+
+                            // Teks NIP/NIM: kecilkan font hingga muat pada kolom kiri
+                            $subFont = 5.5;
+                            $subLH   = 2.4;
+                            if ($subText !== '') {
+                                $pdf->SetFont('Helvetica', '', $subFont);
+                                while ($subFont > 4.0 && $pdf->GetStringWidth($subText) > $leftW) {
+                                    $subFont -= 0.3;
+                                    $pdf->SetFont('Helvetica', '', $subFont);
+                                }
+                                $subLH = $subFont * 0.3528 * 1.35;
+                            }
+
+                            // Tinggi blok identitas (nama + garis pemisah + NIP/NIM) di dasar kolom kiri
+                            $lineGap    = (!empty($nameLines) && $subText !== '') ? 0.7 : 0.0;
+                            $identityH  = count($nameLines) * $nameLH + $lineGap + ($subText !== '' ? $subLH : 0.0);
+                            $scribbleH  = max(3.0, $hPt - 2 * $pad - $identityH);
+
+                            // 1. Coretan tanda tangan (fit-contain BUG-07) pada area atas kolom kiri
                             $sigImgPath = !empty($sig['signature_image_path']) ? ($storageDir . '/' . ltrim($sig['signature_image_path'], '/\\')) : '';
                             if (!empty($sigImgPath) && file_exists($sigImgPath) && is_readable($sigImgPath)) {
-                                list($origW, $origH) = @getimagesize($sigImgPath);
+                                $imgInfo = @getimagesize($sigImgPath);
+                                $origW   = $imgInfo[0] ?? 0;
+                                $origH   = $imgInfo[1] ?? 0;
                                 if ($origW > 0 && $origH > 0) {
-                                    $scale   = min($wPt / $origW, $scribbleH / $origH);
+                                    $scale   = min($leftW / $origW, $scribbleH / $origH);
                                     $renderW = $origW * $scale;
                                     $renderH = $origH * $scale;
-                                    $renderX = $xPt + ($wPt - $renderW) / 2;
-                                    $renderY = $yPt + ($scribbleH - $renderH) / 2;
+                                    $renderX = $leftX + ($leftW - $renderW) / 2;
+                                    $renderY = $yPt + $pad + ($scribbleH - $renderH) / 2;
                                     $pdf->Image($sigImgPath, $renderX, $renderY, $renderW, $renderH);
                                 } else {
-                                    $pdf->Image($sigImgPath, $xPt, $yPt, $wPt, $scribbleH);
+                                    $pdf->Image($sigImgPath, $leftX, $yPt + $pad, $leftW, $scribbleH);
                                 }
                             }
 
-                            // 2. Cetak Nama Penandatangan Resmi (Tebal & Bergaris Bawah) dan NIP/NIM di bawah coretan
-                            $signerName = trim($sig['signer_name_snapshot'] ?? '');
-                            if ($signerName !== '') {
-                                $nameY = $yPt + $scribbleH + 0.4;
-                                $fontSizeName = min(7.5, max(5.0, $wPt / (strlen($signerName) * 0.55)));
-                                $pdf->SetFont('Helvetica', 'BU', $fontSizeName);
+                            // 2. Nama (tebal) → garis pemisah → NIP/NIM
+                            $textY = $yPt + $pad + $scribbleH;
+                            if (!empty($nameLines)) {
+                                $pdf->SetFont('Helvetica', 'B', $nameFont);
                                 $pdf->SetTextColor(15, 23, 42); // slate-900
-                                $pdf->SetXY($xPt, $nameY);
-                                $pdf->Cell($wPt, 3.0, $signerName, 0, 1, 'C');
-
-                                // Identitas NIP/NIM atau Jabatan jika ada
-                                $signerId  = trim($sig['signer_identifier_snapshot'] ?? '');
-                                $signerPos = trim($sig['signer_position_snapshot'] ?? '');
-                                $subText   = '';
-                                if ($signerId !== '') {
-                                    $subText = (strpos($signerId, 'NIP') === false && strpos($signerId, 'NIM') === false) ? ('NIP/NIM. ' . $signerId) : $signerId;
-                                } elseif ($signerPos !== '') {
-                                    $subText = $signerPos;
-                                }
-
-                                if ($subText !== '') {
-                                    $fontSizeSub = min(6.0, max(4.2, $wPt / (strlen($subText) * 0.55)));
-                                    $pdf->SetFont('Helvetica', '', $fontSizeSub);
-                                    $pdf->SetTextColor(71, 85, 105); // slate-600
-                                    $pdf->SetXY($xPt, $nameY + 3.0);
-                                    $pdf->Cell($wPt, 2.5, $subText, 0, 0, 'C');
+                                foreach ($nameLines as $nl) {
+                                    $pdf->SetXY($leftX, $textY);
+                                    $pdf->Cell($leftW, $nameLH, $nl, 0, 0, 'C');
+                                    $textY += $nameLH;
                                 }
                             }
+                            if (!empty($nameLines) && $subText !== '') {
+                                $pdf->SetDrawColor(15, 23, 42);
+                                $pdf->SetLineWidth(0.2);
+                                $lineY = $textY + $lineGap / 2.0;
+                                $pdf->Line($leftX, $lineY, $leftX + $leftW, $lineY);
+                                $textY += $lineGap;
+                            }
+                            if ($subText !== '') {
+                                $pdf->SetFont('Helvetica', '', $subFont);
+                                $pdf->SetTextColor(71, 85, 105); // slate-600
+                                $pdf->SetXY($leftX, $textY);
+                                $pdf->Cell($leftW, $subLH, $subText, 0, 0, 'C');
+                            }
 
-                            // 3. Tempelkan Stempel QR Code Verifikasi Civitas di samping / bawah slot
+                            // 3. QR Code verifikasi di kolom kanan, di dalam kotak slot
                             if (!empty($sig['verification_token'])) {
                                 $token = $sig['verification_token'];
                                 // Nama file temp unik per proses (mencegah tabrakan antar request konkuren)
@@ -283,39 +362,14 @@ class PdfStamper
                                     $qrGen->render($verifyUrl, $qrTempFile);
 
                                     if (file_exists($qrTempFile)) {
-                                        // Ukuran QR code: proporsional terhadap kotak slot (max 20mm, min 14mm)
-                                        $qrDim = min(20.0, max(14.0, $wPt * 0.35));
-
-                                        // Penempatan Cerdas (Smart Boundary Placement):
-                                        // Pastikan QR code tidak hilang jika slot diletakkan di tepi bawah dokumen
-                                        if ($yPt + $hPt + $qrDim + 4.0 <= $pageH - 6.0) {
-                                            // Opsi A: Tepat di bawah slot tanda tangan (rata tengah)
-                                            $qrX = $xPt + ($wPt - $qrDim) / 2.0;
-                                            $qrY = $yPt + $hPt + 1.5;
-                                        } elseif ($xPt + $wPt + $qrDim + 2.0 <= $pageW) {
-                                            // Opsi B: Di sebelah kanan slot jika bagian bawah mepet batas lembar
-                                            $qrX = $xPt + $wPt + 2.0;
-                                            $qrY = max(2.0, min($pageH - $qrDim - 8.0, $yPt + ($hPt - $qrDim) / 2.0));
-                                        } elseif ($xPt - $qrDim - 2.0 >= 2.0) {
-                                            // Opsi C: Di sebelah kiri slot jika sisi kanan tidak cukup
-                                            $qrX = $xPt - $qrDim - 2.0;
-                                            $qrY = max(2.0, min($pageH - $qrDim - 8.0, $yPt + ($hPt - $qrDim) / 2.0));
-                                        } else {
-                                            // Opsi D: Fallback batas aman lembar bawah
-                                            $qrX = max(2.0, min($pageW - $qrDim - 2.0, $xPt + ($wPt - $qrDim) / 2.0));
-                                            $qrY = max(2.0, $pageH - $qrDim - 9.0);
-                                        }
-
                                         $pdf->Image($qrTempFile, $qrX, $qrY, $qrDim, $qrDim);
 
                                         // Label teks stempel resmi di bawah QR code
-                                        $pdf->SetFont('Helvetica', '', 5);
+                                        $pdf->SetFont('Helvetica', '', 4.5);
                                         $pdf->SetTextColor(6, 78, 59); // PNJ Green
-                                        $captionX = max(0.0, $qrX - 4.0);
-                                        $captionY = min($pageH - 2.5, $qrY + $qrDim + 0.3);
-                                        $captionW = min($pageW - $captionX, $qrDim + 8.0);
-                                        $pdf->SetXY($captionX, $captionY);
-                                        $pdf->Cell($captionW, 2.5, 'SIGMA PNJ Verified', 0, 0, 'C');
+                                        $captionY = min($pageH - 2.5, $qrY + $qrDim + 0.2);
+                                        $pdf->SetXY($qrX - 1.0, $captionY);
+                                        $pdf->Cell($qrDim + 2.0, 2.2, 'SIGMA PNJ Verified', 0, 0, 'C');
                                     }
                                 } catch (\Throwable $qe) {
                                     // Fallback jika rendering QR code bermasalah
@@ -401,6 +455,22 @@ class PdfStamper
                 @unlink($normalizedTempPath);
             }
         }
+    }
+
+    /**
+     * Mengonversi teks UTF-8 ke Windows-1252 agar dapat dirender oleh font inti FPDF (Helvetica).
+     * Karakter di luar jangkauan ditransliterasi/dibuang sehingga tidak menghasilkan teks rusak.
+     */
+    private static function toLatin1(string $text): string
+    {
+        if ($text === '') {
+            return '';
+        }
+        $converted = @iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $text);
+        if ($converted === false) {
+            $converted = preg_replace('/[^\x20-\x7E]/', '', $text) ?? '';
+        }
+        return $converted;
     }
 
     /**

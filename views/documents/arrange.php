@@ -129,6 +129,7 @@ require_once __DIR__ . '/../layout/header.php';
                                         $w = (float) $s['width_percent'] > 0 ? (float) $s['width_percent'] : 25.0;
                                         $h = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
                                         $p = (int) $s['page_number'] > 0 ? (int) $s['page_number'] : 1;
+                                        $isConfigured = ($x != 0 || $y != 0);
                                         // Posisi awal jika belum diatur: bariskan di bagian bawah
                                         if ($x == 0 && $y == 0) {
                                             $x = 10.0 + (($idx % 2) * 45.0);
@@ -140,6 +141,7 @@ require_once __DIR__ . '/../layout/header.php';
                                          class="slot-draggable position-absolute rounded p-1 border text-center d-flex flex-column align-items-center justify-content-center <?= $idx === 0 ? 'active-slot' : '' ?>"
                                          data-signer-id="<?= htmlspecialchars($s['id']) ?>"
                                          data-signer-page="<?= $p ?>"
+                                         data-slot-configured="<?= $isConfigured ? '1' : '0' ?>"
                                          style="left: <?= $x ?>%; top: <?= $y ?>%; width: <?= $w ?>%; height: <?= $h ?>%; 
                                                 background-color: <?= $c['bg'] ?>; border-color: <?= $c['border'] ?> !important; border-width: 2px !important; 
                                                 cursor: move; user-select: none; pointer-events: auto; z-index: <?= 10 + $idx ?>; transition: box-shadow 0.15s ease;">
@@ -196,6 +198,7 @@ require_once __DIR__ . '/../layout/header.php';
                                 $y = (float) $s['y_percent'];
                                 $w = (float) $s['width_percent'] > 0 ? (float) $s['width_percent'] : 25.0;
                                 $h = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
+                                $isConfigured = ($x != 0 || $y != 0);
                                 if ($x == 0 && $y == 0) {
                                     $x = 10.0 + (($idx % 2) * 45.0);
                                     $y = 75.0 + (floor($idx / 2) * 12.0);
@@ -207,6 +210,7 @@ require_once __DIR__ . '/../layout/header.php';
                                  id="cardSigner_<?= htmlspecialchars($s['id']) ?>"
                                  data-signer-id="<?= htmlspecialchars($s['id']) ?>"
                                  data-signer-page="<?= $pageNo ?>"
+                                 data-slot-configured="<?= $isConfigured ? '1' : '0' ?>"
                                  style="cursor: pointer; transition: all 0.15s ease;">
                                 
                                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -229,6 +233,12 @@ require_once __DIR__ . '/../layout/header.php';
                                         &bull; <span class="text-secondary"><?= htmlspecialchars($s['signer_identifier']) ?></span>
                                     <?php endif; ?>
                                 </div>
+
+                                <!-- Penanda slot sudah benar-benar ditempatkan pengguna -->
+                                <input type="hidden"
+                                       name="slots[<?= htmlspecialchars($s['id']) ?>][slot_configured]"
+                                       id="configured_<?= htmlspecialchars($s['id']) ?>"
+                                       value="<?= $isConfigured ? '1' : '0' ?>">
 
                                 <!-- Input Parameter Koordinat -->
                                 <div class="row g-2">
@@ -480,6 +490,43 @@ document.addEventListener('DOMContentLoaded', function () {
         return input ? (parseInt(input.value, 10) || 1) : 1;
     }
 
+    // Helper: Menyinkronkan halaman pada input, kartu, dan kotak slot
+    function setSignerPage(sid, page) {
+        const pageInput = document.getElementById('page_' + sid);
+        if (pageInput) pageInput.value = page;
+
+        const box = document.getElementById('slotBox_' + sid);
+        if (box) box.setAttribute('data-signer-page', page);
+
+        const card = document.getElementById('cardSigner_' + sid);
+        if (card) card.setAttribute('data-signer-page', page);
+    }
+
+    // Helper: Status slot pernah ditempatkan pengguna (bukan sekadar posisi pratinjau)
+    function isSignerSlotConfigured(sid) {
+        const card = document.getElementById('cardSigner_' + sid);
+        if (card && card.getAttribute('data-slot-configured') === '1') return true;
+
+        const box = document.getElementById('slotBox_' + sid);
+        if (box && box.getAttribute('data-slot-configured') === '1') return true;
+
+        return false;
+    }
+
+    // Helper: Menandai slot sudah ditempatkan agar validasi backend tidak memakai posisi pratinjau
+    function setSignerSlotConfigured(sid, configured) {
+        const value = configured ? '1' : '0';
+
+        const card = document.getElementById('cardSigner_' + sid);
+        if (card) card.setAttribute('data-slot-configured', value);
+
+        const box = document.getElementById('slotBox_' + sid);
+        if (box) box.setAttribute('data-slot-configured', value);
+
+        const hidden = document.getElementById('configured_' + sid);
+        if (hidden) hidden.value = value;
+    }
+
     // Pembaruan Alert & Tombol Penempatan Halaman Slot Aktif
     function updateActiveSlotPageAlert() {
         if (!activeSignerId) return;
@@ -512,10 +559,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function moveActiveSlotToCurrentPage() {
         if (!activeSignerId) return;
-        const pageInput = document.getElementById('page_' + activeSignerId);
-        if (pageInput) pageInput.value = currentPage;
+
         const box = document.getElementById('slotBox_' + activeSignerId);
-        if (box) box.setAttribute('data-signer-page', currentPage);
+        if (box && !isSignerSlotConfigured(activeSignerId)) {
+            const xInput = document.getElementById('x_' + activeSignerId);
+            const yInput = document.getElementById('y_' + activeSignerId);
+            if (xInput) xInput.value = (parseFloat(box.style.left) || 0).toFixed(1);
+            if (yInput) yInput.value = (parseFloat(box.style.top) || 0).toFixed(1);
+            setSignerSlotConfigured(activeSignerId, true);
+        }
+
+        setSignerPage(activeSignerId, currentPage);
         updateSlotVisibilityForPage(currentPage);
         updateActiveSlotPageAlert();
     }
@@ -561,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Fungsi memilih signer aktif
-    function selectSigner(signerId, autoSwitchPage = true) {
+    function selectSigner(signerId, autoSwitchPage = true, adoptCurrentPage = true) {
         activeSignerId = signerId;
 
         slotBoxes.forEach(box => {
@@ -582,14 +636,25 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Jika signer berada di halaman berbeda, otomatis pindahkan viewer ke halaman signer tersebut
-        if (autoSwitchPage && pdfDoc) {
-            const targetPage = getSignerPage(signerId);
-            if (targetPage !== currentPage && targetPage >= 1 && targetPage <= totalPages) {
-                renderPage(targetPage);
-            } else {
-                updateActiveSlotPageAlert();
-            }
+        // Signer yang belum pernah ditempatkan mengikuti halaman yang sedang dibuka.
+        // Ini mencegah slot penandatangan kedua dan seterusnya tersimpan di halaman 1
+        // hanya karena halaman default formulir masih bernilai 1 (BUG-28).
+        let targetPage = getSignerPage(signerId);
+        let adoptedCurrentPage = false;
+        if (adoptCurrentPage && !isSignerSlotConfigured(signerId) && targetPage <= 1 && currentPage > 1) {
+            targetPage = currentPage;
+            setSignerPage(signerId, targetPage);
+            adoptedCurrentPage = true;
+        }
+
+        if (adoptedCurrentPage) {
+            updateSlotVisibilityForPage(currentPage);
+        }
+
+        // Jika signer sudah memiliki slot di halaman lain, tampilkan halaman tersebut (ADR-09).
+        if (autoSwitchPage && pdfDoc && targetPage !== currentPage
+            && targetPage >= 1 && targetPage <= totalPages) {
+            renderPage(targetPage);
         } else {
             updateActiveSlotPageAlert();
         }
@@ -598,8 +663,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // Klik pada card signer di panel kanan
     signerCards.forEach(card => {
         card.addEventListener('click', function (e) {
-            if (e.target.closest('input')) return; // Jangan override jika user fokus ke input
-            selectSigner(this.getAttribute('data-signer-id'), true);
+            const sid = this.getAttribute('data-signer-id');
+
+            if (e.target.closest('input')) {
+                // Fokus ke input tetap memilih signer yang sedang diedit,
+                // tetapi tidak boleh mengubah nomor halaman secara diam-diam.
+                selectSigner(sid, false, false);
+                return;
+            }
+
+            selectSigner(sid, true);
         });
     });
 
@@ -639,8 +712,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Update posisi box dari input koordinat manual
-    document.querySelectorAll('.coord-input').forEach(input => {
+    // Update posisi box dari input koordinat manual (nomor halaman ditangani terpisah)
+    document.querySelectorAll('.coord-input:not(.page-input)').forEach(input => {
         input.addEventListener('input', function () {
             const card = this.closest('.signer-card-item');
             const sid = card.getAttribute('data-signer-id');
@@ -656,6 +729,8 @@ document.addEventListener('DOMContentLoaded', function () {
             box.style.top = Math.max(0, Math.min(100 - h, y)) + '%';
             box.style.width = Math.max(5, Math.min(50, w)) + '%';
             box.style.height = Math.max(3, Math.min(30, h)) + '%';
+
+            setSignerSlotConfigured(sid, x !== 0 || y !== 0);
         });
     });
 
@@ -665,6 +740,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let isDragging = false;
     let dragBox = null;
     let dragSid = null;
+    let dragMoved = false;
     let startX, startY, initialLeft, initialTop;
 
     function startDrag(e, targetBox) {
@@ -673,11 +749,15 @@ document.addEventListener('DOMContentLoaded', function () {
         dragSid = targetBox.getAttribute('data-signer-id');
         selectSigner(dragSid, false);
 
+        // Kotak yang terlihat di kanvas selalu berada di halaman yang sedang dibuka
+        setSignerPage(dragSid, currentPage);
+
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
         startX = clientX;
         startY = clientY;
+        dragMoved = false;
 
         initialLeft = parseFloat(dragBox.style.left) || 0;
         initialTop = parseFloat(dragBox.style.top) || 0;
@@ -702,6 +782,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const deltaX = ((clientX - startX) / rect.width) * 100;
         const deltaY = ((clientY - startY) / rect.height) * 100;
 
+        if (Math.abs(clientX - startX) + Math.abs(clientY - startY) > 2) {
+            dragMoved = true;
+        }
+
         const w = parseFloat(dragBox.style.width) || 20;
         const h = parseFloat(dragBox.style.height) || 10;
 
@@ -719,6 +803,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const yInput = document.getElementById('y_' + dragSid);
         if (xInput) xInput.value = newX.toFixed(1);
         if (yInput) yInput.value = newY.toFixed(1);
+        if (dragMoved && dragSid) setSignerSlotConfigured(dragSid, true);
     }
 
     document.addEventListener('mousemove', function (e) {
@@ -737,6 +822,7 @@ document.addEventListener('DOMContentLoaded', function () {
         isDragging = false;
         dragBox = null;
         dragSid = null;
+        dragMoved = false;
     }
 
     document.addEventListener('mouseup', stopDrag);
@@ -768,16 +854,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const xInput = document.getElementById('x_' + activeSignerId);
         const yInput = document.getElementById('y_' + activeSignerId);
-        const pageInput = document.getElementById('page_' + activeSignerId);
 
         if (xInput) xInput.value = newX.toFixed(1);
         if (yInput) yInput.value = newY.toFixed(1);
-        if (pageInput) {
-            pageInput.value = currentPage;
-            box.setAttribute('data-signer-page', currentPage);
-            updateSlotVisibilityForPage(currentPage);
-            updateActiveSlotPageAlert();
-        }
+
+        setSignerSlotConfigured(activeSignerId, true);
+        setSignerPage(activeSignerId, currentPage);
+        updateSlotVisibilityForPage(currentPage);
+        updateActiveSlotPageAlert();
     });
 
     // Handle Submit to Admin / Finalize Single

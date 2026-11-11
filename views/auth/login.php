@@ -389,6 +389,23 @@
             line-height: 1;
         }
 
+        .auth-switch {
+            margin: 18px 0 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .auth-switch a {
+            color: var(--accent);
+            font-weight: 600;
+            text-underline-offset: 3px;
+        }
+
+        .auth-switch a:hover {
+            color: var(--accent-hover);
+        }
+
         .test-account-details {
             margin-top: 20px;
             padding-top: 16px;
@@ -682,6 +699,10 @@
                         <span class="submit-arrow" aria-hidden="true">&rarr;</span>
                     </button>
                 </form>
+
+                <p class="auth-switch">
+                    Belum memiliki akun? <a href="<?= BASE_URL ?>/auth/register">Registrasi Akun Civitas</a>
+                </p>
 
                 <details class="test-account-details">
                     <summary>Akun Pengujian (Seed)</summary>

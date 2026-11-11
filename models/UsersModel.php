@@ -70,6 +70,26 @@ class UsersModel
     }
 
     /**
+     * Mengambil user aktif berdasarkan civitas_id (Pintu Filter 4: Proteksi Akun Ganda Task 11)
+     */
+    public function getByCivitasId(string $civitasId): ?array
+    {
+        $cleanCivitasId = trim(str_replace("\0", '', mb_scrub($civitasId, 'UTF-8')));
+        if ($cleanCivitasId === '') {
+            return null;
+        }
+        $stmt = $this->db->prepare(
+            "SELECT u.*
+             FROM users u
+             WHERE u.civitas_id = ? AND u.deleted_at IS NULL
+             LIMIT 1"
+        );
+        $stmt->execute([$cleanCivitasId]);
+        $user = $stmt->fetch();
+        return $user ?: null;
+    }
+
+    /**
      * Mengambil seluruh pengguna aktif (opsional dengan pencarian)
      */
     public function getAll($search = null)
@@ -112,13 +132,17 @@ class UsersModel
              VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())"
         );
 
+        $cleanName  = mb_substr(trim(str_replace("\0", '', mb_scrub((string) ($data['name'] ?? ''), 'UTF-8'))), 0, 255);
+        $cleanEmail = mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) ($data['email'] ?? ''), 'UTF-8')))), 0, 255);
+        $role       = in_array($data['role'] ?? 'user', ['admin', 'user'], true) ? $data['role'] : 'user';
+
         $stmt->execute([
             $id,
             $data['civitas_id'] ?? null,
-            $data['name'],
-            strtolower(trim($data['email'])),
-            password_hash($data['password'], PASSWORD_BCRYPT),
-            $data['role'] ?? 'user',
+            $cleanName,
+            $cleanEmail,
+            password_hash((string) $data['password'], PASSWORD_BCRYPT),
+            $role,
         ]);
 
         return $id;
