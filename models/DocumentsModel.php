@@ -248,6 +248,36 @@ class DocumentsModel
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Ambil seluruh dokumen di mana user ditugaskan sebagai penandatangan (bukan pengaju),
+     * baik yang sedang giliran aktif (pending), menunggu giliran (waiting),
+     * sudah ditandatangani (signed), maupun ditolak (declined).
+     * Memungkinkan Dosen/Penandatangan tetap melihat pratinjau dokumen setelah tanda tangan.
+     */
+    public function getAssignedSignForUser(string $userId, ?string $status = null): array
+    {
+        $sql = "SELECT d.*, ds.step_order, ds.role_title,
+                       ds.status AS my_signer_status, ds.signed_at AS my_signed_at,
+                       u.name AS uploader_name
+                FROM document_signers ds
+                JOIN documents d ON ds.document_id = d.id
+                JOIN users u ON d.uploader_id = u.id
+                WHERE ds.user_id = ? AND d.uploader_id != ?
+                  AND d.status != 'draft'
+                  AND d.deleted_at IS NULL AND ds.deleted_at IS NULL";
+        $params = [$userId, $userId];
+
+        if ($status !== null) {
+            $sql .= " AND d.status = ?";
+            $params[] = $status;
+        }
+
+        $sql .= " ORDER BY COALESCE(ds.signed_at, d.updated_at, d.created_at) DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
     // ─────────────────────────────────────────────────────────────
     // DOCUMENTS — Mutasi
     // ─────────────────────────────────────────────────────────────

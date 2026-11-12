@@ -122,11 +122,118 @@ $statusBadges = [
     </div>
 <?php endif; ?>
 
+<!-- Tabel Penugasan & Riwayat Tanda Tangan (Agar Dosen/Penandatangan Tetap Bisa Melihat Pratinjau TTD Setelah Tanda Tangan) -->
+<?php if (!$isAdmin && !empty($assignedDocs)): ?>
+    <?php
+        $mySigBadges = [
+            'waiting'  => ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => 'Menunggu Giliran', 'icon' => 'bi-clock'],
+            'pending'  => ['class' => 'bg-warning text-dark', 'label' => 'Giliran Anda', 'icon' => 'bi-pen-fill'],
+            'signed'   => ['class' => 'bg-success-subtle text-success border border-success-subtle', 'label' => 'Sudah Ditandatangani', 'icon' => 'bi-check-circle-fill'],
+            'declined' => ['class' => 'bg-danger-subtle text-danger border border-danger-subtle', 'label' => 'Menolak TTD', 'icon' => 'bi-x-circle-fill'],
+        ];
+    ?>
+    <div class="card-clean mb-4">
+        <div class="card-clean-header flex-wrap gap-2 justify-content-between align-items-center">
+            <div class="fw-semibold text-dark d-flex align-items-center gap-1.5">
+                <i class="bi bi-pen-fill text-success"></i>
+                <span>Penugasan & Riwayat Tanda Tangan Saya</span>
+                <span class="text-muted fw-normal small ms-1">(<?= count($assignedDocs) ?>)</span>
+            </div>
+            <span class="text-muted small">Klik <strong>Pratinjau TTD</strong> untuk melihat posisi slot & tanda tangan pada berkas</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr style="font-size: 0.75rem;">
+                        <th class="text-center" style="width: 40px;">#</th>
+                        <th>Judul Dokumen</th>
+                        <th>Pengaju</th>
+                        <th>Urutan Anda</th>
+                        <th class="text-center">Status TTD Anda</th>
+                        <th class="text-center">Status Dokumen</th>
+                        <th class="text-end" style="width: 170px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($assignedDocs as $aIdx => $aDoc): ?>
+                        <?php
+                            $aDocBadge = $statusBadges[$aDoc['status']] ?? ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => ucfirst($aDoc['status'])];
+                            $mySigStat = $aDoc['my_signer_status'] ?? 'waiting';
+                            $mySigB    = $mySigBadges[$mySigStat] ?? $mySigBadges['waiting'];
+                            $isMyTurn  = ($aDoc['status'] === 'signing' && $mySigStat === 'pending' && (int) $aDoc['step_order'] === (int) $aDoc['current_step']);
+                        ?>
+                        <tr class="<?= $isMyTurn ? 'table-warning' : '' ?>">
+                            <td class="text-center text-muted small"><?= $aIdx + 1 ?></td>
+                            <td>
+                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>#pdfPreviewSection" class="fw-semibold text-dark text-decoration-none">
+                                    <?= htmlspecialchars($aDoc['title']) ?>
+                                </a>
+                                <div class="text-muted small" style="font-size: 0.75rem;">
+                                    <?= htmlspecialchars($aDoc['file_name_original']) ?>
+                                </div>
+                            </td>
+                            <td class="small text-muted">
+                                <?= htmlspecialchars($aDoc['uploader_name']) ?>
+                            </td>
+                            <td class="small">
+                                <span class="badge bg-light text-dark border">Step <?= (int) $aDoc['step_order'] ?></span>
+                                <?php if (!empty($aDoc['role_title'])): ?>
+                                    <div class="text-muted mt-0.5" style="font-size: 0.72rem;"><?= htmlspecialchars($aDoc['role_title']) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge <?= $mySigB['class'] ?> fw-medium" style="font-size: 0.72rem; padding: 0.3em 0.6em;">
+                                    <i class="bi <?= $mySigB['icon'] ?> me-0.5"></i><?= htmlspecialchars($mySigB['label']) ?>
+                                </span>
+                                <?php if (!empty($aDoc['my_signed_at'])): ?>
+                                    <div class="text-muted mt-0.5" style="font-size: 0.65rem;">
+                                        <?= date('d/m/Y H:i', strtotime($aDoc['my_signed_at'])) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge <?= $aDocBadge['class'] ?> fw-normal" style="font-size: 0.72rem; padding: 0.3em 0.6em;">
+                                    <?= htmlspecialchars($aDocBadge['label']) ?>
+                                    <?php if ($aDoc['status'] === 'signing'): ?>
+                                        (Step <?= (int) $aDoc['current_step'] ?>)
+                                    <?php endif; ?>
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <?php if ($isMyTurn): ?>
+                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>/sign"
+                                           class="btn btn-warning btn-sm py-0.5 px-2 text-dark fw-semibold" style="font-size: 0.76rem;">
+                                            <i class="bi bi-pen-fill me-0.5"></i>Tanda Tangani
+                                        </a>
+                                    <?php endif; ?>
+                                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>#pdfPreviewSection"
+                                       class="btn <?= $mySigStat === 'signed' ? 'btn-success-subtle text-success border border-success-subtle fw-medium' : 'btn-subtle' ?> btn-sm py-0.5 px-2"
+                                       style="font-size: 0.76rem;"
+                                       title="Lihat pratinjau tanda tangan & posisi kotak slot pada dokumen">
+                                        <i class="bi bi-eye me-0.5"></i><?= $mySigStat === 'signed' ? 'Pratinjau TTD' : 'Detail & Slot' ?>
+                                    </a>
+                                    <?php if ($aDoc['status'] === 'completed'): ?>
+                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>/download"
+                                           class="btn btn-subtle btn-sm py-0.5 px-2 text-success" style="font-size: 0.76rem;" title="Unduh PDF Final">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Main Documents Table -->
 <div class="card-clean mb-4">
     <div class="card-clean-header flex-wrap gap-2 justify-content-between align-items-center">
         <div class="fw-semibold text-dark">
-            <?= $isAdmin ? 'Antrean Dokumen' : 'Daftar Dokumen' ?>
+            <?= $isAdmin ? 'Antrean Dokumen' : 'Dokumen Pengajuan Saya' ?>
             <span class="text-muted fw-normal small ms-1">(<?= count($documents) ?>)</span>
         </div>
 

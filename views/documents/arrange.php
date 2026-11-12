@@ -136,24 +136,45 @@ require_once __DIR__ . '/../layout/header.php';
                                             $y = 75.0 + (floor($idx / 2) * 12.0);
                                             if ($y > 88.0) $y = 85.0;
                                         }
+                                        $sIdLabel = (($s['signer_type'] ?? '') === 'mahasiswa') ? 'NIM' : 'NIP';
+                                        $sIdentText = !empty($s['signer_identifier'])
+                                            ? ($sIdLabel . ': ' . $s['signer_identifier'])
+                                            : ($s['role_title'] ?: ($s['signer_position'] ?? ''));
                                     ?>
                                     <div id="slotBox_<?= htmlspecialchars($s['id']) ?>" 
-                                         class="slot-draggable position-absolute rounded p-1 border text-center d-flex flex-column align-items-center justify-content-center <?= $idx === 0 ? 'active-slot' : '' ?>"
+                                         class="slot-draggable position-absolute rounded border text-center overflow-hidden <?= ($p !== 1) ? 'd-none' : '' ?> <?= $idx === 0 ? 'active-slot' : '' ?>"
                                          data-signer-id="<?= htmlspecialchars($s['id']) ?>"
                                          data-signer-page="<?= $p ?>"
                                          data-slot-configured="<?= $isConfigured ? '1' : '0' ?>"
                                          style="left: <?= $x ?>%; top: <?= $y ?>%; width: <?= $w ?>%; height: <?= $h ?>%; 
                                                 background-color: <?= $c['bg'] ?>; border-color: <?= $c['border'] ?> !important; border-width: 2px !important; 
                                                 cursor: move; user-select: none; pointer-events: auto; z-index: <?= 10 + $idx ?>; transition: box-shadow 0.15s ease;">
-                                        
-                                        <span class="badge <?= $c['badge'] ?> px-1.5 py-0.5 mb-0.5 text-truncate" style="font-size: 0.65rem; max-width: 95%;">
-                                            Step <?= $s['step_order'] ?> &bull; <?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
+                                        <span class="badge <?= $c['badge'] ?> position-absolute top-0 start-0 m-0.5 px-1 py-0 text-truncate" style="font-size: 0.54rem; max-width: 92%; z-index: 5;">
+                                            Step <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
                                         </span>
-                                        <div class="text-truncate text-dark fw-bold" style="font-size: 0.7rem; max-width: 95%;">
-                                            <i class="bi bi-pen-fill me-0.5 text-muted"></i><?= htmlspecialchars($s['signer_name']) ?>
-                                        </div>
-                                        <div class="text-muted" style="font-size: 0.6rem;">
-                                            [Slot TTD + QR Code]
+                                        <div class="w-100 h-100 position-relative d-flex align-items-stretch" style="pointer-events: none;">
+                                            <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 13px 3px 3px 4px; min-width: 0;">
+                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted" style="font-size: 0.54rem; min-height: 0;">
+                                                    <span><i class="bi bi-pen me-0.5"></i>[Area TTD]</span>
+                                                </div>
+                                                <div class="text-center" style="line-height: 1.15; min-width: 0;">
+                                                    <div class="text-dark fw-bold text-truncate" style="font-size: 0.58rem;">
+                                                        <?= htmlspecialchars($s['signer_name']) ?>
+                                                    </div>
+                                                    <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
+                                                    <?php if (!empty($sIdentText)): ?>
+                                                        <div class="text-muted text-truncate" style="font-size: 0.48rem;">
+                                                            <?= htmlspecialchars($sIdentText) ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
+                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white bg-opacity-75 rounded border text-dark"
+                                                     style="aspect-ratio: 1 / 1; height: 76%; max-width: 100%; font-size: 0.9rem;">
+                                                    <i class="bi bi-qr-code"></i>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -589,8 +610,10 @@ document.addEventListener('DOMContentLoaded', function () {
             box.setAttribute('data-signer-page', signerPage);
 
             if (signerPage === page) {
-                box.style.display = 'flex';
+                box.classList.remove('d-none');
+                box.style.display = '';
             } else {
+                box.classList.add('d-none');
                 box.style.display = 'none';
             }
         });
