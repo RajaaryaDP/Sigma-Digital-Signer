@@ -119,16 +119,18 @@ class Documents
                 $statusFilter = null;
             }
 
-            $myDocuments     = $this->model->getByUploaderId($this->userId, $statusFilter);
-            $docCounts       = $this->model->countByStatusForUser($this->userId);
+            $myDocuments      = $this->model->getByUploaderId($this->userId, $statusFilter);
+            $assignedDocs     = $this->model->getAssignedSignForUser($this->userId, $statusFilter);
+            $docCounts        = $this->model->countByStatusForUser($this->userId);
             $pendingSignCount = $this->model->countPendingSignForUser($this->userId);
-            $pendingSignDocs = $this->model->getPendingSignForUser($this->userId);
-            $waitingSignDocs = $this->model->getWaitingSignForUser($this->userId);
+            $pendingSignDocs  = $this->model->getPendingSignForUser($this->userId);
+            $waitingSignDocs  = $this->model->getWaitingSignForUser($this->userId);
 
             $this->load->view('views/documents/index.php', [
                 'title'            => 'Dokumen Digital Saya',
                 'user'             => $this->user,
                 'documents'        => $myDocuments,
+                'assignedDocs'     => $assignedDocs,
                 'docCounts'        => $docCounts,
                 'pendingSignCount' => $pendingSignCount,
                 'pendingSignDocs'  => $pendingSignDocs,

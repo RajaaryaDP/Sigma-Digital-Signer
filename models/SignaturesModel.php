@@ -33,11 +33,13 @@ class SignaturesModel
     public function getByDocumentId(string $documentId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT s.*, u.name AS signer_name, u.email AS signer_email
+            "SELECT s.*, u.name AS signer_name, u.email AS signer_email,
+                    ds.step_order, ds.role_title
              FROM signatures s
              JOIN users u ON s.signer_id = u.id
+             LEFT JOIN document_signers ds ON s.document_signer_id = ds.id AND ds.deleted_at IS NULL
              WHERE s.document_id = ? AND s.deleted_at IS NULL
-             ORDER BY s.signed_at ASC"
+             ORDER BY COALESCE(ds.step_order, 999) ASC, s.signed_at ASC"
         );
         $stmt->execute([$documentId]);
         return $stmt->fetchAll();

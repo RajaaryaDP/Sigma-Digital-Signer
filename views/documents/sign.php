@@ -181,33 +181,51 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                             $sw = (float) $sig['width_percent'] > 0 ? (float) $sig['width_percent'] : 20.0;
                                             $sh = (float) $sig['height_percent'] > 0 ? (float) $sig['height_percent'] : 10.0;
                                             $sp = (int) $sig['page_number'] > 0 ? (int) $sig['page_number'] : 1;
-                                            $isPlacedQrOnly = ($sig['signature_format'] ?? '') === 'qr_only' || empty($sig['signature_image_path']);
+                                            $isPlacedQrOnly  = ($sig['signature_format'] ?? '') === 'qr_only' || empty($sig['signature_image_path']);
+                                            $placedIdLabel   = (($sig['signer_type_snapshot'] ?? '') === 'mahasiswa') ? 'NIM' : 'NIP';
+                                            $placedIdentText = !empty($sig['signer_identifier_snapshot'])
+                                                ? ($placedIdLabel . ': ' . $sig['signer_identifier_snapshot'])
+                                                : ($sig['signer_position_snapshot'] ?? '');
                                         ?>
-                                        <div class="position-absolute rounded border text-center overflow-hidden bg-white shadow-xs"
+                                        <div class="position-absolute rounded border text-center overflow-hidden bg-white shadow-xs <?= ($sp !== $pageNo) ? 'd-none' : '' ?>"
                                              data-page="<?= $sp ?>"
                                              style="left: <?= $sx ?>%; top: <?= $sy ?>%; width: <?= $sw ?>%; height: <?= $sh ?>%;
                                                     border-color: #10b981 !important; border-width: 1.5px !important; z-index: 15; pointer-events: auto;"
                                              title="Telah ditandatangani oleh <?= htmlspecialchars($sig['signer_name_snapshot']) ?>">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle position-absolute top-0 start-0 m-1 px-1 py-0.5" style="font-size: 0.58rem; z-index: 5;">
-                                                <i class="bi bi-check-circle-fill me-0.5"></i> <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle position-absolute top-0 start-0 m-0.5 px-1 py-0" style="font-size: 0.52rem; z-index: 5;">
+                                                <i class="bi bi-check-circle-fill me-0.5"></i><?= !empty($sig['step_order']) ? ('Step ' . (int) $sig['step_order'] . ' &bull; ') : '' ?>Tertanda
                                             </span>
-                                            <?php if ($isPlacedQrOnly): ?>
-                                                <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-success p-1">
-                                                    <i class="bi bi-qr-code" style="font-size: 1.6rem;"></i>
-                                                    <span class="badge bg-success-subtle text-success border border-success-subtle mt-0.5" style="font-size: 0.52rem;">Hanya QR Code</span>
+                                            <div class="w-100 h-100 position-relative d-flex align-items-stretch">
+                                                <!-- Kolom kiri: coretan (jika ada) + nama + garis + NIP/NIM -->
+                                                <div class="d-flex flex-column <?= $isPlacedQrOnly ? 'justify-content-center' : 'justify-content-end' ?>" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
+                                                    <?php if (!$isPlacedQrOnly): ?>
+                                                        <div class="position-relative flex-grow-1" style="min-height: 0;">
+                                                            <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
+                                                                 alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                                                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;">
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <div class="text-center" style="line-height: 1.15; min-width: 0;">
+                                                        <div class="text-dark fw-bold text-truncate" style="font-size: 0.58rem;">
+                                                            <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                                        </div>
+                                                        <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
+                                                        <?php if (!empty($placedIdentText)): ?>
+                                                            <div class="text-muted text-truncate" style="font-size: 0.50rem;">
+                                                                <?= htmlspecialchars($placedIdentText) ?>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
-                                            <?php else: ?>
-                                                <div class="position-absolute" style="inset: 8% 8% 18% 8%;">
-                                                    <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
-                                                         alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
-                                                         style="width: 100%; height: 100%; object-fit: contain;">
+                                                <!-- Kolom kanan: QR Code verifikasi -->
+                                                <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
+                                                    <div class="d-flex flex-column align-items-center justify-content-center bg-white shadow-xs rounded border border-success-subtle text-success"
+                                                         style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 0.95rem;"
+                                                         title="QR Verifikasi Resmi">
+                                                        <i class="bi bi-qr-code"></i>
+                                                    </div>
                                                 </div>
-                                                <div class="position-absolute bottom-0 end-0 m-1 d-flex flex-column align-items-center justify-content-center bg-white shadow-xs rounded border border-success-subtle text-success"
-                                                     style="width: 16%; height: 16%; min-width: 24px; min-height: 24px; font-size: 0.65rem; z-index: 5;"
-                                                     title="QR Verifikasi Resmi">
-                                                    <i class="bi bi-qr-code"></i>
-                                                </div>
-                                            <?php endif; ?>
+                                            </div>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -222,15 +240,43 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                         $oh = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
                                         $op = (int) $s['page_number'] > 0 ? (int) $s['page_number'] : 1;
                                         if ($ox == 0 && $oy == 0) continue;
+                                        $waitIdLabel = (($s['signer_type'] ?? '') === 'mahasiswa') ? 'NIM' : 'NIP';
+                                        $waitIdentText = !empty($s['signer_identifier'])
+                                            ? ($waitIdLabel . ': ' . $s['signer_identifier'])
+                                            : ($s['role_title'] ?: ($s['signer_position'] ?? ''));
                                     ?>
-                                    <div class="position-absolute rounded border bg-light d-flex flex-column align-items-center justify-content-center"
+                                    <div class="position-absolute rounded border text-center overflow-hidden bg-light <?= ($op !== $pageNo) ? 'd-none' : '' ?>"
                                          data-page="<?= $op ?>"
                                          style="left: <?= $ox ?>%; top: <?= $oy ?>%; width: <?= $ow ?>%; height: <?= $oh ?>%;
-                                                border-color: #cbd5e1 !important; border-width: 1px dashed !important; opacity: 0.7; z-index: 10; pointer-events: auto;">
-                                        <span class="badge bg-light text-muted border text-truncate mb-0.5" style="font-size: 0.58rem; max-width: 95%;">
-                                            <i class="bi bi-clock me-0.5"></i>Step <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
+                                                border-color: #94a3b8 !important; border-width: 1.5px dashed !important; opacity: 0.85; z-index: 10; pointer-events: auto;"
+                                         title="Slot Step <?= (int) $s['step_order'] ?>: <?= htmlspecialchars($s['signer_name']) ?> (Menunggu Giliran)">
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle position-absolute top-0 start-0 m-0.5 px-1 py-0 text-truncate" style="font-size: 0.50rem; max-width: 92%; z-index: 5;">
+                                            <i class="bi bi-clock me-0.5"></i>Step <?= (int) $s['step_order'] ?> &bull; Menunggu
                                         </span>
-                                        <span class="text-muted" style="font-size: 0.55rem;">[Menunggu Giliran]</span>
+                                        <div class="w-100 h-100 position-relative d-flex align-items-stretch">
+                                            <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 13px 3px 3px 4px; min-width: 0;">
+                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted" style="font-size: 0.50rem; min-height: 0;">
+                                                    <span>[Menunggu Giliran]</span>
+                                                </div>
+                                                <div class="text-center" style="line-height: 1.15; min-width: 0;">
+                                                    <div class="text-dark fw-bold text-truncate" style="font-size: 0.56rem;">
+                                                        <?= htmlspecialchars($s['signer_name']) ?>
+                                                    </div>
+                                                    <div style="border-top: 1px solid #475569; margin: 1px 0;"></div>
+                                                    <?php if (!empty($waitIdentText)): ?>
+                                                        <div class="text-muted text-truncate" style="font-size: 0.48rem;">
+                                                            <?= htmlspecialchars($waitIdentText) ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
+                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white rounded border text-muted"
+                                                     style="aspect-ratio: 1 / 1; height: 74%; max-width: 100%; font-size: 0.85rem;">
+                                                    <i class="bi bi-qr-code"></i>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
 
@@ -247,12 +293,12 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                     <!-- Tampilan Preview: Format QR + Tanda Tangan + Nama -->
                                     <div id="slotViewQrAndSig" class="w-100 h-100 position-relative d-flex align-items-stretch">
                                         <!-- Kolom kiri: coretan tanda tangan, nama, garis pemisah, dan NIP/NIM -->
-                                        <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 2px 3px 3px 4px; min-width: 0;">
+                                        <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
                                             <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
                                             <div class="position-relative flex-grow-1" style="min-height: 0;">
                                                 <img id="slotPreviewImg" src="" alt="Pratinjau tanda tangan"
                                                      class="d-none"
-                                                     style="width: 100%; height: 100%; object-fit: contain;"
+                                                     style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;"
                                                      title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
                                                 <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
                                                     <span class="text-muted" style="font-size: 0.58rem;">
@@ -270,6 +316,10 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                                     <div class="text-muted text-truncate" style="font-size: 0.52rem;">
                                                         <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
                                                     </div>
+                                                <?php elseif (!empty($profilePos) && $profilePos !== '-'): ?>
+                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
+                                                        <?= htmlspecialchars($profilePos) ?>
+                                                    </div>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -283,12 +333,34 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                         </div>
                                     </div>
 
-                                    <!-- Tampilan Preview: Format Hanya Kode QR -->
-                                    <div id="slotViewQrOnly" class="w-100 h-100 position-relative d-none flex-column align-items-center justify-content-center text-success p-1">
-                                        <i class="bi bi-qr-code" style="font-size: 1.85rem;"></i>
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle mt-1" style="font-size: 0.58rem; font-weight: 600;">
-                                            SIGMA PNJ Verified
-                                        </span>
+                                    <!-- Tampilan Preview: Format Hanya Kode QR (Dilengkapi Nama, Garis Pemisah, & NIP/NIM) -->
+                                    <div id="slotViewQrOnly" class="w-100 h-100 position-relative d-none align-items-stretch">
+                                        <!-- Kolom kiri: Nama, garis pemisah, dan NIP/NIM (tanpa coretan, rata tengah vertikal) -->
+                                        <div class="d-flex flex-column justify-content-center" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
+                                            <div class="text-center" style="line-height: 1.15; min-width: 0;">
+                                                <div class="text-dark fw-bold text-truncate" style="font-size: 0.6rem;">
+                                                    <?= htmlspecialchars($profileName) ?>
+                                                </div>
+                                                <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
+                                                <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
+                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
+                                                        <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                                    </div>
+                                                <?php elseif (!empty($profilePos) && $profilePos !== '-'): ?>
+                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
+                                                        <?= htmlspecialchars($profilePos) ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <!-- Kolom kanan: QR Code verifikasi di dalam kotak slot -->
+                                        <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
+                                            <div class="d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border border-success-subtle text-success"
+                                                 style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 1rem;"
+                                                 title="QR Code verifikasi dibubuhkan otomatis di dalam kotak, di sebelah kanan identitas">
+                                                <i class="bi bi-qr-code"></i>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -351,7 +423,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                     </div>
                                     <div class="fw-bold text-dark small" style="font-size: 0.78rem;">Hanya Kode QR</div>
                                     <div class="text-muted mt-0.5" style="font-size: 0.65rem; line-height: 1.25;">
-                                        Hanya kode QR verifikasi resmi tanpa coretan
+                                        Kode QR, nama resmi, dan <?= htmlspecialchars($profileIdLabel) ?> tanpa coretan
                                     </div>
                                 </div>
                             </div>
@@ -501,9 +573,9 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                         <div class="d-flex align-items-start gap-2.5">
                             <i class="bi bi-info-circle-fill text-primary fs-5 mt-0.5"></i>
                             <div class="small">
-                                <strong>Format Hanya Kode QR Aktif:</strong><br>
-                                Dokumen akan disahkan secara elektronik dengan stempel Kode QR verifikasi resmi SIGMA PNJ yang ditempatkan langsung di tengah slot Anda.<br>
-                                <span class="text-muted mt-1 d-block">Anda tidak perlu menggambar kanvas atau memilih template fisik. Klik tombol <strong>Tanda Tangani &amp; Terbitkan</strong> di bawah untuk langsung memproses pengesahan.</span>
+                                <strong>Format Hanya Kode QR (Dilengkapi Nama &amp; <?= htmlspecialchars($profileIdLabel) ?>) Aktif:</strong><br>
+                                Dokumen akan disahkan secara elektronik dengan menampilkan <strong>Nama Resmi</strong>, garis pemisah, dan <strong><?= htmlspecialchars($profileIdLabel) ?></strong> di sisi kiri serta stempel <strong>Kode QR</strong> verifikasi resmi SIGMA PNJ di sisi kanan slot Anda.<br>
+                                <span class="text-muted mt-1 d-block">Anda tidak perlu menggambar kanvas atau memilih template coretan fisik. Klik tombol <strong>Tanda Tangani &amp; Terbitkan</strong> di bawah untuk langsung memproses pengesahan.</span>
                             </div>
                         </div>
                     </div>
@@ -588,21 +660,50 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                             Halaman <?= $pageNo ?>
                         </span>
                     </div>
-                    <div class="checkerboard-bg rounded border p-3 mb-3 d-flex align-items-center justify-content-center" style="height: 120px;">
+                    <div class="checkerboard-bg rounded border p-3 mb-3 d-flex align-items-center justify-content-center" style="height: 130px;">
                         <!-- Preview Format QR + TTD + Nama -->
-                        <div id="modalPreviewQrAndSig" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center">
-                            <img id="modalPreviewImg" src="" alt="Pratinjau tanda tangan" class="d-none"
-                                 style="max-height: 65px; max-width: 100%; object-fit: contain;">
-                            <span id="modalPreviewEmpty" class="text-muted small">Belum ada pratinjau tanda tangan.</span>
-                            <div id="modalPreviewName" class="fw-bold text-dark small mt-1 text-decoration-underline d-none">
-                                <?= htmlspecialchars($profileName) ?>
+                        <div id="modalPreviewQrAndSig" class="w-100 h-100 d-flex align-items-center justify-content-center gap-3">
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="width: 58%; min-width: 0;">
+                                <img id="modalPreviewImg" src="" alt="Pratinjau tanda tangan" class="d-none"
+                                     style="max-height: 54px; max-width: 100%; object-fit: contain;">
+                                <span id="modalPreviewEmpty" class="text-muted small">Belum ada pratinjau tanda tangan.</span>
+                                <div id="modalPreviewName" class="w-100 text-center mt-1 d-none" style="line-height: 1.2;">
+                                    <div class="fw-bold text-dark text-truncate" style="font-size: 0.78rem;">
+                                        <?= htmlspecialchars($profileName) ?>
+                                    </div>
+                                    <div style="border-top: 1px solid #0f172a; margin: 2px auto; width: 90%;"></div>
+                                    <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
+                                        <div class="text-muted text-truncate" style="font-size: 0.7rem;">
+                                            <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column align-items-center justify-content-center bg-white border rounded p-2 text-dark">
+                                <i class="bi bi-qr-code fs-2"></i>
+                                <span class="text-success fw-semibold" style="font-size: 0.55rem;">SIGMA Verified</span>
                             </div>
                         </div>
-                        <!-- Preview Format Hanya Kode QR -->
-                        <div id="modalPreviewQrOnly" class="d-none text-center text-success py-1">
-                            <i class="bi bi-qr-code fs-1 d-block mb-1"></i>
-                            <div class="fw-bold small">Stempel QR Code Verifikasi Resmi</div>
-                            <div class="text-muted" style="font-size: 0.7rem;">(Format: Hanya Kode QR)</div>
+                        <!-- Preview Format Hanya Kode QR (Dilengkapi Nama & NIP/NIM) -->
+                        <div id="modalPreviewQrOnly" class="w-100 h-100 d-none align-items-center justify-content-center gap-3">
+                            <div class="d-flex flex-column align-items-center justify-content-center" style="width: 58%; min-width: 0; line-height: 1.25;">
+                                <div class="fw-bold text-dark text-truncate w-100 text-center" style="font-size: 0.82rem;">
+                                    <?= htmlspecialchars($profileName) ?>
+                                </div>
+                                <div style="border-top: 1px solid #0f172a; margin: 3px auto; width: 90%;"></div>
+                                <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
+                                    <div class="text-muted text-truncate w-100 text-center" style="font-size: 0.72rem;">
+                                        <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                    </div>
+                                <?php endif; ?>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mt-1.5" style="font-size: 0.62rem;">
+                                    Tanpa Coretan TTD
+                                </span>
+                            </div>
+                            <div class="d-flex flex-column align-items-center justify-content-center bg-white border border-success-subtle rounded p-2 text-success">
+                                <i class="bi bi-qr-code fs-1"></i>
+                                <span class="fw-semibold" style="font-size: 0.55rem;">SIGMA Verified</span>
+                            </div>
                         </div>
                     </div>
                     <div class="alert alert-warning py-2.5 px-3 small mb-0 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
@@ -742,17 +843,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 summaryFormatLabel.textContent = 'Hanya Kode QR';
                 summaryFormatLabel.className = 'badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold';
             }
-            if (slotViewQrAndSig) slotViewQrAndSig.classList.add('d-none');
+            if (slotViewQrAndSig) {
+                slotViewQrAndSig.classList.add('d-none');
+                slotViewQrAndSig.classList.remove('d-flex');
+            }
             if (slotViewQrOnly) {
                 slotViewQrOnly.classList.remove('d-none');
                 slotViewQrOnly.classList.add('d-flex');
             }
             if (modalConfirmFormatBadge) {
-                modalConfirmFormatBadge.textContent = 'Hanya Kode QR';
+                modalConfirmFormatBadge.textContent = 'Hanya Kode QR (+ Nama & <?= htmlspecialchars($profileIdLabel) ?>)';
                 modalConfirmFormatBadge.className = 'badge bg-primary-subtle text-primary border border-primary fw-bold';
             }
-            if (modalPreviewQrAndSig) modalPreviewQrAndSig.classList.add('d-none');
-            if (modalPreviewQrOnly) modalPreviewQrOnly.classList.remove('d-none');
+            if (modalPreviewQrAndSig) {
+                modalPreviewQrAndSig.classList.add('d-none');
+                modalPreviewQrAndSig.classList.remove('d-flex');
+            }
+            if (modalPreviewQrOnly) {
+                modalPreviewQrOnly.classList.remove('d-none');
+                modalPreviewQrOnly.classList.add('d-flex');
+            }
 
             // Format Hanya QR: langsung aktifkan tombol konfirmasi tanpa goresan kanvas
             if (btnOpenConfirm) btnOpenConfirm.disabled = false;
@@ -766,7 +876,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 summaryFormatLabel.textContent = 'QR + TTD + Nama';
                 summaryFormatLabel.className = 'badge bg-success-subtle text-success border border-success-subtle fw-semibold';
             }
-            if (slotViewQrAndSig) slotViewQrAndSig.classList.remove('d-none');
+            if (slotViewQrAndSig) {
+                slotViewQrAndSig.classList.remove('d-none');
+                slotViewQrAndSig.classList.add('d-flex');
+            }
             if (slotViewQrOnly) {
                 slotViewQrOnly.classList.add('d-none');
                 slotViewQrOnly.classList.remove('d-flex');
@@ -775,8 +888,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 modalConfirmFormatBadge.textContent = 'QR + Tanda Tangan + Nama';
                 modalConfirmFormatBadge.className = 'badge bg-success-subtle text-success border border-success fw-bold';
             }
-            if (modalPreviewQrAndSig) modalPreviewQrAndSig.classList.remove('d-none');
-            if (modalPreviewQrOnly) modalPreviewQrOnly.classList.add('d-none');
+            if (modalPreviewQrAndSig) {
+                modalPreviewQrAndSig.classList.remove('d-none');
+                modalPreviewQrAndSig.classList.add('d-flex');
+            }
+            if (modalPreviewQrOnly) {
+                modalPreviewQrOnly.classList.add('d-none');
+                modalPreviewQrOnly.classList.remove('d-flex');
+            }
 
             // Cek apakah coretan tanda tangan sudah tersedia
             checkScribbleValidity();
@@ -996,8 +1115,10 @@ document.addEventListener('DOMContentLoaded', function () {
         overlayItems.forEach(el => {
             const p = parseInt(el.getAttribute('data-page'), 10) || 1;
             if (p === page) {
+                el.classList.remove('d-none');
                 el.style.display = '';
             } else {
+                el.classList.add('d-none');
                 el.style.display = 'none';
             }
         });
