@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/DepartmentsModel.php';
 
 use Ramsey\Uuid\Uuid;
 
@@ -494,10 +495,14 @@ class DocumentsModel
     public function getAvailableSigners(?string $excludeDocId = null, ?string $excludeUserId = null): array
     {
         $sql = "SELECT u.id, u.name, u.email,
+                       c.id AS civitas_id,
                        c.identifier, c.type AS civitas_type,
-                       c.position, c.department
+                       c.position, c.department, c.department_id,
+                       d.name AS department_ref_name,
+                       d.code AS department_ref_code
                 FROM users u
                 LEFT JOIN civitas c ON u.civitas_id = c.id AND c.deleted_at IS NULL
+                LEFT JOIN departments d ON c.department_id = d.id AND d.deleted_at IS NULL
                 WHERE u.role = 'user' AND u.deleted_at IS NULL";
         $params = [];
 
@@ -517,7 +522,55 @@ class DocumentsModel
         $sql .= " ORDER BY c.type ASC, u.name ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+
+        if (empty($rows)) {
+            return [];
+        }
+
+        $civitasIds = array_values(array_filter(array_column($rows, 'civitas_id')));
+        $deptModel  = new DepartmentsModel();
+        $prodiMap   = !empty($civitasIds) ? $deptModel->getStudyProgramsByCivitasIds($civitasIds) : [];
+
+        foreach ($rows as &$row) {
+            $prodis = !empty($row['civitas_id']) ? ($prodiMap[$row['civitas_id']] ?? []) : [];
+
+            $deptIds = [];
+            $deptNames = [];
+            if (!empty($row['department_id']) && !empty($row['department_ref_name'])) {
+                $deptIds[]   = $row['department_id'];
+                $deptNames[] = $row['department_ref_name'];
+            }
+
+            $prodiIds   = [];
+            $prodiNames = [];
+            $prodiCodes = [];
+
+            foreach ($prodis as $pr) {
+                $prodiIds[]   = $pr['id'];
+                $prodiNames[] = $pr['name'];
+                $prodiCodes[] = !empty($pr['code']) ? $pr['code'] : $pr['name'];
+                if (!empty($pr['department_id']) && !in_array($pr['department_id'], $deptIds, true)) {
+                    $deptIds[] = $pr['department_id'];
+                }
+                if (!empty($pr['department_name']) && !in_array($pr['department_name'], $deptNames, true)) {
+                    $deptNames[] = $pr['department_name'];
+                }
+            }
+
+            if (empty($deptNames) && !empty($row['department'])) {
+                $deptNames[] = $row['department'];
+            }
+
+            $row['department_ids']      = $deptIds;
+            $row['department_names']    = $deptNames;
+            $row['study_program_ids']   = $prodiIds;
+            $row['study_program_names'] = $prodiNames;
+            $row['study_program_codes'] = $prodiCodes;
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**

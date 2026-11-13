@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../core/Loader.php';
 require_once __DIR__ . '/../models/DocumentsModel.php';
 require_once __DIR__ . '/../models/CivitasModel.php';
+require_once __DIR__ . '/../models/DepartmentsModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
 require_once __DIR__ . '/../models/SignaturesModel.php';
 require_once __DIR__ . '/../models/UserSignaturesModel.php';
@@ -155,12 +156,17 @@ class Documents
             exit;
         }
 
-        // Ambil daftar user yang bisa dipilih sebagai penandatangan
+        // Ambil daftar user yang bisa dipilih sebagai penandatangan beserta data jurusan & prodi untuk filter
         $availableSigners = $this->model->getAvailableSigners(null, $this->userId);
+        $deptModel        = new DepartmentsModel();
+        $departments      = $deptModel->getAllDepartments();
+        $studyPrograms    = $deptModel->getAllStudyPrograms();
 
         $this->load->view('views/documents/form.php', [
             'title'            => 'Ajukan Dokumen Baru',
             'availableSigners' => $availableSigners,
+            'departments'      => $departments,
+            'studyPrograms'    => $studyPrograms,
             'values'           => [
                 'title'          => '',
                 'description'    => '',
@@ -276,9 +282,12 @@ class Documents
         // Jika ada error, render ulang form
         if (!empty($errors)) {
             $availableSigners = $this->model->getAvailableSigners(null, $this->userId);
+            $deptModel        = new DepartmentsModel();
             $this->load->view('views/documents/form.php', [
                 'title'            => 'Ajukan Dokumen Baru',
                 'availableSigners' => $availableSigners,
+                'departments'      => $deptModel->getAllDepartments(),
+                'studyPrograms'    => $deptModel->getAllStudyPrograms(),
                 'values'           => [
                     'title'          => $title,
                     'description'    => $description ?? '',

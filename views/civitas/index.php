@@ -61,7 +61,7 @@ require_once __DIR__ . '/../layout/header.php';
                             <i class="bi bi-search"></i>
                         </span>
                         <input type="text" name="q" class="form-control border-start-0" 
-                               placeholder="Cari NIM/NIP, nama, atau jurusan..." 
+                               placeholder="Cari NIM/NIP, nama, jurusan, atau prodi..." 
                                value="<?= htmlspecialchars($search ?? '') ?>">
                     </div>
                     <button type="submit" class="btn btn-subtle px-3">Cari</button>
@@ -144,7 +144,18 @@ require_once __DIR__ . '/../layout/header.php';
                                 </span>
                             </td>
                             <td>
-                                <span class="small text-secondary"><?= htmlspecialchars($c['department']) ?></span>
+                                <div class="small fw-medium text-dark"><?= htmlspecialchars($c['department']) ?></div>
+                                <?php if (!empty($c['study_programs'])): ?>
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        <?php foreach ($c['study_programs'] as $sp): ?>
+                                            <span class="badge bg-light text-secondary border" style="font-size: 0.68rem;"
+                                                  title="<?= htmlspecialchars($sp['department_name']) ?>">
+                                                <?= htmlspecialchars($sp['name']) ?>
+                                                <?= !empty($sp['degree']) ? '(' . htmlspecialchars($sp['degree']) . ')' : '' ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <div class="small text-dark"><?= htmlspecialchars($c['email']) ?></div>

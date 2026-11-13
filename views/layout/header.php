@@ -51,6 +51,12 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                                     <span>Master Data Civitas</span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="<?= BASE_URL ?>/departments" class="pnj-nav-link <?= in_array($page, ['departments', 'prodi'], true) ? 'active' : '' ?>">
+                                    <i class="bi bi-building"></i>
+                                    <span>Jurusan &amp; Prodi</span>
+                                </a>
+                            </li>
                         <?php endif; ?>
 
                         <li>

@@ -1,12 +1,14 @@
 <?php
 
 require_once __DIR__ . '/../models/CivitasModel.php';
+require_once __DIR__ . '/../models/DepartmentsModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
 require_once __DIR__ . '/../core/Loader.php';
 
 class Civitas
 {
     private $civitasModel;
+    private $departmentsModel;
     private $auditModel;
     private $load;
 
@@ -26,9 +28,10 @@ class Civitas
             exit;
         }
 
-        $this->civitasModel = new CivitasModel();
-        $this->auditModel   = new AuditLogModel();
-        $this->load         = new Loader();
+        $this->civitasModel     = new CivitasModel();
+        $this->departmentsModel = new DepartmentsModel();
+        $this->auditModel       = new AuditLogModel();
+        $this->load             = new Loader();
     }
 
     /**
@@ -57,14 +60,19 @@ class Civitas
      */
     public function create()
     {
+        $departmentsWithProdi = $this->departmentsModel->getDepartmentsWithStudyPrograms();
+
         $this->load->view('views/civitas/form.php', [
-            'title'   => 'Tambah Civitas Kampus — SIGMA',
-            'isEdit'  => false,
-            'values'  => [
-                'type' => 'mahasiswa', // default
+            'title'                => 'Tambah Civitas Kampus — SIGMA',
+            'isEdit'               => false,
+            'values'               => [
+                'type'              => 'mahasiswa', // default
+                'department_id'     => '',
+                'study_program_ids' => [],
             ],
-            'errors'  => [],
-            'id'      => null,
+            'departmentsWithProdi' => $departmentsWithProdi,
+            'errors'               => [],
+            'id'                   => null,
         ]);
     }
 
@@ -73,26 +81,58 @@ class Civitas
      */
     public function store()
     {
+        $departmentsWithProdi = $this->departmentsModel->getDepartmentsWithStudyPrograms();
+        $rawDepartmentId      = isset($_POST['department_id']) && is_string($_POST['department_id']) ? trim($_POST['department_id']) : '';
+        $rawProdiIds          = is_array($_POST['study_program_ids'] ?? null) ? $_POST['study_program_ids'] : [];
+        $validProdiIds        = $this->departmentsModel->filterValidActiveStudyProgramIds($rawProdiIds);
+
+        $departmentId   = null;
+        $departmentText = isset($_POST['department']) && is_string($_POST['department']) ? trim($_POST['department']) : '';
+        $selectedDept   = null;
+
+        if ($rawDepartmentId !== '') {
+            $selectedDept = $this->departmentsModel->getDepartmentById($rawDepartmentId);
+            if ($selectedDept) {
+                $departmentId = $selectedDept['id'];
+                if ($departmentText === '') {
+                    $departmentText = $selectedDept['name'];
+                }
+            }
+        } elseif (!empty($validProdiIds) && $departmentText === '') {
+            $firstProdi = $this->departmentsModel->getStudyProgramById($validProdiIds[0]);
+            if ($firstProdi) {
+                $departmentId   = $firstProdi['department_id'];
+                $departmentText = $firstProdi['department_name'];
+            }
+        }
+
         $data = [
-            'identifier'  => isset($_POST['identifier']) && is_string($_POST['identifier']) ? trim($_POST['identifier']) : '',
-            'name'        => isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '',
-            'type'        => isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '',
-            'department'  => isset($_POST['department']) && is_string($_POST['department']) ? trim($_POST['department']) : '',
-            'position'    => isset($_POST['position']) && is_string($_POST['position']) ? trim($_POST['position']) : '',
-            'email'       => isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '',
-            'phone'       => isset($_POST['phone']) && is_string($_POST['phone']) ? trim($_POST['phone']) : '',
-            'avatar_path' => null,
+            'identifier'        => isset($_POST['identifier']) && is_string($_POST['identifier']) ? trim($_POST['identifier']) : '',
+            'name'              => isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '',
+            'type'              => isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '',
+            'department_id'     => $departmentId,
+            'raw_department_id' => $rawDepartmentId,
+            'department'        => $departmentText,
+            'position'          => isset($_POST['position']) && is_string($_POST['position']) ? trim($_POST['position']) : '',
+            'email'             => isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '',
+            'phone'             => isset($_POST['phone']) && is_string($_POST['phone']) ? trim($_POST['phone']) : '',
+            'study_program_ids' => $validProdiIds,
+            'avatar_path'       => null,
         ];
 
         $errors = $this->validate($data);
+        if ($rawDepartmentId !== '' && !$selectedDept) {
+            $errors['department_id'] = 'Jurusan yang dipilih tidak valid atau sudah tidak aktif.';
+        }
 
         if (!empty($errors)) {
             $this->load->view('views/civitas/form.php', [
-                'title'  => 'Tambah Civitas Kampus — SIGMA',
-                'isEdit' => false,
-                'values' => $data,
-                'errors' => $errors,
-                'id'     => null,
+                'title'                => 'Tambah Civitas Kampus — SIGMA',
+                'isEdit'               => false,
+                'values'               => $data,
+                'departmentsWithProdi' => $departmentsWithProdi,
+                'errors'               => $errors,
+                'id'                   => null,
             ]);
             return;
         }
@@ -105,11 +145,13 @@ class Civitas
                 $_SESSION['user']['id'],
                 'civitas.create',
                 [
-                    'civitas_id' => $newId,
-                    'identifier' => $data['identifier'],
-                    'name'       => $data['name'],
-                    'type'       => $data['type'],
-                    'department' => $data['department'],
+                    'civitas_id'        => $newId,
+                    'identifier'        => $data['identifier'],
+                    'name'              => $data['name'],
+                    'type'              => $data['type'],
+                    'department_id'     => $data['department_id'],
+                    'department'        => $data['department'],
+                    'study_program_ids' => $data['study_program_ids'],
                 ]
             );
 
@@ -142,12 +184,15 @@ class Civitas
             exit;
         }
 
+        $departmentsWithProdi = $this->departmentsModel->getDepartmentsWithStudyPrograms();
+
         $this->load->view('views/civitas/form.php', [
-            'title'  => 'Ubah Data Civitas — SIGMA',
-            'isEdit' => true,
-            'values' => $civitas,
-            'errors' => [],
-            'id'     => $id,
+            'title'                => 'Ubah Data Civitas — SIGMA',
+            'isEdit'               => true,
+            'values'               => $civitas,
+            'departmentsWithProdi' => $departmentsWithProdi,
+            'errors'               => [],
+            'id'                   => $id,
         ]);
     }
 
@@ -164,26 +209,58 @@ class Civitas
             exit;
         }
 
+        $departmentsWithProdi = $this->departmentsModel->getDepartmentsWithStudyPrograms();
+        $rawDepartmentId      = isset($_POST['department_id']) && is_string($_POST['department_id']) ? trim($_POST['department_id']) : '';
+        $rawProdiIds          = is_array($_POST['study_program_ids'] ?? null) ? $_POST['study_program_ids'] : [];
+        $validProdiIds        = $this->departmentsModel->filterValidActiveStudyProgramIds($rawProdiIds);
+
+        $departmentId   = null;
+        $departmentText = isset($_POST['department']) && is_string($_POST['department']) ? trim($_POST['department']) : '';
+        $selectedDept   = null;
+
+        if ($rawDepartmentId !== '') {
+            $selectedDept = $this->departmentsModel->getDepartmentById($rawDepartmentId);
+            if ($selectedDept) {
+                $departmentId = $selectedDept['id'];
+                if ($departmentText === '') {
+                    $departmentText = $selectedDept['name'];
+                }
+            }
+        } elseif (!empty($validProdiIds) && $departmentText === '') {
+            $firstProdi = $this->departmentsModel->getStudyProgramById($validProdiIds[0]);
+            if ($firstProdi) {
+                $departmentId   = $firstProdi['department_id'];
+                $departmentText = $firstProdi['department_name'];
+            }
+        }
+
         $data = [
-            'identifier'  => isset($_POST['identifier']) && is_string($_POST['identifier']) ? trim($_POST['identifier']) : '',
-            'name'        => isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '',
-            'type'        => isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '',
-            'department'  => isset($_POST['department']) && is_string($_POST['department']) ? trim($_POST['department']) : '',
-            'position'    => isset($_POST['position']) && is_string($_POST['position']) ? trim($_POST['position']) : '',
-            'email'       => isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '',
-            'phone'       => isset($_POST['phone']) && is_string($_POST['phone']) ? trim($_POST['phone']) : '',
-            'avatar_path' => $civitas['avatar_path'],
+            'identifier'        => isset($_POST['identifier']) && is_string($_POST['identifier']) ? trim($_POST['identifier']) : '',
+            'name'              => isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '',
+            'type'              => isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '',
+            'department_id'     => $departmentId,
+            'raw_department_id' => $rawDepartmentId,
+            'department'        => $departmentText,
+            'position'          => isset($_POST['position']) && is_string($_POST['position']) ? trim($_POST['position']) : '',
+            'email'             => isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '',
+            'phone'             => isset($_POST['phone']) && is_string($_POST['phone']) ? trim($_POST['phone']) : '',
+            'study_program_ids' => $validProdiIds,
+            'avatar_path'       => $civitas['avatar_path'],
         ];
 
         $errors = $this->validate($data, $id);
+        if ($rawDepartmentId !== '' && !$selectedDept) {
+            $errors['department_id'] = 'Jurusan yang dipilih tidak valid atau sudah tidak aktif.';
+        }
 
         if (!empty($errors)) {
             $this->load->view('views/civitas/form.php', [
-                'title'  => 'Ubah Data Civitas — SIGMA',
-                'isEdit' => true,
-                'values' => $data,
-                'errors' => $errors,
-                'id'     => $id,
+                'title'                => 'Ubah Data Civitas — SIGMA',
+                'isEdit'               => true,
+                'values'               => $data,
+                'departmentsWithProdi' => $departmentsWithProdi,
+                'errors'               => $errors,
+                'id'                   => $id,
             ]);
             return;
         }
@@ -196,10 +273,12 @@ class Civitas
                 $_SESSION['user']['id'],
                 'civitas.update',
                 [
-                    'civitas_id' => $id,
-                    'identifier' => $data['identifier'],
-                    'name'       => $data['name'],
-                    'type'       => $data['type'],
+                    'civitas_id'        => $id,
+                    'identifier'        => $data['identifier'],
+                    'name'              => $data['name'],
+                    'type'              => $data['type'],
+                    'department_id'     => $data['department_id'],
+                    'study_program_ids' => $data['study_program_ids'],
                 ]
             );
 
