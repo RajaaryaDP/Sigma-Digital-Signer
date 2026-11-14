@@ -335,15 +335,45 @@ class DocumentsModel
     }
 
     /**
-     * Soft delete dokumen (hanya bisa saat draft).
+     * Soft delete dokumen (hanya bisa saat draft) beserta slot penandatangan terkait.
      */
     public function delete(string $id): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE documents SET deleted_at = NOW()
-             WHERE id = ? AND status = 'draft' AND deleted_at IS NULL"
-        );
-        return $stmt->execute([$id]);
+        $ownTx = !$this->db->inTransaction();
+        if ($ownTx) {
+            $this->db->beginTransaction();
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE documents SET deleted_at = NOW(), updated_at = NOW()
+                 WHERE id = ? AND status = 'draft' AND deleted_at IS NULL"
+            );
+            $stmt->execute([$id]);
+
+            if ($stmt->rowCount() === 0) {
+                if ($ownTx) {
+                    $this->db->rollBack();
+                }
+                return false;
+            }
+
+            $stmtSigners = $this->db->prepare(
+                "UPDATE document_signers SET deleted_at = NOW(), updated_at = NOW()
+                 WHERE document_id = ? AND deleted_at IS NULL"
+            );
+            $stmtSigners->execute([$id]);
+
+            if ($ownTx) {
+                $this->db->commit();
+            }
+            return true;
+        } catch (\Throwable $e) {
+            if ($ownTx && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     // ─────────────────────────────────────────────────────────────

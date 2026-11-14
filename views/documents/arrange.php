@@ -28,6 +28,9 @@ require_once __DIR__ . '/../layout/header.php';
         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
             <i class="bi bi-box-arrow-up-right me-1"></i> Buka PDF di Tab Baru
         </a>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalCancelDraft">
+            <i class="bi bi-x-circle me-1"></i> Batalkan Draft
+        </button>
     </div>
 </div>
 
@@ -319,6 +322,9 @@ require_once __DIR__ . '/../layout/header.php';
                             <i class="bi <?= $isSingle ? 'bi-patch-check' : 'bi-send-check' ?> me-1.5"></i>
                             <?= $isSingle ? 'Simpan & Selesaikan Dokumen Mandiri' : 'Simpan & Ajukan ke Administrator' ?>
                         </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2 mt-1" data-bs-toggle="modal" data-bs-target="#modalCancelDraft">
+                            <i class="bi bi-x-circle me-1"></i> Batalkan Draft Dokumen
+                        </button>
                     </div>
 
                     <div class="text-center mt-2.5">
@@ -334,6 +340,46 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
     </div>
 </form>
+
+<!-- Modal Konfirmasi Pembatalan Draft (di luar #arrangeForm agar tidak bersarang) -->
+<div class="modal fade" id="modalCancelDraft" tabindex="-1" aria-labelledby="modalCancelDraftLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-semibold text-danger" id="modalCancelDraftLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Batalkan Draft Dokumen?
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete" method="POST">
+                <div class="modal-body">
+                    <p class="mb-2">
+                        Anda akan membatalkan dan menghapus draft dokumen
+                        <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong>.
+                    </p>
+                    <p class="small text-muted mb-0">
+                        Pengaturan alur penandatangan dan posisi slot pada draft ini ikut dihapus agar tidak meninggalkan sisa draft di daftar dokumen Anda.
+                    </p>
+                </div>
+                <div class="modal-footer border-top d-flex flex-wrap justify-content-between gap-2">
+                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">
+                        Kembali Atur Slot
+                    </button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" name="redirect_to" value="documents" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-trash3 me-1"></i> Batalkan &amp; Ke Daftar Dokumen
+                        </button>
+                        <?php if (($_SESSION['user']['role'] ?? '') !== 'admin'): ?>
+                            <button type="submit" name="redirect_to" value="create" class="btn btn-danger btn-sm">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Batalkan &amp; Ajukan Ulang
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <style>
 .active-slot {

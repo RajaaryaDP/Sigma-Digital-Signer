@@ -283,7 +283,7 @@ $statusBadges = [
                         <th>Tipe</th>
                         <th class="text-center">Status</th>
                         <th>Tanggal</th>
-                        <th class="text-end" style="width: 120px;">Aksi</th>
+                        <th class="text-end" style="width: 190px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -319,7 +319,7 @@ $statusBadges = [
                                 <?= date('d/m/Y', strtotime($doc['created_at'])) ?>
                             </td>
                             <td class="text-end">
-                                <div class="d-inline-flex gap-1">
+                                <div class="d-inline-flex gap-1 text-nowrap">
                                     <?php if ($isPendingReviewAdmin): ?>
                                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
                                            class="btn btn-warning btn-sm py-0.5 px-2 text-dark fw-medium" style="font-size: 0.78rem;">
@@ -335,6 +335,24 @@ $statusBadges = [
                                            class="btn btn-subtle btn-sm py-0.5 px-2" style="font-size: 0.78rem;">
                                             Detail
                                         </a>
+                                    <?php endif; ?>
+                                    <?php
+                                        $currentUserId = $user['id'] ?? ($_SESSION['user']['id'] ?? '');
+                                        $canCancelDraft = ($doc['status'] === 'draft') && ($isAdmin || ($doc['uploader_id'] ?? '') === $currentUserId);
+                                    ?>
+                                    <?php if ($canCancelDraft): ?>
+                                        <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete"
+                                              method="POST"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Batalkan dan hapus draft dokumen ' + <?= htmlspecialchars(json_encode($doc['title'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?> + '?');">
+                                            <input type="hidden" name="status_filter" value="<?= htmlspecialchars((string)($_GET['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm py-0.5 px-2"
+                                                    style="font-size: 0.78rem;"
+                                                    title="Batalkan dan hapus draft dokumen">
+                                                Batalkan
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                     <?php if ($doc['status'] === 'completed'): ?>
                                         <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" 

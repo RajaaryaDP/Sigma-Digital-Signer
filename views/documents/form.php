@@ -94,7 +94,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                     </div>
 
                     <!-- Section 2: Penandatangan Berjenjang (Sequential only) -->
-                    <div id="sequentialSection" class="mb-4" style="<?= $curType === 'single' ? 'display: none;' : '' ?>">
+                    <div id="sequentialSection" class="mb-4 <?= $curType === 'single' ? 'd-none' : '' ?>" style="<?= $curType === 'single' ? 'display: none;' : '' ?>">
                         <div class="d-flex justify-content-between align-items-center mb-3 pb-1 border-bottom">
                             <div class="fw-semibold text-dark small text-uppercase" style="letter-spacing: 0.5px;">
                                 2. Susunan Penandatangan Berjenjang
@@ -467,21 +467,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Toggle tipe alur tanda tangan
     function updateSigTypeUI() {
-        if (sigTypeSelect.value === 'single') {
+        const isSingle = (sigTypeSelect.value === 'single');
+        if (isSingle) {
             seqSection.style.display = 'none';
+            seqSection.classList.add('d-none');
             sigTypeHelp.textContent = 'Mandiri: Anda menandatangani sendiri berkas ini tanpa review Admin dan langsung selesai.';
             submitBtnText.textContent = 'Unggah & Selesaikan Dokumen';
             // Disable required pada select signer jika single
             tableBody.querySelectorAll('.signer-user-select').forEach(el => el.removeAttribute('required'));
         } else {
             seqSection.style.display = 'block';
+            seqSection.classList.remove('d-none');
             sigTypeHelp.textContent = 'Berjenjang: melalui verifikasi Admin lalu ditandatangani sesuai urutan jenjang jabatan.';
             submitBtnText.textContent = 'Unggah & Atur Slot Tanda Tangan';
             tableBody.querySelectorAll('.signer-user-select').forEach(el => el.setAttribute('required', 'required'));
         }
     }
+
+    function syncFormUIState() {
+        updateSigTypeUI();
+        syncProdiFilterOptions();
+        refreshAllSignerSelects();
+        reindexSigners();
+    }
+
     sigTypeSelect.addEventListener('change', updateSigTypeUI);
-    updateSigTypeUI();
+    sigTypeSelect.addEventListener('input', updateSigTypeUI);
 
     // Re-index urutan penandatangan
     function reindexSigners() {
@@ -614,9 +625,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    syncProdiFilterOptions();
-    refreshAllSignerSelects();
-    reindexSigners();
+    syncFormUIState();
+    // Sinkronkan ulang setelah browser memulihkan state form (tombol Back / BFCache)
+    requestAnimationFrame(syncFormUIState);
+    setTimeout(syncFormUIState, 0);
+    window.addEventListener('load', syncFormUIState);
+    window.addEventListener('pageshow', syncFormUIState);
 });
 </script>
 

@@ -1238,21 +1238,46 @@ class Documents
         if ($doc['status'] !== 'draft') {
             $_SESSION['flash'] = [
                 'type'    => 'warning',
-                'message' => 'Hanya dokumen berstatus Draft yang dapat dihapus.'
+                'message' => 'Hanya dokumen berstatus Draft yang dapat dibatalkan.'
             ];
-            header('Location: ' . BASE_URL . '/documents/' . $id);
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
             exit;
         }
 
-        $this->model->delete($id);
+        $deleted = $this->model->delete($id);
+        if (!$deleted) {
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Draft tidak dapat dibatalkan karena status dokumen telah berubah atau sudah dihapus.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+            exit;
+        }
 
         $this->auditModel->log($this->userId, 'document.delete', [
             'document_id' => $id,
             'title'       => $doc['title'],
         ], $id);
 
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Dokumen berhasil dihapus.'];
-        header('Location: ' . BASE_URL . '/documents');
+        $_SESSION['flash'] = [
+            'type'    => 'success',
+            'message' => 'Draft dokumen "' . $doc['title'] . '" berhasil dibatalkan dan dihapus.'
+        ];
+
+        $redirectTo = $_POST['redirect_to'] ?? 'documents';
+        if ($redirectTo === 'create' && !$this->isAdmin) {
+            header('Location: ' . BASE_URL . '/documents/create');
+            exit;
+        }
+
+        $targetUrl = BASE_URL . '/documents';
+        $validStatuses = ['draft', 'pending_review', 'approved', 'signing', 'completed', 'rejected'];
+        $statusFilter = $_POST['status_filter'] ?? '';
+        if (in_array($statusFilter, $validStatuses, true)) {
+            $targetUrl .= '?status=' . rawurlencode($statusFilter);
+        }
+
+        header('Location: ' . $targetUrl);
         exit;
     }
 
