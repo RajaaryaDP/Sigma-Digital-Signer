@@ -10,8 +10,9 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/logo.png">
+    <link href="<?= BASE_URL ?>/assets/css/sigma-footer.css" rel="stylesheet">
     <style>
-        /* Reading this as: institutional digital-signature introduction page for Politeknik Negeri Jakarta civitas, in the supplied navy-and-lavender Figma identity, dial ENERGY 2 / RHYTHM 2 / MOTION 1. */
+        /* Reading this as: institutional digital-signature introduction page for Politeknik Negeri Jakarta civitas, in the supplied navy-and-lavender Figma identity. The shared blue image fills the footer's wave and base at 40% opacity; ENERGY 2 / RHYTHM 2 / MOTION 1. */
         /* Palette: deep navy (#1d2748, #151d39) and lavender (#c3b5d9, #f6f5fb) unify the introduction shell with login.php while keeping body contrast above 8.2:1. */
         /* Typography: Georgia serif on the SIGMA wordmark echoes an academic seal; system sans-serif keeps headings and body copy crisp at every viewport width. */
         :root {
@@ -532,99 +533,6 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             background: var(--surface-white);
         }
 
-        .sigma-footer {
-            position: relative;
-            background: var(--surface-white);
-            color: var(--surface-white);
-            margin-top: auto;
-        }
-
-        .footer-wave-wrap {
-            display: block;
-            width: 100%;
-            line-height: 0;
-            overflow: hidden;
-            background: var(--surface-white);
-        }
-
-        .footer-wave-svg {
-            display: block;
-            width: 100%;
-            height: clamp(46px, 6vw, 76px);
-        }
-
-        .footer-body {
-            background:
-                radial-gradient(ellipse at 65% 25%, rgba(92, 110, 162, 0.25), transparent 48%),
-                radial-gradient(ellipse at 25% 75%, rgba(78, 95, 145, 0.2), transparent 45%),
-                linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
-            padding: 8px 36px 22px;
-        }
-
-        .footer-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .footer-social-row {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 18px;
-        }
-
-        .social-link {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #e2e0ec;
-            color: var(--navy-deep);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid transparent;
-            transition: background-color 140ms ease, transform 140ms ease;
-        }
-
-        .social-link:hover {
-            background: var(--surface-white);
-            transform: translateY(-2px);
-        }
-
-        .social-link:active {
-            background: var(--lavender-pill);
-            transform: translateY(0);
-        }
-
-        .social-link svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-
-        .footer-meta-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            color: #e3e1ee;
-            font-size: 0.78rem;
-        }
-
-        .footer-copyright {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin: 0;
-        }
-
-        .footer-version {
-            margin: 0;
-            color: #e3e1ee;
-        }
-
         /* Tablet breakpoint stacks the hero split cleanly while keeping two-column grids readable. */
         @media (max-width: 920px) {
             .sigma-header-inner {
@@ -711,19 +619,6 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                 gap: 16px;
             }
 
-            .footer-body {
-                padding: 12px 16px 20px;
-            }
-
-            .footer-social-row {
-                justify-content: center;
-            }
-
-            .footer-meta-row {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1035,63 +930,7 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
         <div class="pre-footer-band" aria-hidden="true"></div>
     </main>
 
-    <footer class="sigma-footer">
-        <div class="footer-wave-wrap" aria-hidden="true">
-            <svg class="footer-wave-svg" viewBox="0 0 1440 90" preserveAspectRatio="none" width="1440" height="90">
-                <path
-                    d="M0,18 L1440,18 L1440,90 L0,90 Z"
-                    fill="#dde0ec" />
-                <path
-                    d="M0,44 C190,4 370,78 620,66 C870,54 1030,4 1270,22 C1355,28 1405,36 1440,42 L1440,90 L0,90 Z"
-                    fill="#1d2748" />
-            </svg>
-        </div>
-
-        <div class="footer-body">
-            <div class="footer-inner">
-                <div class="footer-social-row">
-                    <a
-                        href="https://www.facebook.com/PoliteknikNegeriJakartaOfficial"
-                        class="social-link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Facebook Politeknik Negeri Jakarta">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.6-1.5H16.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.3-3.8 3.9v2.3H8v3h2.5V21h3Z" />
-                        </svg>
-                    </a>
-                    <a
-                        href="https://www.instagram.com/politekniknegerijakarta"
-                        class="social-link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Instagram Politeknik Negeri Jakarta">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M7.8 3h8.4A4.8 4.8 0 0 1 21 7.8v8.4a4.8 4.8 0 0 1-4.8 4.8H7.8A4.8 4.8 0 0 1 3 16.2V7.8A4.8 4.8 0 0 1 7.8 3Zm0 1.8A3 3 0 0 0 4.8 7.8v8.4a3 3 0 0 0 3 3h8.4a3 3 0 0 0 3-3V7.8a3 3 0 0 0-3-3H7.8Zm4.2 2.7a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 1.8a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4Zm4.8-2.9a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2Z" />
-                        </svg>
-                    </a>
-                    <a
-                        href="https://youtube.com/@pnjtvofficial?si=ih_3GZwn0Xq7s-3g"
-                        class="social-link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="YouTube Politeknik Negeri Jakarta">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M21.6 7.2a2.7 2.7 0 0 0-1.9-1.9C18 4.8 12 4.8 12 4.8s-6 0-7.7.5a2.7 2.7 0 0 0-1.9 1.9C2 8.9 2 12 2 12s0 3.1.4 4.8a2.7 2.7 0 0 0 1.9 1.9c1.7.5 7.7.5 7.7.5s6 0 7.7-.5a2.7 2.7 0 0 0 1.9-1.9c.4-1.7.4-4.8.4-4.8s0-3.1-.4-4.8ZM10 15.2V8.8l5.5 3.2-5.5 3.2Z" />
-                        </svg>
-                    </a>
-                </div>
-
-                <div class="footer-meta-row">
-                    <p class="footer-copyright">
-                        <span aria-hidden="true">&copy;</span>
-                        <span>2026 - Kelompok DPR - Politeknik Negeri Jakarta</span>
-                    </p>
-                    <p class="footer-version">Version 1.0.0</p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <?php require __DIR__ . '/../layout/sigma-footer.php'; ?>
 
     <script>
         (function () {
