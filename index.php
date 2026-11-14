@@ -167,7 +167,7 @@ if (!isset($segments[1]) || $segments[1] === '') {
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Actions requiring POST method
-$postOnlyActions = ['store', 'update', 'delete', 'approve', 'reject', 'decline'];
+$postOnlyActions = ['store', 'update', 'delete', 'approve', 'reject', 'decline', 'withdraw'];
 $expectsPost     = in_array($action, $postOnlyActions, true);
 
 $controllerName = str_replace('-', '', ucwords($page, '-'));

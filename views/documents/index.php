@@ -283,7 +283,7 @@ $statusBadges = [
                         <th>Tipe</th>
                         <th class="text-center">Status</th>
                         <th>Tanggal</th>
-                        <th class="text-end" style="width: 190px;">Aksi</th>
+                        <th class="text-end" style="width: 215px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -338,8 +338,22 @@ $statusBadges = [
                                     <?php endif; ?>
                                     <?php
                                         $currentUserId = $user['id'] ?? ($_SESSION['user']['id'] ?? '');
-                                        $canCancelDraft = ($doc['status'] === 'draft') && ($isAdmin || ($doc['uploader_id'] ?? '') === $currentUserId);
+                                        $canCancelDraft = ($doc['status'] === 'draft') && !$isAdmin && (($doc['uploader_id'] ?? '') === $currentUserId);
+                                        $canWithdrawReview = ($doc['status'] === 'pending_review') && !$isAdmin && (($doc['uploader_id'] ?? '') === $currentUserId);
                                     ?>
+                                    <?php if ($canWithdrawReview): ?>
+                                        <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/withdraw"
+                                              method="POST"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Tarik kembali pengajuan dokumen ' + <?= htmlspecialchars(json_encode($doc['title'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?> + ' ke Draft untuk diperbaiki?');">
+                                            <button type="submit"
+                                                    class="btn btn-outline-warning text-dark btn-sm py-0.5 px-2"
+                                                    style="font-size: 0.78rem;"
+                                                    title="Tarik pengajuan dari antrean review Admin kembali ke Draft">
+                                                Tarik ke Draft
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                     <?php if ($canCancelDraft): ?>
                                         <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete"
                                               method="POST"
