@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrasi Akun Civitas | SIGMA Politeknik Negeri Jakarta</title>
     <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/logo.png">
+    <link href="<?= BASE_URL ?>/assets/css/sigma-footer.css" rel="stylesheet">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
@@ -573,6 +574,8 @@
         </main>
     </div>
 
+    <?php require __DIR__ . '/../layout/sigma-footer.php'; ?>
+
     <script>
         function bindPasswordToggle(btnId, inputId) {
             const btn = document.getElementById(btnId);
@@ -599,4 +602,3 @@
     </script>
 </body>
 </html>
-
