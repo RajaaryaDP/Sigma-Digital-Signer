@@ -431,6 +431,7 @@ class Documents
         $signatures = $this->signaturesModel->getByDocumentId($id);
         $auditLog   = $this->auditModel->getByDocumentId($id);
 
+        $this->sendNoCacheHeaders();
         $this->load->view('views/documents/detail.php', [
             'title'      => 'Detail Dokumen — ' . $doc['title'],
             'doc'        => $doc,
@@ -441,6 +442,18 @@ class Documents
             'isAdmin'    => $this->isAdmin,
             'mySigner'   => $mySigner,
         ]);
+    }
+
+    /**
+     * Mencegah browser menyimpan halaman state-sensitif di BFCache
+     * agar tombol Back tidak menampilkan draft yang sudah dihapus atau diajukan.
+     */
+    private function sendNoCacheHeaders(): void
+    {
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -482,6 +495,7 @@ class Documents
             exit;
         }
 
+        $this->sendNoCacheHeaders();
         $this->load->view('views/documents/arrange.php', [
             'title'   => 'Atur Slot Tanda Tangan — ' . $doc['title'],
             'doc'     => $doc,
@@ -1228,8 +1242,8 @@ class Documents
             return;
         }
 
-        // Hanya pengaju yang bisa hapus dokumen miliknya
-        if ($doc['uploader_id'] !== $this->userId && !$this->isAdmin) {
+        // Hanya pengaju pemilik dokumen yang berhak membatalkan draft pribadinya
+        if ($doc['uploader_id'] !== $this->userId) {
             http_response_code(403);
             echo '<h1>403 — Akses Ditolak</h1>';
             return;
@@ -1244,41 +1258,125 @@ class Documents
             exit;
         }
 
-        $deleted = $this->model->delete($id);
-        if (!$deleted) {
+        try {
+            $deleted = $this->model->delete($doc['id']);
+            if (!$deleted) {
+                $_SESSION['flash'] = [
+                    'type'    => 'warning',
+                    'message' => 'Draft tidak dapat dibatalkan karena status dokumen telah berubah atau sudah dihapus.'
+                ];
+                header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+                exit;
+            }
+
+            $physicalDeleted = false;
+            if (!empty($doc['file_path']) && $this->model->countActiveByFilePath((string) $doc['file_path']) === 0) {
+                $docsRoot      = realpath($this->storageDir . '/documents');
+                $candidatePath = $this->storageDir . '/' . ltrim((string) $doc['file_path'], '/\\');
+                $realTarget    = realpath($candidatePath);
+                if ($docsRoot && $realTarget && strpos($realTarget, $docsRoot . DIRECTORY_SEPARATOR) === 0 && is_file($realTarget)) {
+                    $physicalDeleted = @unlink($realTarget);
+                }
+            }
+
+            $this->auditModel->log($this->userId, 'document.delete', [
+                'document_id'           => $doc['id'],
+                'title'                 => $doc['title'],
+                'physical_file_deleted' => $physicalDeleted,
+            ], $doc['id']);
+
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Draft dokumen "' . $doc['title'] . '" berhasil dibatalkan dan dihapus.'
+            ];
+
+            $redirectTo = $_POST['redirect_to'] ?? 'documents';
+            if ($redirectTo === 'create' && !$this->isAdmin) {
+                header('Location: ' . BASE_URL . '/documents/create');
+                exit;
+            }
+
+            $targetUrl = BASE_URL . '/documents';
+            $validStatuses = ['draft', 'pending_review', 'approved', 'signing', 'completed', 'rejected'];
+            $statusFilter = $_POST['status_filter'] ?? '';
+            if (in_array($statusFilter, $validStatuses, true)) {
+                $targetUrl .= '?status=' . rawurlencode($statusFilter);
+            }
+
+            header('Location: ' . $targetUrl);
+            exit;
+        } catch (\Throwable $e) {
+            error_log('[Documents::delete] ' . $e->getMessage());
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Terjadi kesalahan saat membatalkan draft dokumen. Silakan coba kembali.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+            exit;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // POST /documents/{id}/withdraw — Tarik Pengajuan ke Draft
+    // ─────────────────────────────────────────────────────────────
+    public function withdraw($id)
+    {
+        $doc = $this->model->getById($id);
+        if (!$doc) {
+            http_response_code(404);
+            echo '<h1>404 — Dokumen Tidak Ditemukan</h1>';
+            return;
+        }
+
+        // Hanya pengaju pemilik dokumen yang berhak menarik pengajuannya
+        if ($doc['uploader_id'] !== $this->userId) {
+            http_response_code(403);
+            echo '<h1>403 — Akses Ditolak</h1>';
+            return;
+        }
+
+        if ($doc['status'] !== 'pending_review') {
             $_SESSION['flash'] = [
                 'type'    => 'warning',
-                'message' => 'Draft tidak dapat dibatalkan karena status dokumen telah berubah atau sudah dihapus.'
+                'message' => 'Dokumen hanya dapat ditarik ke Draft selama masih berstatus Menunggu Review Administrator.'
             ];
             header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
             exit;
         }
 
-        $this->auditModel->log($this->userId, 'document.delete', [
-            'document_id' => $id,
-            'title'       => $doc['title'],
-        ], $id);
+        try {
+            $withdrawn = $this->model->withdrawToDraft($doc['id']);
+            if (!$withdrawn) {
+                $_SESSION['flash'] = [
+                    'type'    => 'warning',
+                    'message' => 'Pengajuan tidak dapat ditarik karena dokumen sudah diproses oleh Administrator atau telah dihapus.'
+                ];
+                header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+                exit;
+            }
 
-        $_SESSION['flash'] = [
-            'type'    => 'success',
-            'message' => 'Draft dokumen "' . $doc['title'] . '" berhasil dibatalkan dan dihapus.'
-        ];
+            $this->auditModel->log($this->userId, 'document.withdraw', [
+                'document_id' => $doc['id'],
+                'title'       => $doc['title'],
+                'status_from' => 'pending_review',
+                'status_to'   => 'draft',
+            ], $doc['id']);
 
-        $redirectTo = $_POST['redirect_to'] ?? 'documents';
-        if ($redirectTo === 'create' && !$this->isAdmin) {
-            header('Location: ' . BASE_URL . '/documents/create');
+            $_SESSION['flash'] = [
+                'type'    => 'success',
+                'message' => 'Pengajuan dokumen "' . $doc['title'] . '" berhasil ditarik kembali ke Draft. Silakan sesuaikan posisi slot atau batalkan draft.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id'] . '/arrange');
+            exit;
+        } catch (\Throwable $e) {
+            error_log('[Documents::withdraw] ' . $e->getMessage());
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Terjadi kesalahan saat menarik pengajuan dokumen. Silakan coba kembali.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
             exit;
         }
-
-        $targetUrl = BASE_URL . '/documents';
-        $validStatuses = ['draft', 'pending_review', 'approved', 'signing', 'completed', 'rejected'];
-        $statusFilter = $_POST['status_filter'] ?? '';
-        if (in_array($statusFilter, $validStatuses, true)) {
-            $targetUrl .= '?status=' . rawurlencode($statusFilter);
-        }
-
-        header('Location: ' . $targetUrl);
-        exit;
     }
 
     // ─────────────────────────────────────────────────────────────

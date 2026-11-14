@@ -102,11 +102,9 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
             <!-- Tombol Aksi Dokumen -->
             <div class="d-flex flex-wrap gap-2">
                 <?php if ($doc['status'] === 'draft' && $isOwner): ?>
-                    <?php if ($doc['signature_type'] === 'sequential'): ?>
-                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" class="btn btn-pnj-primary btn-sm">
-                            <i class="bi bi-aspect-ratio me-1"></i> Atur Slot Tanda Tangan
-                        </a>
-                    <?php endif; ?>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" class="btn btn-pnj-primary btn-sm">
+                        <i class="bi bi-aspect-ratio me-1"></i> Atur Slot Tanda Tangan
+                    </a>
 
                     <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete" method="POST" 
                           onsubmit="return confirm('Apakah Anda yakin ingin menghapus draft dokumen ini? Berkas PDF akan dihapus secara permanen.');">
@@ -114,6 +112,12 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                             <i class="bi bi-trash me-1"></i> Hapus Draft
                         </button>
                     </form>
+                <?php endif; ?>
+
+                <?php if ($doc['status'] === 'pending_review' && $isOwner): ?>
+                    <button type="button" class="btn btn-outline-warning text-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalWithdraw">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Tarik ke Draft
+                    </button>
                 <?php endif; ?>
 
                 <?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
@@ -932,6 +936,7 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                             $actionMap = [
                                 'document.create'          => ['label' => 'Dokumen Dibuat', 'badge' => 'bg-secondary', 'icon' => 'bi-file-earmark-plus'],
                                 'document.submit'          => ['label' => 'Diajukan ke Admin', 'badge' => 'bg-info text-dark', 'icon' => 'bi-send'],
+                                'document.withdraw'        => ['label' => 'Pengajuan Ditarik ke Draft', 'badge' => 'bg-warning text-dark', 'icon' => 'bi-arrow-counterclockwise'],
                                 'document.approve'         => ['label' => 'Disetujui Administrator', 'badge' => 'bg-success', 'icon' => 'bi-check2-circle'],
                                 'document.reject'          => ['label' => 'Ditolak Administrator', 'badge' => 'bg-danger', 'icon' => 'bi-x-circle'],
                                 'document.signed'          => ['label' => 'Tanda Tangan Dibubuhkan', 'badge' => 'bg-primary', 'icon' => 'bi-pen-fill'],
@@ -952,8 +957,9 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                                     'icon'  => 'bi-circle-fill'
                                 ];
                                 $dotColor = strpos($actionConfig['badge'], 'danger') !== false ? 'bg-danger' : 
+                                           (strpos($actionConfig['badge'], 'warning') !== false ? 'bg-warning' : 
                                            (strpos($actionConfig['badge'], 'primary') !== false ? 'bg-primary' : 
-                                           (strpos($actionConfig['badge'], 'info') !== false ? 'bg-info' : 'bg-success'));
+                                           (strpos($actionConfig['badge'], 'info') !== false ? 'bg-info' : 'bg-success')));
                             ?>
                             <div class="mb-3 position-relative">
                                 <div class="position-absolute rounded-circle <?= $dotColor ?> border border-white" 
@@ -1078,6 +1084,38 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                     <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-danger btn-sm px-3 fw-semibold">
                         <i class="bi bi-x-lg me-1"></i> Konfirmasi Tolak Dokumen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($isOwner && $doc['status'] === 'pending_review'): ?>
+<!-- Modal Konfirmasi Tarik Pengajuan ke Draft -->
+<div class="modal fade" id="modalWithdraw" tabindex="-1" aria-labelledby="modalWithdrawLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning-subtle text-dark border-bottom">
+                <h5 class="modal-title fs-6 fw-bold" id="modalWithdrawLabel">
+                    <i class="bi bi-arrow-counterclockwise me-1.5"></i> Tarik Pengajuan ke Draft?
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/withdraw" method="POST">
+                <div class="modal-body p-4">
+                    <p class="mb-3 text-dark">
+                        Anda akan menarik pengajuan dokumen <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong> dari antrean peninjauan Administrator kembali ke status <strong>Draft</strong>.
+                    </p>
+                    <div class="alert alert-light border py-2.5 px-3 small mb-0 text-muted">
+                        Setelah ditarik ke Draft, Administrator tidak perlu meninjau berkas ini. Anda akan langsung diarahkan ke halaman <strong>Atur Slot</strong> untuk mengubah posisi tanda tangan atau memilih <strong>Batalkan Draft</strong> bila ingin menghapus pengajuan.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3">
+                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning btn-sm px-3 fw-semibold text-dark">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Ya, Tarik ke Draft
                     </button>
                 </div>
             </form>
@@ -1333,6 +1371,14 @@ function copyHash(text, btn) {
         renderPage(targetP);
     };
 })();
+
+// Muat ulang jika halaman dipulihkan dari BFCache (tombol Back browser)
+// agar status pengajuan yang sudah ditarik atau dihapus tidak menampilkan cache lama.
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
 </script>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

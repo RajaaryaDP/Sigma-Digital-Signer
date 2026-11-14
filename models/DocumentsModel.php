@@ -376,6 +376,63 @@ class DocumentsModel
         }
     }
 
+    /**
+     * Hitung jumlah dokumen aktif (belum dihapus) yang merujuk ke file_path tertentu.
+     */
+    public function countActiveByFilePath(string $filePath): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM documents WHERE file_path = ? AND deleted_at IS NULL"
+        );
+        $stmt->execute([$filePath]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Tarik pengajuan dokumen dari status pending_review kembali ke draft
+     * selama Administrator belum menyetujui atau menolak dokumen.
+     */
+    public function withdrawToDraft(string $documentId): bool
+    {
+        $ownTx = !$this->db->inTransaction();
+        if ($ownTx) {
+            $this->db->beginTransaction();
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE documents
+                 SET status = 'draft', updated_at = NOW()
+                 WHERE id = ? AND status = 'pending_review' AND deleted_at IS NULL"
+            );
+            $stmt->execute([$documentId]);
+
+            if ($stmt->rowCount() === 0) {
+                if ($ownTx) {
+                    $this->db->rollBack();
+                }
+                return false;
+            }
+
+            $stmtSigners = $this->db->prepare(
+                "UPDATE document_signers
+                 SET status = 'waiting', read_at = NULL, updated_at = NOW()
+                 WHERE document_id = ? AND deleted_at IS NULL"
+            );
+            $stmtSigners->execute([$documentId]);
+
+            if ($ownTx) {
+                $this->db->commit();
+            }
+            return true;
+        } catch (\Throwable $e) {
+            if ($ownTx && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────
     // DOCUMENT_SIGNERS — Query & Mutasi
     // ─────────────────────────────────────────────────────────────

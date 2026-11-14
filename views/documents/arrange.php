@@ -16,7 +16,7 @@ require_once __DIR__ . '/../layout/header.php';
             </a>
         </div>
         <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-            <span>Atur Slot Tanda Tangan Berjenjang</span>
+            <span><?= ($doc['signature_type'] ?? 'sequential') === 'single' ? 'Atur Slot Tanda Tangan Mandiri' : 'Atur Slot Tanda Tangan Berjenjang' ?></span>
             <span class="badge bg-secondary fs-6 fw-normal">Draft</span>
         </h4>
         <div class="text-muted small">
@@ -954,6 +954,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }, 200);
     });
+});
+
+// Muat ulang jika halaman dipulihkan dari BFCache (tombol Back browser)
+// agar draft yang sudah dihapus atau diajukan tidak menampilkan state kedaluwarsa.
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
 });
 </script>
 
