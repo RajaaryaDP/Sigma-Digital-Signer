@@ -140,7 +140,7 @@ if (isset($_SESSION['user']) && $page === 'auth' && ($segments[1] ?? '') !== 'lo
 }
 
 // Role Guard: Restrict admin-only routes
-$adminOnlyPages = ['civitas'];
+$adminOnlyPages = ['civitas', 'departments', 'prodi'];
 if (isset($_SESSION['user']) && in_array($page, $adminOnlyPages, true)) {
     if (($_SESSION['user']['role'] ?? '') !== 'admin') {
         $_SESSION['flash'] = [

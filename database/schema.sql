@@ -25,12 +25,70 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
--- 1. CIVITAS (Master Data Biodata Civitas Kampus)
+-- 1. DEPARTMENTS (Master Data Jurusan)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS departments (
+    id             CHAR(36)      NOT NULL,
+    code           VARCHAR(30)   DEFAULT NULL,
+    name           VARCHAR(150)  NOT NULL,
+    created_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at     TIMESTAMP     DEFAULT NULL,
+    CONSTRAINT pk_departments PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_departments_name_lower
+    ON departments (LOWER(name)) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_departments_code_lower
+    ON departments (LOWER(code)) WHERE deleted_at IS NULL AND code IS NOT NULL AND code <> '';
+CREATE INDEX IF NOT EXISTS idx_departments_deleted_at ON departments (deleted_at);
+
+DROP TRIGGER IF EXISTS trg_departments_updated_at ON departments;
+CREATE TRIGGER trg_departments_updated_at
+BEFORE UPDATE ON departments
+FOR EACH ROW EXECUTE FUNCTION update_timestamp_trigger();
+
+
+-- ============================================================
+-- 1b. STUDY_PROGRAMS (Master Data Program Studi / Prodi)
+--     Setiap Prodi berada di bawah satu Jurusan (department_id).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS study_programs (
+    id             CHAR(36)      NOT NULL,
+    department_id  CHAR(36)      NOT NULL,
+    code           VARCHAR(30)   DEFAULT NULL,
+    degree         VARCHAR(30)   DEFAULT NULL,
+    name           VARCHAR(150)  NOT NULL,
+    created_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at     TIMESTAMP     DEFAULT NULL,
+    CONSTRAINT pk_study_programs PRIMARY KEY (id),
+    CONSTRAINT fk_study_programs_department
+        FOREIGN KEY (department_id) REFERENCES departments (id)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_study_programs_dept_name_lower
+    ON study_programs (department_id, LOWER(name)) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_study_programs_code_lower
+    ON study_programs (LOWER(code)) WHERE deleted_at IS NULL AND code IS NOT NULL AND code <> '';
+CREATE INDEX IF NOT EXISTS idx_study_programs_department ON study_programs (department_id);
+CREATE INDEX IF NOT EXISTS idx_study_programs_deleted_at ON study_programs (deleted_at);
+
+DROP TRIGGER IF EXISTS trg_study_programs_updated_at ON study_programs;
+CREATE TRIGGER trg_study_programs_updated_at
+BEFORE UPDATE ON study_programs
+FOR EACH ROW EXECUTE FUNCTION update_timestamp_trigger();
+
+
+-- ============================================================
+-- 1c. CIVITAS (Master Data Biodata Civitas Kampus)
 --    Menyimpan profil resmi civitas akademika kampus
 --    (Mahasiswa, Dosen, Tenaga Kependidikan).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS civitas (
     id             CHAR(36)      NOT NULL,
+    department_id  CHAR(36)      DEFAULT NULL,
     identifier     VARCHAR(64)   NOT NULL,
     name           VARCHAR(255)  NOT NULL,
     type           VARCHAR(50)   NOT NULL DEFAULT 'mahasiswa'
@@ -43,19 +101,60 @@ CREATE TABLE IF NOT EXISTS civitas (
     created_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at     TIMESTAMP     DEFAULT NULL,
-    CONSTRAINT pk_civitas PRIMARY KEY (id)
+    CONSTRAINT pk_civitas PRIMARY KEY (id),
+    CONSTRAINT fk_civitas_department
+        FOREIGN KEY (department_id) REFERENCES departments (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 );
+
+ALTER TABLE civitas ADD COLUMN IF NOT EXISTS department_id CHAR(36) DEFAULT NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_civitas_department'
+    ) THEN
+        ALTER TABLE civitas
+            ADD CONSTRAINT fk_civitas_department
+            FOREIGN KEY (department_id) REFERENCES departments (id)
+            ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_civitas_identifier_lower ON civitas (LOWER(identifier)) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_civitas_email_lower ON civitas (LOWER(email)) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_civitas_type ON civitas (type);
 CREATE INDEX IF NOT EXISTS idx_civitas_department ON civitas (department);
+CREATE INDEX IF NOT EXISTS idx_civitas_department_id ON civitas (department_id);
 CREATE INDEX IF NOT EXISTS idx_civitas_deleted_at ON civitas (deleted_at);
 
 DROP TRIGGER IF EXISTS trg_civitas_updated_at ON civitas;
 CREATE TRIGGER trg_civitas_updated_at
 BEFORE UPDATE ON civitas
 FOR EACH ROW EXECUTE FUNCTION update_timestamp_trigger();
+
+
+-- ============================================================
+-- 1d. CIVITAS_STUDY_PROGRAMS (Pivot Civitas/Dosen <-> Prodi)
+--     Mendukung satu dosen mengajar di lebih dari 1 prodi.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS civitas_study_programs (
+    id                CHAR(36)   NOT NULL,
+    civitas_id        CHAR(36)   NOT NULL,
+    study_program_id  CHAR(36)   NOT NULL,
+    created_at        TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_civitas_study_programs PRIMARY KEY (id),
+    CONSTRAINT fk_csp_civitas
+        FOREIGN KEY (civitas_id) REFERENCES civitas (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_csp_study_program
+        FOREIGN KEY (study_program_id) REFERENCES study_programs (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_civitas_study_program
+    ON civitas_study_programs (civitas_id, study_program_id);
+CREATE INDEX IF NOT EXISTS idx_csp_civitas ON civitas_study_programs (civitas_id);
+CREATE INDEX IF NOT EXISTS idx_csp_study_program ON civitas_study_programs (study_program_id);
 
 
 -- ============================================================

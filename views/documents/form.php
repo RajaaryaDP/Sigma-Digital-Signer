@@ -94,7 +94,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                     </div>
 
                     <!-- Section 2: Penandatangan Berjenjang (Sequential only) -->
-                    <div id="sequentialSection" class="mb-4" style="<?= $curType === 'single' ? 'display: none;' : '' ?>">
+                    <div id="sequentialSection" class="mb-4 <?= $curType === 'single' ? 'd-none' : '' ?>" style="<?= $curType === 'single' ? 'display: none;' : '' ?>">
                         <div class="d-flex justify-content-between align-items-center mb-3 pb-1 border-bottom">
                             <div class="fw-semibold text-dark small text-uppercase" style="letter-spacing: 0.5px;">
                                 2. Susunan Penandatangan Berjenjang
@@ -108,6 +108,72 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                             Tentukan urutan hierarki penandatangan (dimulai dari urutan ke-1). Setelah disetujui Admin, 
                             dokumen akan diteruskan secara bergiliran.
                         </p>
+
+                        <!-- Filter Daftar Penandatangan per Jurusan / Prodi -->
+                        <?php
+                            $deptList  = $departments ?? [];
+                            $prodiList = $studyPrograms ?? [];
+                        ?>
+                        <div class="card border bg-light bg-opacity-50 mb-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-semibold text-dark">
+                                        <i class="bi bi-funnel me-1 text-success"></i>Filter Nama Penandatangan / Dosen
+                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle" id="signerFilterCountBadge">
+                                            <?= count($availableSigners) ?> tersedia
+                                        </span>
+                                        <button type="button" id="btnResetSignerFilter" class="btn btn-link btn-sm text-decoration-none p-0 text-secondary" style="font-size: 0.78rem;">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label for="filterDepartment" class="form-label small text-muted mb-1">Jurusan</label>
+                                        <select id="filterDepartment" class="form-select form-select-sm">
+                                            <option value="">Semua Jurusan</option>
+                                            <?php foreach ($deptList as $dept): ?>
+                                                <option value="<?= htmlspecialchars($dept['id']) ?>"
+                                                        data-name="<?= htmlspecialchars($dept['name']) ?>">
+                                                    <?= htmlspecialchars($dept['name']) ?><?= !empty($dept['code']) ? ' (' . htmlspecialchars($dept['code']) . ')' : '' ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="filterStudyProgram" class="form-label small text-muted mb-1">Program Studi (Prodi)</label>
+                                        <select id="filterStudyProgram" class="form-select form-select-sm">
+                                            <option value="">Semua Prodi</option>
+                                            <?php foreach ($prodiList as $pr): ?>
+                                                <option value="<?= htmlspecialchars($pr['id']) ?>"
+                                                        data-dept-id="<?= htmlspecialchars($pr['department_id']) ?>">
+                                                    <?= htmlspecialchars($pr['name']) ?><?= !empty($pr['degree']) ? ' (' . htmlspecialchars($pr['degree']) . ')' : '' ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="filterCivitasType" class="form-label small text-muted mb-1">Kategori</label>
+                                        <select id="filterCivitasType" class="form-select form-select-sm">
+                                            <option value="">Semua</option>
+                                            <option value="dosen">Dosen</option>
+                                            <option value="mahasiswa">Mahasiswa</option>
+                                            <option value="tendik">Tendik</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="filterSignerSearch" class="form-label small text-muted mb-1">Cari Nama / NIP</label>
+                                        <input type="text" id="filterSignerSearch" class="form-control form-control-sm"
+                                               placeholder="Ketik nama atau NIP...">
+                                    </div>
+                                </div>
+                                <div class="form-text small mt-1 mb-0">
+                                    Dosen yang mengampu lebih dari 1 prodi otomatis tampil di masing-masing prodi maupun jurusan terkait. Pilihan yang sudah dipilih di baris tabel tidak akan terhapus saat filter diganti.
+                                </div>
+                            </div>
+                        </div>
 
                         <?php if (isset($errors['signers'])): ?>
                             <div class="alert alert-danger py-2 px-3 small mb-3" role="alert">
@@ -142,11 +208,14 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                                         $cType = ucfirst($as['civitas_type'] ?? 'Civitas');
                                                         $idNum = !empty($as['identifier']) ? " ({$as['identifier']})" : '';
                                                         $pos = !empty($as['position']) ? " — {$as['position']}" : '';
+                                                        $prodiSuffix = !empty($as['study_program_codes'])
+                                                            ? ' [' . implode(', ', $as['study_program_codes']) . ']'
+                                                            : (!empty($as['department']) ? ' [' . $as['department'] . ']' : '');
                                                     ?>
                                                     <option value="<?= htmlspecialchars($as['id']) ?>" 
                                                             data-position="<?= htmlspecialchars($as['position'] ?? '') ?>"
                                                             <?= $isSelected ? 'selected' : '' ?>>
-                                                        <?= htmlspecialchars($as['name'] . $idNum . " [{$cType}]" . $pos) ?>
+                                                        <?= htmlspecialchars($as['name'] . $idNum . " [{$cType}]" . $pos . $prodiSuffix) ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -169,21 +238,39 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                         </div>
                     </div>
 
-                    <!-- Template JSON Civitas Options untuk JS Clone -->
-                    <template id="signerOptionsTemplate">
-                        <option value="">-- Pilih Civitas Kampus --</option>
-                        <?php foreach ($availableSigners as $as): ?>
-                            <?php 
-                                $cType = ucfirst($as['civitas_type'] ?? 'Civitas');
-                                $idNum = !empty($as['identifier']) ? " ({$as['identifier']})" : '';
-                                $pos = !empty($as['position']) ? " — {$as['position']}" : '';
-                            ?>
-                            <option value="<?= htmlspecialchars($as['id']) ?>" 
-                                    data-position="<?= htmlspecialchars($as['position'] ?? '') ?>">
-                                <?= htmlspecialchars($as['name'] . $idNum . " [{$cType}]" . $pos) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </template>
+                    <?php
+                        $signerCatalogPayload = array_map(function ($as) {
+                            $cType = ucfirst($as['civitas_type'] ?? 'Civitas');
+                            $idNum = !empty($as['identifier']) ? " ({$as['identifier']})" : '';
+                            $pos   = !empty($as['position']) ? " — {$as['position']}" : '';
+                            $prodiSuffix = !empty($as['study_program_codes'])
+                                ? ' [' . implode(', ', $as['study_program_codes']) . ']'
+                                : (!empty($as['department']) ? ' [' . $as['department'] . ']' : '');
+                            return [
+                                'id'                  => (string) $as['id'],
+                                'name'                => (string) $as['name'],
+                                'identifier'          => (string) ($as['identifier'] ?? ''),
+                                'civitas_type'        => strtolower((string) ($as['civitas_type'] ?? '')),
+                                'position'            => (string) ($as['position'] ?? ''),
+                                'department_text'     => (string) ($as['department'] ?? ''),
+                                'department_ids'      => array_values($as['department_ids'] ?? []),
+                                'department_names'    => array_values($as['department_names'] ?? []),
+                                'study_program_ids'   => array_values($as['study_program_ids'] ?? []),
+                                'study_program_names' => array_values($as['study_program_names'] ?? []),
+                                'label'               => $as['name'] . $idNum . " [{$cType}]" . $pos . $prodiSuffix,
+                            ];
+                        }, $availableSigners);
+                        $prodiCatalogPayload = array_map(function ($pr) {
+                            return [
+                                'id'            => (string) $pr['id'],
+                                'department_id' => (string) $pr['department_id'],
+                                'name'          => (string) $pr['name'],
+                                'degree'        => (string) ($pr['degree'] ?? ''),
+                            ];
+                        }, $prodiList);
+                    ?>
+                    <script type="application/json" id="signerCatalogJson"><?= json_encode($signerCatalogPayload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+                    <script type="application/json" id="prodiCatalogJson"><?= json_encode($prodiCatalogPayload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
 
                     <!-- Submit Actions -->
                     <div class="d-flex justify-content-between align-items-center pt-3 border-top">
@@ -208,29 +295,204 @@ document.addEventListener('DOMContentLoaded', function () {
     const seqSection    = document.getElementById('sequentialSection');
     const sigTypeHelp   = document.getElementById('sigTypeHelp');
     const submitBtnText = document.getElementById('submitBtnText');
-    const btnAddSigner  = document.getElementById('btnAddSigner');
-    const tableBody     = document.getElementById('signersTableBody');
-    const optionsTpl    = document.getElementById('signerOptionsTemplate');
-    const fileInput     = document.getElementById('pdfFileInput');
-    const docForm       = document.getElementById('docForm');
+    const btnAddSigner        = document.getElementById('btnAddSigner');
+    const tableBody           = document.getElementById('signersTableBody');
+    const fileInput           = document.getElementById('pdfFileInput');
+    const docForm             = document.getElementById('docForm');
+    const filterDepartment    = document.getElementById('filterDepartment');
+    const filterStudyProgram  = document.getElementById('filterStudyProgram');
+    const filterCivitasType   = document.getElementById('filterCivitasType');
+    const filterSignerSearch  = document.getElementById('filterSignerSearch');
+    const btnResetFilter      = document.getElementById('btnResetSignerFilter');
+    const filterCountBadge    = document.getElementById('signerFilterCountBadge');
+
+    const signerCatalogEl = document.getElementById('signerCatalogJson');
+    const prodiCatalogEl  = document.getElementById('prodiCatalogJson');
+    const SIGNER_CATALOG  = signerCatalogEl ? JSON.parse(signerCatalogEl.textContent) : [];
+    const PRODI_CATALOG   = prodiCatalogEl ? JSON.parse(prodiCatalogEl.textContent) : [];
+
+    function getFilteredSigners() {
+        const deptId   = filterDepartment ? filterDepartment.value : '';
+        const deptOpt  = (filterDepartment && filterDepartment.selectedIndex >= 0) ? filterDepartment.options[filterDepartment.selectedIndex] : null;
+        const deptName = deptOpt ? (deptOpt.getAttribute('data-name') || '').toLowerCase() : '';
+        const prodiId  = filterStudyProgram ? filterStudyProgram.value : '';
+        const cType    = filterCivitasType ? filterCivitasType.value.toLowerCase() : '';
+        const query    = filterSignerSearch ? filterSignerSearch.value.trim().toLowerCase() : '';
+
+        return SIGNER_CATALOG.filter(item => {
+            if (deptId) {
+                const hasDeptId   = Array.isArray(item.department_ids) && item.department_ids.includes(deptId);
+                const matchesName = deptName !== '' && (
+                    (item.department_text || '').toLowerCase() === deptName ||
+                    (Array.isArray(item.department_names) && item.department_names.some(n => n.toLowerCase() === deptName))
+                );
+                if (!hasDeptId && !matchesName) {
+                    return false;
+                }
+            }
+
+            if (prodiId) {
+                if (!Array.isArray(item.study_program_ids) || !item.study_program_ids.includes(prodiId)) {
+                    return false;
+                }
+            }
+
+            if (cType && item.civitas_type !== cType) {
+                return false;
+            }
+
+            if (query) {
+                const haystack = [
+                    item.name || '',
+                    item.identifier || '',
+                    item.position || '',
+                    item.department_text || '',
+                    ...(item.department_names || []),
+                    ...(item.study_program_names || [])
+                ].join(' ').toLowerCase();
+                if (!haystack.includes(query)) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }
+
+    function populateSelectWithSigners(selectEl, filteredSigners, preservedValue) {
+        const currentVal = preservedValue !== undefined ? preservedValue : selectEl.value;
+        selectEl.textContent = '';
+
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = filteredSigners.length > 0
+            ? '-- Pilih Civitas Kampus --'
+            : '-- Tidak ada civitas yang cocok dengan filter --';
+        selectEl.appendChild(defaultOpt);
+
+        let preservedIncluded = (currentVal === '');
+
+        filteredSigners.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.id;
+            opt.textContent = item.label;
+            opt.setAttribute('data-position', item.position || '');
+            if (item.id === currentVal) {
+                opt.selected = true;
+                preservedIncluded = true;
+            }
+            selectEl.appendChild(opt);
+        });
+
+        // Jaga agar civitas yang sudah terpilih pada baris ini tidak hilang saat filter diubah
+        if (currentVal !== '' && !preservedIncluded) {
+            const existingItem = SIGNER_CATALOG.find(item => item.id === currentVal);
+            if (existingItem) {
+                const opt = document.createElement('option');
+                opt.value = existingItem.id;
+                opt.textContent = existingItem.label + ' (Terpilih di luar filter)';
+                opt.setAttribute('data-position', existingItem.position || '');
+                opt.selected = true;
+                selectEl.insertBefore(opt, selectEl.children[1] || null);
+            }
+        }
+    }
+
+    function syncProdiFilterOptions() {
+        if (!filterStudyProgram) return;
+        const selectedDeptId = filterDepartment ? filterDepartment.value : '';
+        const prevProdiId    = filterStudyProgram.value;
+
+        filterStudyProgram.textContent = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = '';
+        allOpt.textContent = selectedDeptId ? 'Semua Prodi di Jurusan Ini' : 'Semua Prodi';
+        filterStudyProgram.appendChild(allOpt);
+
+        let keepPrev = false;
+        PRODI_CATALOG.forEach(pr => {
+            if (selectedDeptId && pr.department_id !== selectedDeptId) {
+                return;
+            }
+            const opt = document.createElement('option');
+            opt.value = pr.id;
+            opt.textContent = pr.name + (pr.degree ? ' (' + pr.degree + ')' : '');
+            if (pr.id === prevProdiId) {
+                opt.selected = true;
+                keepPrev = true;
+            }
+            filterStudyProgram.appendChild(opt);
+        });
+
+        if (!keepPrev) {
+            filterStudyProgram.value = '';
+        }
+    }
+
+    function refreshAllSignerSelects() {
+        const filtered = getFilteredSigners();
+        if (filterCountBadge) {
+            filterCountBadge.textContent = filtered.length + ' / ' + SIGNER_CATALOG.length + ' cocok';
+        }
+        tableBody.querySelectorAll('.signer-user-select').forEach(sel => {
+            populateSelectWithSigners(sel, filtered, sel.value);
+        });
+    }
+
+    if (filterDepartment) {
+        filterDepartment.addEventListener('change', function () {
+            syncProdiFilterOptions();
+            refreshAllSignerSelects();
+        });
+    }
+    if (filterStudyProgram) {
+        filterStudyProgram.addEventListener('change', refreshAllSignerSelects);
+    }
+    if (filterCivitasType) {
+        filterCivitasType.addEventListener('change', refreshAllSignerSelects);
+    }
+    if (filterSignerSearch) {
+        filterSignerSearch.addEventListener('input', refreshAllSignerSelects);
+    }
+    if (btnResetFilter) {
+        btnResetFilter.addEventListener('click', function () {
+            if (filterDepartment) filterDepartment.value = '';
+            syncProdiFilterOptions();
+            if (filterStudyProgram) filterStudyProgram.value = '';
+            if (filterCivitasType) filterCivitasType.value = '';
+            if (filterSignerSearch) filterSignerSearch.value = '';
+            refreshAllSignerSelects();
+        });
+    }
 
     // Toggle tipe alur tanda tangan
     function updateSigTypeUI() {
-        if (sigTypeSelect.value === 'single') {
+        const isSingle = (sigTypeSelect.value === 'single');
+        if (isSingle) {
             seqSection.style.display = 'none';
+            seqSection.classList.add('d-none');
             sigTypeHelp.textContent = 'Mandiri: Anda menandatangani sendiri berkas ini tanpa review Admin dan langsung selesai.';
             submitBtnText.textContent = 'Unggah & Selesaikan Dokumen';
             // Disable required pada select signer jika single
             tableBody.querySelectorAll('.signer-user-select').forEach(el => el.removeAttribute('required'));
         } else {
             seqSection.style.display = 'block';
+            seqSection.classList.remove('d-none');
             sigTypeHelp.textContent = 'Berjenjang: melalui verifikasi Admin lalu ditandatangani sesuai urutan jenjang jabatan.';
             submitBtnText.textContent = 'Unggah & Atur Slot Tanda Tangan';
             tableBody.querySelectorAll('.signer-user-select').forEach(el => el.setAttribute('required', 'required'));
         }
     }
+
+    function syncFormUIState() {
+        updateSigTypeUI();
+        syncProdiFilterOptions();
+        refreshAllSignerSelects();
+        reindexSigners();
+    }
+
     sigTypeSelect.addEventListener('change', updateSigTypeUI);
-    updateSigTypeUI();
+    sigTypeSelect.addEventListener('input', updateSigTypeUI);
 
     // Re-index urutan penandatangan
     function reindexSigners() {
@@ -266,27 +528,52 @@ document.addEventListener('DOMContentLoaded', function () {
     btnAddSigner.addEventListener('click', function () {
         const tr = document.createElement('tr');
         tr.className = 'signer-row';
-        tr.innerHTML = `
-            <td class="text-center">
-                <span class="badge bg-secondary step-number-badge">1</span>
-                <input type="hidden" name="signer_step_order[]" class="step-order-input" value="1">
-            </td>
-            <td>
-                <select name="signer_user_id[]" class="form-select form-select-sm signer-user-select" required>
-                    ${optionsTpl.innerHTML}
-                </select>
-            </td>
-            <td>
-                <input type="text" name="signer_role_title[]" 
-                       class="form-control form-control-sm signer-role-input" 
-                       placeholder="Contoh: Dosen Pembimbing I / Ketua Jurusan">
-            </td>
-            <td class="text-center">
-                <button type="button" class="btn btn-outline-danger btn-sm border-0 btn-remove-signer" title="Hapus baris">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        `;
+
+        const tdOrder = document.createElement('td');
+        tdOrder.className = 'text-center';
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-secondary step-number-badge';
+        badge.textContent = '1';
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'signer_step_order[]';
+        hiddenInput.className = 'step-order-input';
+        hiddenInput.value = '1';
+        tdOrder.appendChild(badge);
+        tdOrder.appendChild(hiddenInput);
+
+        const tdSelect = document.createElement('td');
+        const selectEl = document.createElement('select');
+        selectEl.name = 'signer_user_id[]';
+        selectEl.className = 'form-select form-select-sm signer-user-select';
+        if (sigTypeSelect.value !== 'single') {
+            selectEl.setAttribute('required', 'required');
+        }
+        populateSelectWithSigners(selectEl, getFilteredSigners(), '');
+        tdSelect.appendChild(selectEl);
+
+        const tdRole = document.createElement('td');
+        const roleInput = document.createElement('input');
+        roleInput.type = 'text';
+        roleInput.name = 'signer_role_title[]';
+        roleInput.className = 'form-control form-control-sm signer-role-input';
+        roleInput.placeholder = 'Contoh: Dosen Pembimbing I / Ketua Jurusan';
+        tdRole.appendChild(roleInput);
+
+        const tdAct = document.createElement('td');
+        tdAct.className = 'text-center';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-outline-danger btn-sm border-0 btn-remove-signer';
+        delBtn.title = 'Hapus baris';
+        delBtn.innerHTML = '<i class="bi bi-trash"></i>';
+        tdAct.appendChild(delBtn);
+
+        tr.appendChild(tdOrder);
+        tr.appendChild(tdSelect);
+        tr.appendChild(tdRole);
+        tr.appendChild(tdAct);
+
         tableBody.appendChild(tr);
         reindexSigners();
     });
@@ -338,7 +625,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    reindexSigners();
+    syncFormUIState();
+    // Sinkronkan ulang setelah browser memulihkan state form (tombol Back / BFCache)
+    requestAnimationFrame(syncFormUIState);
+    setTimeout(syncFormUIState, 0);
+    window.addEventListener('load', syncFormUIState);
+    window.addEventListener('pageshow', syncFormUIState);
 });
 </script>
 

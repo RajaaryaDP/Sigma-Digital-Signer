@@ -16,6 +16,7 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- PNJ Institutional Stylesheet -->
+    <link href="<?= BASE_URL ?>/assets/css/style.css?v=<?= @filemtime(__DIR__ . '/../../assets/css/style.css') ?: '1' ?>" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/sigma-footer.css" rel="stylesheet">
 </head>
@@ -50,6 +51,12 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                                 <a href="<?= BASE_URL ?>/civitas" class="pnj-nav-link <?= ($page === 'civitas') ? 'active' : '' ?>">
                                     <i class="bi bi-person-vcard"></i>
                                     <span>Master Data Civitas</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= BASE_URL ?>/departments" class="pnj-nav-link <?= in_array($page, ['departments', 'prodi'], true) ? 'active' : '' ?>">
+                                    <i class="bi bi-building"></i>
+                                    <span>Jurusan &amp; Prodi</span>
                                 </a>
                             </li>
                         <?php endif; ?>

@@ -39,7 +39,10 @@ if ($isFresh) {
         DROP TABLE IF EXISTS audit_logs CASCADE;
         DROP TABLE IF EXISTS user_signatures CASCADE;
         DROP TABLE IF EXISTS users CASCADE;
+        DROP TABLE IF EXISTS civitas_study_programs CASCADE;
         DROP TABLE IF EXISTS civitas CASCADE;
+        DROP TABLE IF EXISTS study_programs CASCADE;
+        DROP TABLE IF EXISTS departments CASCADE;
     ");
 } else {
     // Pastikan e_stamps yang sudah dibatalkan tetap di-drop jika ada

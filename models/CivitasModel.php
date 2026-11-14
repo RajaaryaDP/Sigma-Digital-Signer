@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/DepartmentsModel.php';
 
 use Ramsey\Uuid\Uuid;
 
@@ -20,11 +21,16 @@ class CivitasModel
      */
     public function getCivitas(?string $search = null, ?string $type = null): array
     {
-        $sql = "SELECT * FROM civitas WHERE deleted_at IS NULL";
+        $sql = "SELECT c.*,
+                       d.name AS department_ref_name,
+                       d.code AS department_ref_code
+                FROM civitas c
+                LEFT JOIN departments d ON c.department_id = d.id AND d.deleted_at IS NULL
+                WHERE c.deleted_at IS NULL";
         $params = [];
 
         if (!empty($type) && in_array($type, ['dosen', 'mahasiswa', 'tendik'], true)) {
-            $sql .= " AND type = ?";
+            $sql .= " AND c.type = ?";
             $params[] = $type;
         }
 
@@ -33,24 +39,43 @@ class CivitasModel
             if ($cleanSearch !== '') {
                 $escapedSearch = strtr($cleanSearch, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
                 $keyword = '%' . $escapedSearch . '%';
-                $sql .= " AND (LOWER(identifier) LIKE LOWER(?) ESCAPE '\\'
-                               OR LOWER(name) LIKE LOWER(?) ESCAPE '\\'
-                               OR LOWER(department) LIKE LOWER(?) ESCAPE '\\'
-                               OR LOWER(position) LIKE LOWER(?) ESCAPE '\\'
-                               OR LOWER(email) LIKE LOWER(?) ESCAPE '\\')";
-                $params[] = $keyword;
-                $params[] = $keyword;
-                $params[] = $keyword;
-                $params[] = $keyword;
-                $params[] = $keyword;
+                $sql .= " AND (LOWER(c.identifier) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(c.name) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(c.department) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(COALESCE(d.name, '')) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(c.position) LIKE LOWER(?) ESCAPE '\\'
+                               OR LOWER(c.email) LIKE LOWER(?) ESCAPE '\\'
+                               OR EXISTS (
+                                   SELECT 1
+                                   FROM civitas_study_programs csp
+                                   INNER JOIN study_programs sp ON csp.study_program_id = sp.id AND sp.deleted_at IS NULL
+                                   WHERE csp.civitas_id = c.id
+                                     AND (LOWER(sp.name) LIKE LOWER(?) ESCAPE '\\' OR LOWER(COALESCE(sp.code, '')) LIKE LOWER(?) ESCAPE '\\')
+                               ))";
+                for ($i = 0; $i < 8; $i++) {
+                    $params[] = $keyword;
+                }
             }
         }
 
-        $sql .= " ORDER BY created_at DESC";
+        $sql .= " ORDER BY c.created_at DESC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+
+        if (!empty($rows)) {
+            $deptModel = new DepartmentsModel();
+            $prodiMap  = $deptModel->getStudyProgramsByCivitasIds(array_column($rows, 'id'));
+            foreach ($rows as &$row) {
+                $prodis = $prodiMap[$row['id']] ?? [];
+                $row['study_programs']    = $prodis;
+                $row['study_program_ids'] = array_values(array_map(fn($p) => $p['id'], $prodis));
+            }
+            unset($row);
+        }
+
+        return $rows;
     }
 
     /**
@@ -63,11 +88,23 @@ class CivitasModel
             return null;
         }
         $stmt = $this->db->prepare(
-            "SELECT * FROM civitas WHERE id = ? AND deleted_at IS NULL LIMIT 1"
+            "SELECT c.*, d.name AS department_ref_name, d.code AS department_ref_code
+             FROM civitas c
+             LEFT JOIN departments d ON c.department_id = d.id AND d.deleted_at IS NULL
+             WHERE c.id = ? AND c.deleted_at IS NULL
+             LIMIT 1"
         );
         $stmt->execute([$id]);
         $row = $stmt->fetch();
-        return $row ?: null;
+        if (!$row) {
+            return null;
+        }
+
+        $deptModel = new DepartmentsModel();
+        $prodis    = $deptModel->getStudyProgramsByCivitasId($row['id']);
+        $row['study_programs']    = $prodis;
+        $row['study_program_ids'] = array_values(array_map(fn($p) => $p['id'], $prodis));
+        return $row;
     }
 
     /**
@@ -141,28 +178,51 @@ class CivitasModel
     public function create(array $data): string
     {
         $id = Uuid::uuid4()->toString();
+        $departmentId = !empty($data['department_id']) ? trim((string) $data['department_id']) : null;
 
-        $stmt = $this->db->prepare(
-            "INSERT INTO civitas (
-                id, identifier, name, type, department, position, email, phone, avatar_path, created_at, updated_at
-             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
-             )"
-        );
+        $ownTx = !$this->db->inTransaction();
+        if ($ownTx) {
+            $this->db->beginTransaction();
+        }
 
-        $stmt->execute([
-            $id,
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64),
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255),
-            $data['type'],
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150),
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150),
-            mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255),
-            !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null,
-            !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null,
-        ]);
+        try {
+            $stmt = $this->db->prepare(
+                "INSERT INTO civitas (
+                    id, department_id, identifier, name, type, department, position, email, phone, avatar_path, created_at, updated_at
+                 ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
+                 )"
+            );
 
-        return $id;
+            $stmt->execute([
+                $id,
+                $departmentId,
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64),
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255),
+                $data['type'],
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150),
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150),
+                mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255),
+                !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null,
+                !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null,
+            ]);
+
+            if (!empty($data['study_program_ids']) && is_array($data['study_program_ids'])) {
+                $deptModel = new DepartmentsModel();
+                $deptModel->syncCivitasStudyPrograms($id, $data['study_program_ids']);
+            }
+
+            if ($ownTx) {
+                $this->db->commit();
+            }
+
+            return $id;
+        } catch (\Throwable $e) {
+            if ($ownTx && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -170,31 +230,59 @@ class CivitasModel
      */
     public function update(string $id, array $data): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE civitas SET 
-                identifier  = ?,
-                name        = ?,
-                type        = ?,
-                department  = ?,
-                position    = ?,
-                email       = ?,
-                phone       = ?,
-                avatar_path = ?,
-                updated_at  = NOW()
-             WHERE id = ? AND deleted_at IS NULL"
-        );
+        $cleanId      = trim(str_replace("\0", '', mb_scrub($id, 'UTF-8')));
+        $departmentId = !empty($data['department_id']) ? trim((string) $data['department_id']) : null;
 
-        return $stmt->execute([
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64),
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255),
-            $data['type'],
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150),
-            mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150),
-            mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255),
-            !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null,
-            !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null,
-            trim(str_replace("\0", '', mb_scrub($id, 'UTF-8'))),
-        ]);
+        $ownTx = !$this->db->inTransaction();
+        if ($ownTx) {
+            $this->db->beginTransaction();
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE civitas SET 
+                    department_id = ?,
+                    identifier    = ?,
+                    name          = ?,
+                    type          = ?,
+                    department    = ?,
+                    position      = ?,
+                    email         = ?,
+                    phone         = ?,
+                    avatar_path   = ?,
+                    updated_at    = NOW()
+                 WHERE id = ? AND deleted_at IS NULL"
+            );
+
+            $ok = $stmt->execute([
+                $departmentId,
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64),
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255),
+                $data['type'],
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150),
+                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150),
+                mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255),
+                !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null,
+                !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null,
+                $cleanId,
+            ]);
+
+            if (array_key_exists('study_program_ids', $data) && is_array($data['study_program_ids'])) {
+                $deptModel = new DepartmentsModel();
+                $deptModel->syncCivitasStudyPrograms($cleanId, $data['study_program_ids']);
+            }
+
+            if ($ownTx) {
+                $this->db->commit();
+            }
+
+            return $ok;
+        } catch (\Throwable $e) {
+            if ($ownTx && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -287,11 +375,14 @@ class CivitasModel
             $seenIdentifiers = $lookup['identifiers'];
             $seenEmails      = $lookup['emails'];
 
+            $deptModel       = new DepartmentsModel();
+            $deptCache       = [];
+
             $stmt = $this->db->prepare(
                 "INSERT INTO civitas (
-                    id, identifier, name, type, department, position, email, phone, avatar_path, created_at, updated_at
+                    id, department_id, identifier, name, type, department, position, email, phone, avatar_path, created_at, updated_at
                  ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, NULL, NOW(), NOW()
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NOW(), NOW()
                  ) ON CONFLICT DO NOTHING"
             );
 
@@ -326,9 +417,17 @@ class CivitasModel
                     continue;
                 }
 
+                $deptCacheKey = strtolower($department);
+                if (!array_key_exists($deptCacheKey, $deptCache)) {
+                    $deptCache[$deptCacheKey] = $deptModel->findDepartmentByText($department);
+                }
+                $matchedDept  = $deptCache[$deptCacheKey];
+                $departmentId = $matchedDept['id'] ?? null;
+
                 $newId = Uuid::uuid4()->toString();
                 $stmt->execute([
                     $newId,
+                    $departmentId,
                     $identifier,
                     $name,
                     $type,
