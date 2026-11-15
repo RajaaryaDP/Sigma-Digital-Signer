@@ -67,6 +67,13 @@ $civitasType = $currentUser['civitas_type'] ?? 'civitas';
                                 <span>Template TTD</span>
                             </a>
                         </li>
+
+                        <li>
+                            <a href="<?= BASE_URL ?>/document-templates" class="pnj-nav-link <?= ($page === 'document-templates') ? 'active' : '' ?>">
+                                <i class="bi bi-file-earmark-word"></i>
+                                <span>Template Dokumen</span>
+                            </a>
+                        </li>
                     <?php else: ?>
                         <li>
                             <a href="<?= BASE_URL ?>/#fitur" class="pnj-nav-link">

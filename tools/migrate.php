@@ -33,6 +33,7 @@ if ($isFresh) {
     echo "Dropping existing SIGMA tables in '{$activeDb}' (fresh migration on PostgreSQL)...\n";
     $conn->exec("
         DROP TABLE IF EXISTS e_stamps CASCADE;
+        DROP TABLE IF EXISTS document_templates CASCADE;
         DROP TABLE IF EXISTS signatures CASCADE;
         DROP TABLE IF EXISTS document_signers CASCADE;
         DROP TABLE IF EXISTS documents CASCADE;
