@@ -10,122 +10,122 @@ require_once __DIR__ . '/../layout/header.php';
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
     <div>
         <div class="mb-1">
-            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1.5">
+            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>" class="text-decoration-none small d-inline-flex align-items-center gap-2" style="color: var(--text-muted);">
                 <i class="bi bi-arrow-left"></i>
                 <span>Kembali ke Detail Dokumen</span>
             </a>
         </div>
-        <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+        <h1 class="h4 fw-bold mb-1 d-flex flex-wrap align-items-center gap-2" style="color: var(--text-heading);">
             <span><?= ($doc['signature_type'] ?? 'sequential') === 'single' ? 'Atur Slot Tanda Tangan Mandiri' : 'Atur Slot Tanda Tangan Berjenjang' ?></span>
-            <span class="badge bg-secondary fs-6 fw-normal">Draft</span>
-        </h4>
-        <div class="text-muted small">
-            Dokumen: <strong><?= htmlspecialchars($doc['title']) ?></strong> &bull; <?= htmlspecialchars($doc['file_name_original']) ?>
+            <span class="badge-sigma badge-sigma-neutral">Draft</span>
+        </h1>
+        <div class="small" style="color: var(--text-muted);">
+            Dokumen: <strong style="color: var(--text-heading);"><?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?></strong> &bull; <?= htmlspecialchars($doc['file_name_original'], ENT_QUOTES, 'UTF-8') ?>
         </div>
     </div>
 
-    <div class="d-flex gap-2">
-        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Buka PDF di Tab Baru
+    <div class="d-flex flex-wrap gap-2">
+        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/preview" target="_blank" class="btn-sigma-outline btn-sigma-sm">
+            <i class="bi bi-box-arrow-up-right"></i> Buka PDF di Tab Baru
         </a>
-        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalCancelDraft">
-            <i class="bi bi-x-circle me-1"></i> Batalkan Draft
+        <button type="button" class="btn-sigma-outline btn-sigma-sm text-danger" data-bs-toggle="modal" data-bs-target="#modalCancelDraft">
+            <i class="bi bi-x-circle"></i> Batalkan Draft
         </button>
     </div>
 </div>
 
-<!-- Alert Petunjuk Penataan Slot Terpadu -->
-<div class="alert alert-info py-2.5 px-3 mb-4 d-flex align-items-start gap-2.5" style="border-radius: var(--radius-md);">
-    <i class="bi bi-info-circle-fill text-info mt-0.5 fs-5"></i>
-    <div class="small">
+<!-- Banner Petunjuk Penataan Slot Terpadu -->
+<div class="sigma-guide-banner py-2 px-3 mb-4 d-flex align-items-start gap-2">
+    <i class="bi bi-info-circle-fill text-sigma-purple mt-1 fs-5 flex-shrink-0"></i>
+    <div class="small" style="color: var(--sigma-navy);">
         <strong>Penataan Slot Langsung di Atas Lembar Dokumen:</strong> Anda dapat melihat halaman berkas PDF asli secara langsung di kanvas sebelah kiri.
         Klik dan seret (drag) kotak slot tanda tangan tepat ke area tanda tangan yang diinginkan. Anda juga dapat berpindah halaman jika dokumen memiliki lebih dari satu halaman.
     </div>
 </div>
 
-<form id="arrangeForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/update" method="POST">
+<form id="arrangeForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/update" method="POST">
     <input type="hidden" name="action_type" id="actionTypeInput" value="save_slots">
 
     <div class="row g-4">
         <!-- Kolom Kiri: Unified Interactive PDF Canvas -->
         <div class="col-lg-7">
-            <div class="card-clean mb-4">
-                <div class="card-clean-header py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <span class="fw-semibold small text-dark d-flex align-items-center gap-1.5">
-                        <i class="bi bi-file-earmark-check text-success"></i>
+            <div class="card-sigma mb-4">
+                <div class="card-sigma-header py-2 px-3 flex-wrap">
+                    <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                        <i class="bi bi-file-earmark-check text-sigma-purple"></i>
                         <span>Lembar Kerja Penempatan Slot Tanda Tangan</span>
                     </span>
 
                     <!-- Toolbar Navigasi Halaman PDF -->
                     <div class="d-flex align-items-center gap-2" id="pdfNavToolbar">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-secondary" id="btnPrevPage" title="Halaman Sebelumnya" disabled>
+                            <button type="button" class="btn-sigma-outline px-2 py-1" id="btnPrevPage" title="Halaman Sebelumnya" disabled>
                                 <i class="bi bi-chevron-left"></i>
                             </button>
-                            <span class="btn btn-outline-secondary disabled text-dark fw-medium px-2.5" id="pageIndicator" style="font-size: 0.75rem;">
+                            <span class="btn-sigma-outline px-3 py-1 fw-semibold" id="pageIndicator" style="font-size: 0.76rem; pointer-events: none; background: var(--sigma-tint-50);">
                                 Hal <span id="pageNumDisplay">1</span> dari <span id="pageTotalDisplay">1</span>
                             </span>
-                            <button type="button" class="btn btn-outline-secondary" id="btnNextPage" title="Halaman Berikutnya" disabled>
+                            <button type="button" class="btn-sigma-outline px-2 py-1" id="btnNextPage" title="Halaman Berikutnya" disabled>
                                 <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
-                        <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnPlaceOnCurrentPage" title="Pindahkan slot penandatangan aktif ke halaman yang sedang dibuka">
-                            <i class="bi bi-geo-alt me-1"></i> Tempatkan Slot di Hal <span id="toolbarCurrentPageNum">1</span>
+                        <button type="button" class="btn-sigma-purple btn-sigma-sm d-none" id="btnPlaceOnCurrentPage" title="Pindahkan slot penandatangan aktif ke halaman yang sedang dibuka">
+                            <i class="bi bi-geo-alt"></i> Tempatkan di Hal <span id="toolbarCurrentPageNum">1</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="card-clean-body p-3 bg-light text-center position-relative" style="min-height: 480px;">
+                <div class="card-sigma-body p-3 text-center position-relative" style="min-height: 480px; background: #f1eff7;">
                     <!-- Loading Spinner saat PDF.js memuat lembar berkas -->
                     <div id="pdfLoadingSpinner" class="py-5 text-center">
-                        <div class="spinner-border text-success" role="status" style="width: 2.5rem; height: 2.5rem;">
+                        <div class="spinner-border text-sigma-purple" role="status" style="width: 2.5rem; height: 2.5rem;">
                             <span class="visually-hidden">Memuat PDF...</span>
                         </div>
-                        <div class="text-muted small mt-2 fw-medium">Memuat halaman dokumen PDF asli...</div>
+                        <div class="small mt-2 fw-medium" style="color: var(--text-muted);">Memuat halaman dokumen PDF asli...</div>
                     </div>
 
                     <!-- Alert Fallback jika PDF.js gagal atau offline -->
-                    <div id="pdfFallbackAlert" class="alert alert-warning py-2 px-3 small d-none text-start mb-3" style="border-radius: var(--radius-md);">
+                    <div id="pdfFallbackAlert" class="alert alert-warning alert-sigma py-2 px-3 small d-none text-start mb-3">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
                         Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat mengatur koordinat pada kanvas representasi rasio A4 di bawah ini.
                     </div>
 
                     <!-- Alert Peringatan Perbedaan Halaman Slot Aktif vs Halaman Tampil -->
-                    <div id="slotPageDiffAlert" class="alert alert-warning py-1.5 px-2.5 small d-none align-items-center justify-content-between mb-2 text-start flex-wrap gap-2" style="border-radius: var(--radius-sm);">
+                    <div id="slotPageDiffAlert" class="alert alert-warning alert-sigma py-2 px-3 small d-none align-items-center justify-content-between mb-2 text-start flex-wrap gap-2">
                         <span>
                             <i class="bi bi-info-circle-fill text-warning me-1"></i>
                             Slot <strong id="diffSignerName">Penandatangan</strong> saat ini berada di <strong>Halaman <span id="diffSignerPageNum">1</span></strong>.
                         </span>
-                        <button type="button" class="btn btn-warning btn-sm py-0.5 px-2 text-dark fw-semibold" id="btnDiffMoveSlot">
-                            <i class="bi bi-geo-alt-fill me-1"></i> Pindahkan Slot ke Halaman <span id="diffCurrentPageNum">1</span>
+                        <button type="button" class="btn-sigma-navy btn-sigma-sm" id="btnDiffMoveSlot">
+                            <i class="bi bi-geo-alt-fill"></i> Pindahkan Slot ke Halaman <span id="diffCurrentPageNum">1</span>
                         </button>
                     </div>
 
                     <!-- Wadah Kanvas Interaktif Terpadu -->
                     <div id="pdfStageContainer" class="d-inline-block text-start position-relative d-none" style="max-width: 100%;">
-                        <div id="pdfCanvasContainer" 
-                             class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden" 
+                        <div id="pdfCanvasContainer"
+                             class="position-relative bg-white shadow-sm border rounded mx-auto overflow-hidden"
                              style="touch-action: none; cursor: crosshair;">
-                            
+
                             <!-- Canvas Elemen PDF Asli (dirender oleh PDF.js) -->
                             <canvas id="pdfRenderCanvas" style="display: block; width: 100%; height: auto;"></canvas>
 
                             <!-- Lapisan Gridlines Bantuan Tipis -->
-                            <div class="position-absolute w-100 h-100 top-0 start-0 pointer-events-none" 
-                                 style="pointer-events: none; opacity: 0.08; background-size: 20% 20%; background-image: linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px);"></div>
+                            <div class="position-absolute w-100 h-100 top-0 start-0 pointer-events-none"
+                                 style="pointer-events: none; opacity: 0.08; background-size: 20% 20%; background-image: linear-gradient(to right, #2d2b4b 1px, transparent 1px), linear-gradient(to bottom, #2d2b4b 1px, transparent 1px);"></div>
 
                             <!-- Overlay Lapisan Kotak Slot Tanda Tangan (Berada persis di atas PDF) -->
                             <div id="slotOverlayContainer" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;">
-                                <?php 
+                                <?php
                                     $colors = [
-                                        ['border' => '#059669', 'bg' => 'rgba(16, 185, 129, 0.22)', 'badge' => 'bg-success'],
-                                        ['border' => '#2563eb', 'bg' => 'rgba(37, 99, 235, 0.22)', 'badge' => 'bg-primary'],
-                                        ['border' => '#d97706', 'bg' => 'rgba(217, 119, 6, 0.22)', 'badge' => 'bg-warning text-dark'],
-                                        ['border' => '#7c3aed', 'bg' => 'rgba(124, 58, 237, 0.22)', 'badge' => 'bg-purple text-white'],
+                                        ['border' => '#78629e', 'bg' => 'rgba(248, 245, 252, 0.88)', 'badgeStyle' => 'background: #78539b; color: #ffffff;'],
+                                        ['border' => '#2d2b4b', 'bg' => 'rgba(240, 236, 245, 0.88)', 'badgeStyle' => 'background: #2d2b4b; color: #ffffff;'],
+                                        ['border' => '#6246d0', 'bg' => 'rgba(237, 233, 254, 0.88)', 'badgeStyle' => 'background: #6246d0; color: #ffffff;'],
+                                        ['border' => '#d97706', 'bg' => 'rgba(254, 243, 199, 0.88)', 'badgeStyle' => 'background: #f59e0b; color: #1e1b33;'],
                                     ];
                                 ?>
                                 <?php foreach ($signers as $idx => $s): ?>
-                                    <?php 
+                                    <?php
                                         $c = $colors[$idx % count($colors)];
                                         $x = (float) $s['x_percent'];
                                         $y = (float) $s['y_percent'];
@@ -133,7 +133,6 @@ require_once __DIR__ . '/../layout/header.php';
                                         $h = (float) $s['height_percent'] > 0 ? (float) $s['height_percent'] : 10.0;
                                         $p = (int) $s['page_number'] > 0 ? (int) $s['page_number'] : 1;
                                         $isConfigured = ($x != 0 || $y != 0);
-                                        // Posisi awal jika belum diatur: bariskan di bagian bawah
                                         if ($x == 0 && $y == 0) {
                                             $x = 10.0 + (($idx % 2) * 45.0);
                                             $y = 75.0 + (floor($idx / 2) * 12.0);
@@ -144,37 +143,38 @@ require_once __DIR__ . '/../layout/header.php';
                                             ? ($sIdLabel . ': ' . $s['signer_identifier'])
                                             : ($s['role_title'] ?: ($s['signer_position'] ?? ''));
                                     ?>
-                                    <div id="slotBox_<?= htmlspecialchars($s['id']) ?>" 
-                                         class="slot-draggable position-absolute rounded border text-center overflow-hidden <?= ($p !== 1) ? 'd-none' : '' ?> <?= $idx === 0 ? 'active-slot' : '' ?>"
-                                         data-signer-id="<?= htmlspecialchars($s['id']) ?>"
+                                    <div id="slotBox_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                         class="slot-draggable position-absolute rounded text-center overflow-hidden <?= ($p !== 1) ? 'd-none' : '' ?> <?= $idx === 0 ? 'active-slot' : '' ?>"
+                                         data-signer-id="<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
                                          data-signer-page="<?= $p ?>"
                                          data-slot-configured="<?= $isConfigured ? '1' : '0' ?>"
-                                         style="left: <?= $x ?>%; top: <?= $y ?>%; width: <?= $w ?>%; height: <?= $h ?>%; 
-                                                background-color: <?= $c['bg'] ?>; border-color: <?= $c['border'] ?> !important; border-width: 2px !important; 
+                                         style="left: <?= $x ?>%; top: <?= $y ?>%; width: <?= $w ?>%; height: <?= $h ?>%;
+                                                background-color: <?= $c['bg'] ?>; border: 2px dashed <?= $c['border'] ?> !important;
                                                 cursor: move; user-select: none; pointer-events: auto; z-index: <?= 10 + $idx ?>; transition: box-shadow 0.15s ease;">
-                                        <span class="badge <?= $c['badge'] ?> position-absolute top-0 start-0 m-0.5 px-1 py-0 text-truncate" style="font-size: 0.54rem; max-width: 92%; z-index: 5;">
-                                            Step <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($s['role_title'] ?: $s['signer_name']) ?>
+                                        <span class="position-absolute top-0 start-0 m-1 px-1 py-0 rounded-pill fw-semibold text-truncate"
+                                              style="font-size: 0.54rem; max-width: 92%; z-index: 5; <?= $c['badgeStyle'] ?>">
+                                            Tahap <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($s['role_title'] ?: $s['signer_name'], ENT_QUOTES, 'UTF-8') ?>
                                         </span>
                                         <div class="w-100 h-100 position-relative d-flex align-items-stretch" style="pointer-events: none;">
                                             <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 13px 3px 3px 4px; min-width: 0;">
-                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted" style="font-size: 0.54rem; min-height: 0;">
-                                                    <span><i class="bi bi-pen me-0.5"></i>[Area TTD]</span>
+                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="font-size: 0.54rem; min-height: 0; color: var(--text-muted);">
+                                                    <span><i class="bi bi-pen me-1"></i>[Area TTD]</span>
                                                 </div>
                                                 <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                    <div class="text-dark fw-bold text-truncate" style="font-size: 0.58rem;">
-                                                        <?= htmlspecialchars($s['signer_name']) ?>
+                                                    <div class="fw-bold text-truncate" style="font-size: 0.58rem; color: var(--text-heading);">
+                                                        <?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                     <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                                     <?php if (!empty($sIdentText)): ?>
-                                                        <div class="text-muted text-truncate" style="font-size: 0.48rem;">
-                                                            <?= htmlspecialchars($sIdentText) ?>
+                                                        <div class="text-truncate" style="font-size: 0.48rem; color: var(--text-muted);">
+                                                            <?= htmlspecialchars($sIdentText, ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
-                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white bg-opacity-75 rounded border text-dark"
-                                                     style="aspect-ratio: 1 / 1; height: 76%; max-width: 100%; font-size: 0.9rem;">
+                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white bg-opacity-75 rounded border"
+                                                     style="aspect-ratio: 1 / 1; height: 76%; max-width: 100%; font-size: 0.9rem; color: var(--sigma-navy);">
                                                     <i class="bi bi-qr-code"></i>
                                                 </div>
                                             </div>
@@ -186,13 +186,13 @@ require_once __DIR__ . '/../layout/header.php';
                     </div>
 
                     <!-- Petunjuk Bawah Kanvas -->
-                    <div class="text-muted mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem;">
+                    <div class="mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem; color: var(--text-muted);">
                         <span>
                             <i class="bi bi-hand-index-thumb me-1"></i>
-                            Klik & seret kotak slot langsung di atas lembar dokumen, atau klik di area dokumen untuk memindahkan slot aktif.
+                            Klik &amp; seret kotak slot langsung di atas lembar dokumen, atau klik di area dokumen untuk memindahkan slot aktif.
                         </span>
-                        <span class="badge bg-light text-muted border">
-                            <i class="bi bi-layers me-1"></i> Menampilkan Halaman: <strong id="activePageBadge" class="text-dark">1</strong>
+                        <span class="badge-sigma badge-sigma-purple">
+                            <i class="bi bi-layers"></i> Menampilkan Halaman: <strong id="activePageBadge">1</strong>
                         </span>
                     </div>
                 </div>
@@ -201,22 +201,22 @@ require_once __DIR__ . '/../layout/header.php';
 
         <!-- Kolom Kanan: Pengaturan & Formulir Koordinat Penandatangan -->
         <div class="col-lg-5">
-            <div class="card-clean mb-4 sticky-lg-top" style="top: 85px; z-index: 1000;">
-                <div class="card-clean-header py-3 px-3 d-flex justify-content-between align-items-center">
+            <div class="card-sigma mb-4 sticky-lg-top" style="top: 90px; z-index: 900;">
+                <div class="card-sigma-header">
                     <div>
-                        <h6 class="fw-bold text-dark mb-0">Daftar Slot Penandatangan</h6>
-                        <small class="text-muted">Koordinat relatif terhadap lembar halaman (%)</small>
+                        <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">Daftar Slot Penandatangan</h2>
+                        <small style="color: var(--text-muted);">Koordinat relatif terhadap lembar halaman (%)</small>
                     </div>
-                    <span class="badge bg-light text-dark border">
+                    <span class="badge-sigma badge-sigma-purple">
                         <?= count($signers) ?> Penandatangan
                     </span>
                 </div>
 
-                <div class="card-clean-body p-3">
+                <div class="card-sigma-body p-3">
                     <!-- List Kartu Signer -->
                     <div class="d-flex flex-column gap-3 mb-4" id="signerCardsList">
                         <?php foreach ($signers as $idx => $s): ?>
-                            <?php 
+                            <?php
                                 $c = $colors[$idx % count($colors)];
                                 $x = (float) $s['x_percent'];
                                 $y = (float) $s['y_percent'];
@@ -230,81 +230,81 @@ require_once __DIR__ . '/../layout/header.php';
                                 }
                                 $pageNo = (int) $s['page_number'] > 0 ? (int) $s['page_number'] : 1;
                             ?>
-                            <div class="border rounded-3 p-3 signer-card-item <?= $idx === 0 ? 'border-primary bg-light' : '' ?>" 
-                                 id="cardSigner_<?= htmlspecialchars($s['id']) ?>"
-                                 data-signer-id="<?= htmlspecialchars($s['id']) ?>"
+                            <div class="border rounded-3 p-3 signer-card-item <?= $idx === 0 ? 'sigma-card-active' : '' ?>"
+                                 id="cardSigner_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                 data-signer-id="<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
                                  data-signer-page="<?= $pageNo ?>"
                                  data-slot-configured="<?= $isConfigured ? '1' : '0' ?>"
                                  style="cursor: pointer; transition: all 0.15s ease;">
-                                
+
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="badge <?= $c['badge'] ?>">
-                                            Step <?= $s['step_order'] ?>
+                                        <span class="badge-sigma" style="<?= $c['badgeStyle'] ?>">
+                                            Tahap <?= (int)$s['step_order'] ?>
                                         </span>
-                                        <span class="fw-bold text-dark small">
-                                            <?= htmlspecialchars($s['signer_name']) ?>
+                                        <span class="fw-bold small signer-card-name" style="color: var(--text-heading);">
+                                            <?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?>
                                         </span>
                                     </div>
-                                    <span class="badge bg-light text-muted border page-status-badge" id="pageBadge_<?= htmlspecialchars($s['id']) ?>" style="font-size: 0.7rem;">
+                                    <span class="badge-sigma badge-sigma-neutral page-status-badge" id="pageBadge_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>" style="font-size: 0.7rem;">
                                         Hal <?= $pageNo ?>
                                     </span>
                                 </div>
 
-                                <div class="text-muted small mb-2.5">
-                                    <i class="bi bi-briefcase me-1"></i> Peran: <strong><?= htmlspecialchars($s['role_title'] ?: 'Penandatangan') ?></strong>
+                                <div class="small mb-3" style="color: var(--text-muted);">
+                                    <i class="bi bi-briefcase me-1"></i> Peran: <strong style="color: var(--text-body);"><?= htmlspecialchars($s['role_title'] ?: 'Penandatangan', ENT_QUOTES, 'UTF-8') ?></strong>
                                     <?php if (!empty($s['signer_identifier'])): ?>
-                                        &bull; <span class="text-secondary"><?= htmlspecialchars($s['signer_identifier']) ?></span>
+                                        &bull; <span><?= htmlspecialchars($s['signer_identifier'], ENT_QUOTES, 'UTF-8') ?></span>
                                     <?php endif; ?>
                                 </div>
 
                                 <!-- Penanda slot sudah benar-benar ditempatkan pengguna -->
                                 <input type="hidden"
-                                       name="slots[<?= htmlspecialchars($s['id']) ?>][slot_configured]"
-                                       id="configured_<?= htmlspecialchars($s['id']) ?>"
+                                       name="slots[<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>][slot_configured]"
+                                       id="configured_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
                                        value="<?= $isConfigured ? '1' : '0' ?>">
 
                                 <!-- Input Parameter Koordinat -->
                                 <div class="row g-2">
                                     <div class="col-4">
-                                        <label class="form-label mb-0" style="font-size: 0.75rem;">Halaman</label>
-                                        <input type="number" 
-                                               name="slots[<?= htmlspecialchars($s['id']) ?>][page_number]" 
-                                               id="page_<?= htmlspecialchars($s['id']) ?>"
-                                               class="form-control form-control-sm coord-input page-input" 
-                                               data-signer-id="<?= htmlspecialchars($s['id']) ?>"
+                                        <label class="form-label mb-1" style="font-size: 0.75rem; color: var(--text-muted);">Halaman</label>
+                                        <input type="number"
+                                               name="slots[<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>][page_number]"
+                                               id="page_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                               class="form-control form-control-sm sigma-input coord-input page-input"
+                                               data-signer-id="<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
                                                min="1" max="100" value="<?= $pageNo ?>" required>
                                     </div>
                                     <div class="col-4">
-                                        <label class="form-label mb-0" style="font-size: 0.75rem;">X (%)</label>
-                                        <input type="number" step="0.1" 
-                                               name="slots[<?= htmlspecialchars($s['id']) ?>][x_percent]" 
-                                               id="x_<?= htmlspecialchars($s['id']) ?>"
-                                               class="form-control form-control-sm coord-input" 
+                                        <label class="form-label mb-1" style="font-size: 0.75rem; color: var(--text-muted);">X (%)</label>
+                                        <input type="number" step="0.1"
+                                               name="slots[<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>][x_percent]"
+                                               id="x_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                               class="form-control form-control-sm sigma-input coord-input"
                                                min="0" max="100" value="<?= number_format($x, 1, '.', '') ?>" required>
                                     </div>
                                     <div class="col-4">
-                                        <label class="form-label mb-0" style="font-size: 0.75rem;">Y (%)</label>
-                                        <input type="number" step="0.1" 
-                                               name="slots[<?= htmlspecialchars($s['id']) ?>][y_percent]" 
-                                               id="y_<?= htmlspecialchars($s['id']) ?>"
-                                               class="form-control form-control-sm coord-input" 
+                                        <label class="form-label mb-1" style="font-size: 0.75rem; color: var(--text-muted);">Y (%)</label>
+                                        <input type="number" step="0.1"
+                                               name="slots[<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>][y_percent]"
+                                               id="y_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                               class="form-control form-control-sm sigma-input coord-input"
                                                min="0" max="100" value="<?= number_format($y, 1, '.', '') ?>" required>
                                     </div>
                                     <div class="col-6">
-                                        <label class="form-label mb-0" style="font-size: 0.75rem;">Lebar Slot (%)</label>
-                                        <input type="number" step="0.1" 
-                                               name="slots[<?= htmlspecialchars($s['id']) ?>][width_percent]" 
-                                               id="w_<?= htmlspecialchars($s['id']) ?>"
-                                               class="form-control form-control-sm coord-input" 
+                                        <label class="form-label mb-1" style="font-size: 0.75rem; color: var(--text-muted);">Lebar Slot (%)</label>
+                                        <input type="number" step="0.1"
+                                               name="slots[<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>][width_percent]"
+                                               id="w_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                               class="form-control form-control-sm sigma-input coord-input"
                                                min="5" max="50" value="<?= number_format($w, 1, '.', '') ?>" required>
                                     </div>
                                     <div class="col-6">
-                                        <label class="form-label mb-0" style="font-size: 0.75rem;">Tinggi Slot (%)</label>
-                                        <input type="number" step="0.1" 
-                                               name="slots[<?= htmlspecialchars($s['id']) ?>][height_percent]" 
-                                               id="h_<?= htmlspecialchars($s['id']) ?>"
-                                               class="form-control form-control-sm coord-input" 
+                                        <label class="form-label mb-1" style="font-size: 0.75rem; color: var(--text-muted);">Tinggi Slot (%)</label>
+                                        <input type="number" step="0.1"
+                                               name="slots[<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>][height_percent]"
+                                               id="h_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                               class="form-control form-control-sm sigma-input coord-input"
                                                min="3" max="30" value="<?= number_format($h, 1, '.', '') ?>" required>
                                     </div>
                                 </div>
@@ -314,23 +314,23 @@ require_once __DIR__ . '/../layout/header.php';
 
                     <!-- Tombol Aksi Simpan & Submit -->
                     <?php $isSingle = ($doc['signature_type'] === 'single'); ?>
-                    <div class="d-flex flex-column gap-2 pt-3 border-top">
-                        <button type="submit" id="btnSaveOnly" class="btn btn-subtle w-100 py-2">
-                            <i class="bi bi-save me-1"></i> Simpan Posisi Slot Saja
+                    <div class="d-flex flex-column gap-2 pt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                        <button type="submit" id="btnSaveOnly" class="btn-sigma-outline w-100 py-2">
+                            <i class="bi bi-save"></i> Simpan Posisi Slot Saja
                         </button>
-                        <button type="button" id="btnSubmitToAdmin" class="btn btn-pnj-primary w-100 py-2 fw-semibold">
-                            <i class="bi <?= $isSingle ? 'bi-patch-check' : 'bi-send-check' ?> me-1.5"></i>
+                        <button type="button" id="btnSubmitToAdmin" class="btn-sigma-navy w-100 py-2">
+                            <i class="bi <?= $isSingle ? 'bi-patch-check' : 'bi-send-check' ?>"></i>
                             <?= $isSingle ? 'Simpan & Selesaikan Dokumen Mandiri' : 'Simpan & Ajukan ke Administrator' ?>
                         </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2 mt-1" data-bs-toggle="modal" data-bs-target="#modalCancelDraft">
-                            <i class="bi bi-x-circle me-1"></i> Batalkan Draft Dokumen
+                        <button type="button" class="btn-sigma-outline w-100 py-2 mt-1 text-danger" data-bs-toggle="modal" data-bs-target="#modalCancelDraft">
+                            <i class="bi bi-x-circle"></i> Batalkan Draft Dokumen
                         </button>
                     </div>
 
-                    <div class="text-center mt-2.5">
-                        <small class="text-muted" style="font-size: 0.75rem;">
-                            <?= $isSingle 
-                                ? 'Setelah diselesaikan, dokumen mandiri akan langsung berstatus final.' 
+                    <div class="text-center mt-3">
+                        <small style="font-size: 0.75rem; color: var(--text-muted);">
+                            <?= $isSingle
+                                ? 'Setelah diselesaikan, dokumen mandiri akan langsung berstatus final.'
                                 : 'Setelah diajukan ke Administrator, posisi slot tidak dapat diubah lagi.' ?>
                         </small>
                     </div>
@@ -342,36 +342,36 @@ require_once __DIR__ . '/../layout/header.php';
 </form>
 
 <!-- Modal Konfirmasi Pembatalan Draft (di luar #arrangeForm agar tidak bersarang) -->
-<div class="modal fade" id="modalCancelDraft" tabindex="-1" aria-labelledby="modalCancelDraftLabel" aria-hidden="true">
+<div class="modal fade modal-sigma" id="modalCancelDraft" tabindex="-1" aria-labelledby="modalCancelDraftLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content">
             <div class="modal-header border-bottom">
-                <h5 class="modal-title fw-semibold text-danger" id="modalCancelDraftLabel">
+                <h5 class="modal-title fw-bold text-danger" id="modalCancelDraftLabel">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>Batalkan Draft Dokumen?
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
-            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete" method="POST">
-                <div class="modal-body">
-                    <p class="mb-2">
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/delete" method="POST">
+                <div class="modal-body p-4">
+                    <p class="mb-2" style="color: var(--text-heading);">
                         Anda akan membatalkan dan menghapus draft dokumen
-                        <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong>.
+                        <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong>.
                     </p>
-                    <p class="small text-muted mb-0">
+                    <p class="small mb-0" style="color: var(--text-muted);">
                         Pengaturan alur penandatangan dan posisi slot pada draft ini ikut dihapus agar tidak meninggalkan sisa draft di daftar dokumen Anda.
                     </p>
                 </div>
-                <div class="modal-footer border-top d-flex flex-wrap justify-content-between gap-2">
-                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">
+                <div class="modal-footer border-top d-flex flex-wrap justify-content-between gap-2" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                    <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">
                         Kembali Atur Slot
                     </button>
                     <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" name="redirect_to" value="documents" class="btn btn-outline-danger btn-sm">
-                            <i class="bi bi-trash3 me-1"></i> Batalkan &amp; Ke Daftar Dokumen
+                        <button type="submit" name="redirect_to" value="documents" class="btn-sigma-outline btn-sigma-sm text-danger">
+                            <i class="bi bi-trash3"></i> Batalkan &amp; Ke Daftar Dokumen
                         </button>
                         <?php if (($_SESSION['user']['role'] ?? '') !== 'admin'): ?>
-                            <button type="submit" name="redirect_to" value="create" class="btn btn-danger btn-sm">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Batalkan &amp; Ajukan Ulang
+                            <button type="submit" name="redirect_to" value="create" class="btn-sigma-danger btn-sigma-sm">
+                                <i class="bi bi-arrow-counterclockwise"></i> Batalkan &amp; Ajukan Ulang
                             </button>
                         <?php endif; ?>
                     </div>
@@ -383,14 +383,19 @@ require_once __DIR__ . '/../layout/header.php';
 
 <style>
 .active-slot {
-    box-shadow: 0 0 0 3px rgba(10, 92, 71, 0.5), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 0 0 3px rgba(120, 98, 158, 0.45), 0 4px 12px rgba(45, 43, 75, 0.18) !important;
+}
+.sigma-card-active {
+    border-color: var(--sigma-purple-600) !important;
+    background-color: var(--sigma-tint-50) !important;
+    box-shadow: 0 2px 8px rgba(120, 98, 158, 0.12);
 }
 .slot-draggable {
     box-sizing: border-box;
     backdrop-filter: blur(1px);
 }
 .slot-draggable:hover {
-    filter: brightness(0.96);
+    filter: brightness(0.97);
 }
 </style>
 
@@ -599,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!activeSignerId) return;
         const signerPage = getSignerPage(activeSignerId);
         const card = document.getElementById('cardSigner_' + activeSignerId);
-        const signerName = card ? (card.querySelector('.fw-bold.text-dark.small')?.textContent?.trim() || 'Penandatangan') : 'Penandatangan';
+        const signerName = card ? (card.querySelector('.signer-card-name')?.textContent?.trim() || 'Penandatangan') : 'Penandatangan';
 
         if (signerPage !== currentPage) {
             if (slotPageDiffAlert) {
@@ -671,10 +676,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const badge = document.getElementById('pageBadge_' + sid);
             if (badge) {
                 if (signerPage === page) {
-                    badge.className = 'badge bg-success-subtle text-success border border-success page-status-badge';
-                    badge.innerHTML = '<i class="bi bi-eye me-0.5"></i> Hal ' + signerPage;
+                    badge.className = 'badge-sigma badge-sigma-purple page-status-badge';
+                    badge.innerHTML = '<i class="bi bi-eye me-1"></i> Hal ' + signerPage;
                 } else {
-                    badge.className = 'badge bg-light text-muted border page-status-badge';
+                    badge.className = 'badge-sigma badge-sigma-neutral page-status-badge';
                     badge.textContent = 'Hal ' + signerPage;
                 }
             }
@@ -699,9 +704,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         signerCards.forEach(card => {
             if (card.getAttribute('data-signer-id') === signerId) {
-                card.classList.add('border-primary', 'bg-light');
+                card.classList.add('sigma-card-active');
             } else {
-                card.classList.remove('border-primary', 'bg-light');
+                card.classList.remove('sigma-card-active');
             }
         });
 

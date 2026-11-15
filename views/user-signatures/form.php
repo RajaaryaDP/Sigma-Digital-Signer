@@ -7,30 +7,44 @@ require_once __DIR__ . '/../layout/header.php';
     <div class="col-lg-9 col-xl-8">
         <!-- Back Link -->
         <div class="mb-3">
-            <a href="<?= BASE_URL ?>/user-signatures" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1.5">
+            <a href="<?= BASE_URL ?>/user-signatures" class="text-decoration-none small d-inline-flex align-items-center gap-2" style="color: var(--text-muted);">
                 <i class="bi bi-arrow-left"></i>
                 <span>Kembali ke Template Tanda Tangan</span>
             </a>
         </div>
 
+        <style>
+            #methodTabs .nav-link {
+                color: var(--text-body);
+                background: var(--sigma-tint-50);
+                border: 1px solid var(--border-subtle);
+                border-radius: 999px;
+            }
+            #methodTabs .nav-link.active {
+                background: var(--sigma-navy);
+                color: #fff;
+                border-color: var(--sigma-navy);
+            }
+        </style>
+
         <!-- Form Card -->
-        <div class="card-clean mb-4 shadow-sm">
-            <div class="card-clean-header py-3 px-4">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" 
-                         style="width: 34px; height: 34px; background: var(--pnj-green-50); color: var(--pnj-green-800); font-size: 1.1rem;">
+        <div class="card-sigma mb-4">
+            <div class="card-sigma-header py-3 px-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width: 38px; height: 38px; background: var(--sigma-tint-100); color: var(--sigma-purple-700); font-size: 1.1rem;">
                         <i class="bi bi-pen-fill"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold text-dark mb-0">Buat Template Tanda Tangan Digital</h5>
-                        <small class="text-muted">Siapkan tanda tangan digital pribadi untuk menandatangani dokumen akademik</small>
+                        <h5 class="fw-bold mb-0" style="color: var(--text-heading);">Buat Template Tanda Tangan Digital</h5>
+                        <small style="color: var(--text-muted);">Siapkan tanda tangan digital pribadi untuk menandatangani dokumen akademik</small>
                     </div>
                 </div>
             </div>
 
-            <div class="card-clean-body p-4">
+            <div class="card-sigma-body p-4">
                 <?php if (isset($errors['signature'])): ?>
-                    <div class="alert alert-danger d-flex align-items-center gap-2 py-2.5 px-3 mb-4 small" role="alert">
+                    <div class="alert alert-danger d-flex align-items-center gap-2 py-2 px-3 mb-4 small" role="alert">
                         <i class="bi bi-exclamation-triangle-fill fs-5"></i>
                         <div><?= htmlspecialchars($errors['signature']) ?></div>
                     </div>
@@ -42,27 +56,27 @@ require_once __DIR__ . '/../layout/header.php';
 
                     <!-- Section 1: Pengaturan & Label Template -->
                     <div class="mb-4">
-                        <div class="fw-semibold text-dark small text-uppercase mb-3 pb-1 border-bottom" style="letter-spacing: 0.5px;">
+                        <div class="fw-bold small text-uppercase mb-3 pb-2 border-bottom" style="letter-spacing: 0.05em; color: var(--sigma-purple-600); border-color: var(--border-subtle) !important;">
                             1. Identitas Template
                         </div>
 
                         <div class="row g-3">
                             <div class="col-md-7">
-                                <label class="form-label small fw-semibold">Nama / Label Template <span class="text-muted">(Opsional)</span></label>
-                                <input type="text" name="label" class="form-control" 
-                                       placeholder="Contoh: Tanda Tangan Utama, Paraf Resmi" 
+                                <label class="sigma-form-label">Nama / Label Template <span style="color: var(--text-muted);">(Opsional)</span></label>
+                                <input type="text" name="label" class="form-control sigma-input"
+                                       placeholder="Contoh: Tanda Tangan Utama, Paraf Resmi"
                                        value="<?= htmlspecialchars($values['label'] ?? '') ?>" maxlength="100">
-                                <small class="text-muted" style="font-size: 0.75rem;">Nama pengenal untuk memudahkan Anda memilih di antara beberapa template.</small>
+                                <small style="font-size: 0.75rem; color: var(--text-muted);">Nama pengenal untuk memudahkan Anda memilih di antara beberapa template.</small>
                             </div>
 
                             <div class="col-md-5 d-flex align-items-center">
-                                <div class="form-check mt-3 mt-md-0 p-3 bg-light rounded-3 border w-100">
-                                    <input class="form-check-input" type="checkbox" name="is_default" value="1" id="isDefaultCheck" 
+                                <div class="form-check mt-3 mt-md-0 p-3 rounded-3 border w-100" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                                    <input class="form-check-input" type="checkbox" name="is_default" value="1" id="isDefaultCheck"
                                            <?= (!empty($values['is_default']) || $existingCount === 0) ? 'checked' : '' ?>>
-                                    <label class="form-check-label small fw-semibold text-dark" for="isDefaultCheck">
+                                    <label class="form-check-label small fw-semibold" style="color: var(--text-heading);" for="isDefaultCheck">
                                         Jadikan Template Utama (Default)
                                     </label>
-                                    <small class="text-muted d-block" style="font-size: 0.72rem;">
+                                    <small class="d-block" style="font-size: 0.72rem; color: var(--text-muted);">
                                         Otomatis dipilih saat Anda membuka lembar penandatanganan berkas.
                                     </small>
                                 </div>
@@ -72,20 +86,20 @@ require_once __DIR__ . '/../layout/header.php';
 
                     <!-- Section 2: Pilihan Metode Input Tanda Tangan -->
                     <div class="mb-4">
-                        <div class="fw-semibold text-dark small text-uppercase mb-3 pb-1 border-bottom" style="letter-spacing: 0.5px;">
+                        <div class="fw-bold small text-uppercase mb-3 pb-2 border-bottom" style="letter-spacing: 0.05em; color: var(--sigma-purple-600); border-color: var(--border-subtle) !important;">
                             2. Metode Input Tanda Tangan
                         </div>
 
                         <!-- Method Tabs -->
-                        <ul class="nav nav-pills mb-3" id="methodTabs" role="tablist">
+                        <ul class="nav nav-pills gap-2 mb-3" id="methodTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link <?= (($values['input_method'] ?? 'canvas') === 'canvas') ? 'active' : '' ?> d-inline-flex align-items-center gap-2 py-2 px-3 small fw-semibold" 
+                                <button class="nav-link <?= (($values['input_method'] ?? 'canvas') === 'canvas') ? 'active' : '' ?> d-inline-flex align-items-center gap-2 py-2 px-3 small fw-semibold"
                                         id="tab-canvas-btn" data-bs-toggle="pill" data-bs-target="#tab-canvas" type="button" role="tab">
                                     <i class="bi bi-brush"></i> Gores di Kanvas Digital
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link <?= (($values['input_method'] ?? 'canvas') === 'upload') ? 'active' : '' ?> d-inline-flex align-items-center gap-2 py-2 px-3 small fw-semibold" 
+                                <button class="nav-link <?= (($values['input_method'] ?? 'canvas') === 'upload') ? 'active' : '' ?> d-inline-flex align-items-center gap-2 py-2 px-3 small fw-semibold"
                                         id="tab-upload-btn" data-bs-toggle="pill" data-bs-target="#tab-upload" type="button" role="tab">
                                     <i class="bi bi-cloud-arrow-up"></i> Upload Gambar PNG Transparan
                                 </button>
@@ -94,37 +108,37 @@ require_once __DIR__ . '/../layout/header.php';
 
                         <!-- Tab Contents -->
                         <div class="tab-content" id="methodTabsContent">
-                            
+
                             <!-- TAB 1: Canvas Drawing -->
                             <div class="tab-pane fade <?= (($values['input_method'] ?? 'canvas') === 'canvas') ? 'show active' : '' ?>" id="tab-canvas" role="tabpanel">
                                 <!-- Canvas Controls Toolbar -->
-                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 bg-light border rounded-top border-bottom-0 small">
-                                    <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 border rounded-top border-bottom-0 small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                                    <div class="d-flex flex-wrap align-items-center gap-3">
                                         <!-- Color Picker -->
-                                        <div class="d-flex align-items-center gap-1.5">
-                                            <span class="text-muted" style="font-size: 0.75rem;">Warna Tinta:</span>
-                                            <button type="button" class="btn btn-sm btn-color p-0 rounded-circle active" 
-                                                    data-color="#0f172a" title="Hitam Klasik" 
-                                                    style="width: 22px; height: 22px; background: #0f172a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
-                                            <button type="button" class="btn btn-sm btn-color p-0 rounded-circle" 
-                                                    data-color="#1e3a8a" title="Biru Resmi Dokumen" 
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span style="font-size: 0.75rem; color: var(--text-muted);">Warna Tinta:</span>
+                                            <button type="button" class="btn btn-sm btn-color p-0 rounded-circle active"
+                                                    data-color="#0f172a" title="Hitam Klasik"
+                                                    style="width: 22px; height: 22px; background: #0f172a; border: 2px solid #fff; box-shadow: 0 0 0 2px var(--sigma-purple-700);"></button>
+                                            <button type="button" class="btn btn-sm btn-color p-0 rounded-circle"
+                                                    data-color="#1e3a8a" title="Biru Resmi Dokumen"
                                                     style="width: 22px; height: 22px; background: #1e3a8a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
-                                            <button type="button" class="btn btn-sm btn-color p-0 rounded-circle" 
-                                                    data-color="#064e3b" title="Hijau PNJ" 
-                                                    style="width: 22px; height: 22px; background: #064e3b; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
+                                            <button type="button" class="btn btn-sm btn-color p-0 rounded-circle"
+                                                    data-color="#4c1d95" title="Ungu Resmi SIGMA"
+                                                    style="width: 22px; height: 22px; background: #4c1d95; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
                                         </div>
 
                                         <!-- Stroke Width -->
-                                        <div class="d-flex align-items-center gap-1.5 ms-2">
-                                            <span class="text-muted" style="font-size: 0.75rem;">Ketebalan:</span>
-                                            <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="1.8" style="font-size: 0.72rem;">Tipis</button>
-                                            <button type="button" class="btn btn-sm btn-pnj-primary btn-width py-0.5 px-2 active" data-width="2.8" style="font-size: 0.72rem;">Sedang</button>
-                                            <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="4.2" style="font-size: 0.72rem;">Tebal</button>
+                                        <div class="d-flex align-items-center gap-2 ms-md-2">
+                                            <span style="font-size: 0.75rem; color: var(--text-muted);">Ketebalan:</span>
+                                            <button type="button" class="btn-sigma-outline btn-sigma-sm btn-width py-1 px-2" data-width="1.8" style="font-size: 0.72rem;">Tipis</button>
+                                            <button type="button" class="btn-sigma-navy btn-sigma-sm btn-width py-1 px-2 active" data-width="2.8" style="font-size: 0.72rem;">Sedang</button>
+                                            <button type="button" class="btn-sigma-outline btn-sigma-sm btn-width py-1 px-2" data-width="4.2" style="font-size: 0.72rem;">Tebal</button>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <button type="button" id="btnClearCanvas" class="btn btn-subtle btn-sm text-danger border-danger-subtle d-inline-flex align-items-center gap-1 py-1 px-2.5" style="font-size: 0.75rem;">
+                                        <button type="button" id="btnClearCanvas" class="btn-sigma-outline btn-sigma-sm text-danger" style="border-color: #fecaca; font-size: 0.75rem;">
                                             <i class="bi bi-eraser-fill"></i> Bersihkan Kanvas
                                         </button>
                                     </div>
@@ -138,7 +152,7 @@ require_once __DIR__ . '/../layout/header.php';
                                         <span>Garis Dasar</span>
                                     </div>
                                 </div>
-                                <div class="form-text mt-1 text-muted" style="font-size: 0.75rem;">
+                                <div class="form-text mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
                                     <i class="bi bi-info-circle me-1"></i>Mendukung sentuhan layar HP/tablet serta mouse komputer. Goresan otomatis diproses dengan latar belakang transparan.
                                 </div>
                             </div>
@@ -147,33 +161,33 @@ require_once __DIR__ . '/../layout/header.php';
                             <div class="tab-pane fade <?= (($values['input_method'] ?? 'canvas') === 'upload') ? 'show active' : '' ?>" id="tab-upload" role="tabpanel">
                                 <div class="sig-upload-box" id="dropZone">
                                     <input type="file" name="signature_file" id="signatureFileInput" accept="image/png" class="d-none">
-                                    
+
                                     <div id="uploadPrompt">
-                                        <div class="text-success fs-1 mb-2">
+                                        <div class="text-sigma-purple fs-1 mb-2">
                                             <i class="bi bi-cloud-arrow-up-fill"></i>
                                         </div>
-                                        <div class="fw-bold text-dark mb-1">Klik untuk Memilih File atau Seret ke Sini</div>
-                                        <div class="text-muted small mb-2">Hanya format <strong>PNG transparan (.png)</strong>, ukuran berkas maksimal 2 MB.</div>
-                                        <span class="btn btn-subtle btn-sm px-3">
-                                            <i class="bi bi-folder2-open me-1"></i> Pilih Berkas PNG
+                                        <div class="fw-bold mb-1" style="color: var(--text-heading);">Klik untuk Memilih File atau Seret ke Sini</div>
+                                        <div class="small mb-3" style="color: var(--text-muted);">Hanya format <strong>PNG transparan (.png)</strong>, ukuran berkas maksimal 2 MB.</div>
+                                        <span class="btn-sigma-outline btn-sigma-sm px-3">
+                                            <i class="bi bi-folder2-open"></i> Pilih Berkas PNG
                                         </span>
                                     </div>
 
                                     <!-- Upload Preview Box -->
                                     <div id="uploadPreviewWrapper" class="d-none">
-                                        <div class="checkerboard-bg p-3 rounded border mx-auto d-inline-flex align-items-center justify-content-center mb-3" 
+                                        <div class="checkerboard-bg p-3 rounded border mx-auto d-inline-flex align-items-center justify-content-center mb-3"
                                              style="max-width: 340px; height: 160px; overflow: hidden;">
                                             <img id="uploadPreviewImg" src="" alt="Pratinjau Berkas" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                         </div>
                                         <div class="d-flex align-items-center justify-content-center gap-2">
-                                            <span id="uploadFileName" class="small fw-semibold text-dark text-truncate" style="max-width: 250px;"></span>
-                                            <button type="button" id="btnRemoveFile" class="btn btn-subtle btn-sm text-danger border-danger-subtle py-0.5 px-2" style="font-size: 0.75rem;">
-                                                <i class="bi bi-x-circle me-1"></i> Ganti File
+                                            <span id="uploadFileName" class="small fw-semibold text-truncate" style="max-width: 250px; color: var(--text-heading);"></span>
+                                            <button type="button" id="btnRemoveFile" class="btn-sigma-outline btn-sigma-sm text-danger py-1 px-2" style="border-color: #fecaca; font-size: 0.75rem;">
+                                                <i class="bi bi-x-circle"></i> Ganti File
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-text mt-1 text-muted" style="font-size: 0.75rem;">
+                                <div class="form-text mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
                                     <i class="bi bi-lightbulb me-1"></i>Gunakan gambar tanda tangan berlatar belakang transparan (alpha channel) agar tampak menyatu dan profesional di lembar PDF.
                                 </div>
                             </div>
@@ -182,11 +196,11 @@ require_once __DIR__ . '/../layout/header.php';
                     </div>
 
                     <!-- Form Actions -->
-                    <div class="d-flex align-items-center justify-content-between pt-3 border-top">
-                        <a href="<?= BASE_URL ?>/user-signatures" class="btn btn-subtle px-3">
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                        <a href="<?= BASE_URL ?>/user-signatures" class="btn-sigma-outline px-3 text-decoration-none">
                             Batal
                         </a>
-                        <button type="submit" id="btnSubmit" class="btn btn-pnj-primary px-4 d-inline-flex align-items-center gap-2">
+                        <button type="submit" id="btnSubmit" class="btn-sigma-navy px-4">
                             <span class="spinner-border spinner-border-sm d-none" id="submitSpinner" role="status" aria-hidden="true"></span>
                             <i class="bi bi-check2-circle" id="submitIcon"></i>
                             <span id="submitText">Simpan Template Tanda Tangan</span>
@@ -350,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 b.style.boxShadow = '0 0 0 1px #cbd5e1';
                 b.classList.remove('active');
             });
-            this.style.boxShadow = '0 0 0 2px var(--pnj-green-800)';
+            this.style.boxShadow = '0 0 0 2px var(--sigma-purple-700)';
             this.classList.add('active');
             currentColor = this.getAttribute('data-color');
             ctx.strokeStyle = currentColor;
@@ -361,11 +375,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-width').forEach(btn => {
         btn.addEventListener('click', function () {
             document.querySelectorAll('.btn-width').forEach(b => {
-                b.classList.remove('btn-pnj-primary', 'active');
-                b.classList.add('btn-subtle');
+                b.classList.remove('btn-sigma-navy', 'active');
+                b.classList.add('btn-sigma-outline');
             });
-            this.classList.remove('btn-subtle');
-            this.classList.add('btn-pnj-primary', 'active');
+            this.classList.remove('btn-sigma-outline');
+            this.classList.add('btn-sigma-navy', 'active');
             currentWidth = parseFloat(this.getAttribute('data-width'));
             ctx.lineWidth = currentWidth;
         });

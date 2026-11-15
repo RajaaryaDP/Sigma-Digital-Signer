@@ -32,127 +32,127 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 
 <!-- Back Link -->
 <div class="mb-3">
-    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1.5">
+    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>" class="text-decoration-none small d-inline-flex align-items-center gap-2" style="color: var(--text-muted);">
         <i class="bi bi-arrow-left"></i>
         <span>Kembali ke Detail Dokumen</span>
     </a>
 </div>
 
 <!-- Header Penandatanganan -->
-<div class="card-clean mb-4">
-    <div class="card-clean-body p-4">
+<div class="card-sigma mb-4">
+    <div class="card-sigma-body p-4">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
             <div>
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <span class="badge bg-warning text-dark py-1.5 px-2.5 fs-7 d-inline-flex align-items-center gap-1">
+                    <span class="badge-sigma badge-sigma-warning">
                         <i class="bi bi-pen-fill"></i>
-                        Giliran Anda — Step <?= (int) $signer['step_order'] ?> dari <?= (int) $totalSteps ?>
+                        Giliran Anda — Tahap <?= (int) $signer['step_order'] ?> dari <?= (int) $totalSteps ?>
                     </span>
-                    <span class="badge bg-light text-dark border">
-                        <i class="bi <?= $isSingle ? 'bi-person-check' : 'bi-diagram-3' ?> me-1"></i>
+                    <span class="badge-sigma badge-sigma-purple">
+                        <i class="bi <?= $isSingle ? 'bi-person-check' : 'bi-diagram-3' ?>"></i>
                         <?= $isSingle ? 'Tanda Tangan Mandiri' : 'Tanda Tangan Berjenjang' ?>
                     </span>
                     <?php if (!empty($signer['role_title'])): ?>
-                        <span class="badge bg-light text-dark border">
-                            <i class="bi bi-briefcase me-1"></i><?= htmlspecialchars($signer['role_title']) ?>
+                        <span class="badge-sigma badge-sigma-neutral">
+                            <i class="bi bi-briefcase"></i> <?= htmlspecialchars($signer['role_title'], ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     <?php endif; ?>
                 </div>
-                <h4 class="fw-bold text-dark mb-1"><?= htmlspecialchars($doc['title']) ?></h4>
-                <p class="text-muted small mb-0">
-                    Diajukan oleh: <strong><?= htmlspecialchars($doc['uploader_name']) ?></strong>
-                    &bull; Berkas: <?= htmlspecialchars($doc['file_name_original']) ?>
+                <h1 class="h4 fw-bold mb-1" style="color: var(--text-heading);"><?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?></h1>
+                <p class="small mb-0" style="color: var(--text-muted);">
+                    Diajukan oleh: <strong style="color: var(--text-heading);"><?= htmlspecialchars($doc['uploader_name'], ENT_QUOTES, 'UTF-8') ?></strong>
+                    &bull; Berkas: <?= htmlspecialchars($doc['file_name_original'], ENT_QUOTES, 'UTF-8') ?>
                 </p>
             </div>
-            <div class="flex-shrink-0 border rounded-3 p-3 bg-light" style="min-width: 250px;">
-                <div class="text-muted small text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+            <div class="flex-shrink-0 border rounded-3 p-3" style="min-width: 260px; background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                <div class="small text-uppercase fw-bold mb-1" style="font-size: 0.68rem; letter-spacing: 0.05em; color: var(--sigma-purple-700);">
                     Identitas Penandatangan (Biodata Resmi)
                 </div>
-                <div class="fw-bold text-dark small"><?= htmlspecialchars($profileName) ?></div>
-                <div class="text-muted small"><?= htmlspecialchars($profileIdent) ?></div>
-                <div class="text-muted small"><?= htmlspecialchars($profilePos) ?></div>
-                <div class="text-muted small"><?= htmlspecialchars($profileDept) ?></div>
+                <div class="fw-bold small" style="color: var(--text-heading);"><?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="small" style="color: var(--text-muted);"><?= htmlspecialchars($profileIdLabel . ': ' . $profileIdent, ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="small" style="color: var(--text-muted);"><?= htmlspecialchars($profilePos, ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="small" style="color: var(--text-muted);"><?= htmlspecialchars($profileDept, ENT_QUOTES, 'UTF-8') ?></div>
             </div>
         </div>
     </div>
 </div>
 
 <?php if (isset($errors['signature'])): ?>
-    <div class="alert alert-danger d-flex align-items-center gap-2 py-2.5 px-3 mb-4 small" role="alert">
+    <div class="alert alert-danger alert-sigma d-flex align-items-center gap-2 py-2 px-3 mb-4 small" role="alert">
         <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-        <div><?= htmlspecialchars($errors['signature']) ?></div>
+        <div><?= htmlspecialchars($errors['signature'], ENT_QUOTES, 'UTF-8') ?></div>
     </div>
 <?php endif; ?>
 
-<!-- Alert Petunjuk Slot Terkunci -->
-<div class="alert alert-info py-2.5 px-3 mb-4 d-flex align-items-start gap-2.5" style="border-radius: var(--radius-md);">
-    <i class="bi bi-lock-fill text-info mt-0.5 fs-5"></i>
-    <div class="small">
-        <strong>Slot Tanda Tangan Terkunci (ADR-08):</strong> Posisi slot telah ditentukan oleh pengaju.
-        Cukup pilih salah satu metode tanda tangan di panel kanan — pratinjau langsung tampil di dalam kotak slot Anda.
-        Setelah dikonfirmasi, tindakan <strong>tidak dapat dibatalkan</strong> dan stempel QR verifikasi akan dibubuhkan otomatis.
+<!-- Banner Petunjuk Slot Terkunci -->
+<div class="sigma-guide-banner py-2 px-3 mb-4 d-flex align-items-start gap-2">
+    <i class="bi bi-lock-fill text-sigma-purple mt-1 fs-5 flex-shrink-0"></i>
+    <div class="small" style="color: var(--sigma-navy);">
+        <strong>Slot Tanda Tangan Terkunci (ADR-08):</strong> Posisi slot telah ditetapkan pengaju.
+        Pilih format pengesahan dan metode tanda tangan di panel kanan — pratinjau langsung tampil di kotak slot Anda.
+        Setelah dikonfirmasi, tanda tangan bersifat permanen dan QR verifikasi akan dibubuhkan otomatis.
     </div>
 </div>
 
-<form id="signForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/sign" method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="input_method" id="inputMethod" value="<?= htmlspecialchars($restoreTab === 'canvas' || $restoreTab === 'upload' ? $restoreTab : 'template') ?>">
+<form id="signForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="input_method" id="inputMethod" value="<?= htmlspecialchars($restoreTab === 'canvas' || $restoreTab === 'upload' ? $restoreTab : 'template', ENT_QUOTES, 'UTF-8') ?>">
     <input type="hidden" name="signature_canvas" id="signatureCanvasInput">
 
     <div class="row g-4">
         <!-- Kolom Kiri: Pratinjau Dokumen Interaktif & Slot Terkunci (ADR-09) -->
         <div class="col-lg-7">
-            <div class="card-clean mb-4">
-                <div class="card-clean-header py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
-                        <i class="bi bi-file-earmark-check text-success"></i>
-                        <span>Pratinjau Dokumen &amp; Lokasi Slot Tanda Tangan (Terkunci)</span>
+            <div class="card-sigma mb-4">
+                <div class="card-sigma-header py-2 px-3 flex-wrap">
+                    <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                        <i class="bi bi-file-earmark-check text-sigma-purple"></i>
+                        <span>Pratinjau Dokumen &amp; Lokasi Slot (Terkunci)</span>
                     </span>
 
                     <div class="d-flex align-items-center gap-2">
                         <!-- Toolbar Navigasi Halaman PDF -->
                         <div class="btn-group btn-group-sm" role="group" id="pdfNavToolbar">
-                            <button type="button" class="btn btn-outline-secondary" id="btnPrevPage" title="Halaman Sebelumnya" disabled>
+                            <button type="button" class="btn-sigma-outline px-2 py-1" id="btnPrevPage" title="Halaman Sebelumnya" disabled>
                                 <i class="bi bi-chevron-left"></i>
                             </button>
-                            <span class="btn btn-outline-secondary disabled text-dark fw-medium px-2.5" id="pageIndicator" style="font-size: 0.75rem;">
+                            <span class="btn-sigma-outline px-3 py-1 fw-semibold" id="pageIndicator" style="font-size: 0.76rem; pointer-events: none; background: var(--sigma-tint-50);">
                                 Hal <span id="pageNumDisplay"><?= $pageNo ?></span> dari <span id="pageTotalDisplay">1</span>
                             </span>
-                            <button type="button" class="btn btn-outline-secondary" id="btnNextPage" title="Halaman Berikutnya" disabled>
+                            <button type="button" class="btn-sigma-outline px-2 py-1" id="btnNextPage" title="Halaman Berikutnya" disabled>
                                 <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
 
                         <!-- Buka Layar Penuh -->
-                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm">
-                            <i class="bi bi-arrows-fullscreen me-1"></i> Layar Penuh
+                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/preview" target="_blank" class="btn-sigma-outline btn-sigma-sm py-1 px-2">
+                            <i class="bi bi-arrows-fullscreen"></i> Layar Penuh
                         </a>
                     </div>
                 </div>
 
-                <div class="card-clean-body p-3 bg-light text-center position-relative" style="min-height: 480px;">
+                <div class="card-sigma-body p-3 text-center position-relative" style="min-height: 480px; background: #f1eff7;">
                     <!-- Loading Spinner saat PDF.js memuat lembar berkas -->
                     <div id="pdfLoadingSpinner" class="py-5 text-center">
-                        <div class="spinner-border text-success" role="status" style="width: 2.5rem; height: 2.5rem;">
+                        <div class="spinner-border text-sigma-purple" role="status" style="width: 2.5rem; height: 2.5rem;">
                             <span class="visually-hidden">Memuat PDF...</span>
                         </div>
-                        <div class="text-muted small mt-2 fw-medium">Memuat halaman dokumen PDF asli...</div>
+                        <div class="small mt-2 fw-medium" style="color: var(--text-muted);">Memuat halaman dokumen PDF asli...</div>
                     </div>
 
                     <!-- Alert Fallback jika PDF.js gagal atau offline -->
-                    <div id="pdfFallbackAlert" class="alert alert-warning py-2 px-3 small d-none text-start mb-3" style="border-radius: var(--radius-md);">
+                    <div id="pdfFallbackAlert" class="alert alert-warning alert-sigma py-2 px-3 small d-none text-start mb-3">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
                         Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat melihat slot tanda tangan pada representasi lembar di bawah ini.
                     </div>
 
                     <!-- Notifikasi Cepat jika Penandatangan Sedang Membaca Halaman Lain -->
-                    <div id="slotPageNotice" class="alert alert-warning border py-2 px-3 small d-none text-start mb-2 align-items-center justify-content-between flex-wrap gap-2" style="border-radius: var(--radius-sm);">
+                    <div id="slotPageNotice" class="alert alert-warning alert-sigma border py-2 px-3 small d-none text-start mb-2 align-items-center justify-content-between flex-wrap gap-2">
                         <span>
                             <i class="bi bi-info-circle-fill text-warning me-1"></i>
                             Slot tanda tangan Anda yang telah dikunci berada di <strong>Halaman <span id="slotCurrentPageNotice"><?= $pageNo ?></span></strong>.
                         </span>
-                        <div class="d-flex align-items-center gap-1.5">
-                            <button type="button" class="btn btn-success btn-sm py-0.5 px-2 fw-semibold text-white" id="btnJumpToSlotPage">
-                                <i class="bi bi-arrow-left-circle me-1"></i> Kembali ke Hal Slot (<span id="jumpTargetPage"><?= $pageNo ?></span>)
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn-sigma-navy btn-sigma-sm" id="btnJumpToSlotPage">
+                                <i class="bi bi-arrow-left-circle"></i> Kembali ke Hal Slot (<span id="jumpTargetPage"><?= $pageNo ?></span>)
                             </button>
                         </div>
                     </div>
@@ -171,7 +171,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 
                             <!-- Overlay Lapisan Kotak Slot Tanda Tangan (Persis di atas PDF) -->
                             <div id="slotOverlayContainer" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;">
-                                
+
                                 <!-- 1. Tanda Tangan yang Sudah Ditempatkan oleh Pihak Sebelumnya ($signaturesPlaced) -->
                                 <?php if (!empty($signaturesPlaced)): ?>
                                     <?php foreach ($signaturesPlaced as $sig): ?>
@@ -187,40 +187,39 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                                 ? ($placedIdLabel . ': ' . $sig['signer_identifier_snapshot'])
                                                 : ($sig['signer_position_snapshot'] ?? '');
                                         ?>
-                                        <div class="position-absolute rounded border text-center overflow-hidden bg-white shadow-xs <?= ($sp !== $pageNo) ? 'd-none' : '' ?>"
+                                        <div class="position-absolute rounded text-center overflow-hidden bg-white shadow-sm sigma-slot-signed <?= ($sp !== $pageNo) ? 'd-none' : '' ?>"
                                              data-page="<?= $sp ?>"
                                              style="left: <?= $sx ?>%; top: <?= $sy ?>%; width: <?= $sw ?>%; height: <?= $sh ?>%;
-                                                    border-color: #10b981 !important; border-width: 1.5px !important; z-index: 15; pointer-events: auto;"
-                                             title="Telah ditandatangani oleh <?= htmlspecialchars($sig['signer_name_snapshot']) ?>">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle position-absolute top-0 start-0 m-0.5 px-1 py-0" style="font-size: 0.52rem; z-index: 5;">
-                                                <i class="bi bi-check-circle-fill me-0.5"></i><?= !empty($sig['step_order']) ? ('Step ' . (int) $sig['step_order'] . ' &bull; ') : '' ?>Tertanda
+                                                    background-color: rgba(255, 255, 255, 0.96) !important; z-index: 15; pointer-events: auto;"
+                                             title="Telah ditandatangani oleh <?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>">
+                                            <span class="position-absolute top-0 start-0 m-1 px-1 py-0 rounded-pill fw-semibold"
+                                                  style="font-size: 0.52rem; z-index: 5; background: var(--sigma-success-bg); color: var(--sigma-success-text); border: 1px solid #bbf7d0;">
+                                                <i class="bi bi-check-circle-fill me-1"></i><?= !empty($sig['step_order']) ? ('Tahap ' . (int) $sig['step_order'] . ' &bull; ') : '' ?>Tertanda
                                             </span>
                                             <div class="w-100 h-100 position-relative d-flex align-items-stretch">
-                                                <!-- Kolom kiri: coretan (jika ada) + nama + garis + NIP/NIM -->
                                                 <div class="d-flex flex-column <?= $isPlacedQrOnly ? 'justify-content-center' : 'justify-content-end' ?>" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
                                                     <?php if (!$isPlacedQrOnly): ?>
                                                         <div class="position-relative flex-grow-1" style="min-height: 0;">
-                                                            <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
-                                                                 alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                                            <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id'], ENT_QUOTES, 'UTF-8') ?>/preview"
+                                                                 alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>"
                                                                  style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;">
                                                         </div>
                                                     <?php endif; ?>
                                                     <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                        <div class="text-dark fw-bold text-truncate" style="font-size: 0.58rem;">
-                                                            <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                                        <div class="fw-bold text-truncate" style="font-size: 0.58rem; color: var(--text-heading);">
+                                                            <?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
                                                         <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                                         <?php if (!empty($placedIdentText)): ?>
-                                                            <div class="text-muted text-truncate" style="font-size: 0.50rem;">
-                                                                <?= htmlspecialchars($placedIdentText) ?>
+                                                            <div class="text-truncate" style="font-size: 0.50rem; color: var(--text-muted);">
+                                                                <?= htmlspecialchars($placedIdentText, ENT_QUOTES, 'UTF-8') ?>
                                                             </div>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
-                                                <!-- Kolom kanan: QR Code verifikasi -->
                                                 <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
-                                                    <div class="d-flex flex-column align-items-center justify-content-center bg-white shadow-xs rounded border border-success-subtle text-success"
-                                                         style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 0.95rem;"
+                                                    <div class="d-flex flex-column align-items-center justify-content-center bg-white rounded border"
+                                                         style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 0.95rem; border-color: #bbf7d0 !important; color: var(--sigma-success-text);"
                                                          title="QR Verifikasi Resmi">
                                                         <i class="bi bi-qr-code"></i>
                                                     </div>
@@ -245,27 +244,28 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                             ? ($waitIdLabel . ': ' . $s['signer_identifier'])
                                             : ($s['role_title'] ?: ($s['signer_position'] ?? ''));
                                     ?>
-                                    <div class="position-absolute rounded border text-center overflow-hidden bg-light <?= ($op !== $pageNo) ? 'd-none' : '' ?>"
+                                    <div class="position-absolute rounded text-center overflow-hidden <?= ($op !== $pageNo) ? 'd-none' : '' ?>"
                                          data-page="<?= $op ?>"
                                          style="left: <?= $ox ?>%; top: <?= $oy ?>%; width: <?= $ow ?>%; height: <?= $oh ?>%;
-                                                border-color: #94a3b8 !important; border-width: 1.5px dashed !important; opacity: 0.85; z-index: 10; pointer-events: auto;"
-                                         title="Slot Step <?= (int) $s['step_order'] ?>: <?= htmlspecialchars($s['signer_name']) ?> (Menunggu Giliran)">
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle position-absolute top-0 start-0 m-0.5 px-1 py-0 text-truncate" style="font-size: 0.50rem; max-width: 92%; z-index: 5;">
-                                            <i class="bi bi-clock me-0.5"></i>Step <?= (int) $s['step_order'] ?> &bull; Menunggu
+                                                background-color: rgba(248, 248, 252, 0.88); border: 1.5px dashed var(--border-strong) !important; opacity: 0.9; z-index: 10; pointer-events: auto;"
+                                         title="Slot Tahap <?= (int) $s['step_order'] ?>: <?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?> (Menunggu Giliran)">
+                                        <span class="position-absolute top-0 start-0 m-1 px-1 py-0 rounded-pill fw-semibold text-truncate"
+                                              style="font-size: 0.50rem; max-width: 92%; z-index: 5; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
+                                            <i class="bi bi-clock me-1"></i>Tahap <?= (int) $s['step_order'] ?> &bull; Menunggu
                                         </span>
                                         <div class="w-100 h-100 position-relative d-flex align-items-stretch">
                                             <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 13px 3px 3px 4px; min-width: 0;">
-                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted" style="font-size: 0.50rem; min-height: 0;">
+                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="font-size: 0.50rem; min-height: 0; color: var(--text-muted);">
                                                     <span>[Menunggu Giliran]</span>
                                                 </div>
                                                 <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                    <div class="text-dark fw-bold text-truncate" style="font-size: 0.56rem;">
-                                                        <?= htmlspecialchars($s['signer_name']) ?>
+                                                    <div class="fw-bold text-truncate" style="font-size: 0.56rem; color: var(--text-heading);">
+                                                        <?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                     <div style="border-top: 1px solid #475569; margin: 1px 0;"></div>
                                                     <?php if (!empty($waitIdentText)): ?>
-                                                        <div class="text-muted text-truncate" style="font-size: 0.48rem;">
-                                                            <?= htmlspecialchars($waitIdentText) ?>
+                                                        <div class="text-truncate" style="font-size: 0.48rem; color: var(--text-muted);">
+                                                            <?= htmlspecialchars($waitIdentText, ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
@@ -280,19 +280,18 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                     </div>
                                 <?php endforeach; ?>
 
-                                <!-- 3. Slot Aktif Milik Penandatangan Saat Ini (Terkunci & Live Preview) -->
-                                <div id="activeSlotBox" class="position-absolute rounded border text-center overflow-hidden"
+                                <!-- 3. Slot Aktif Milik Penandatangan Saat Ini (Terkunci & Live Preview Figma #f8f5fc/#78629e) -->
+                                <div id="activeSlotBox" class="position-absolute rounded text-center overflow-hidden sigma-slot-active"
                                      data-page="<?= $pageNo ?>"
                                      style="left: <?= $slotX ?>%; top: <?= $slotY ?>%; width: <?= $slotW ?>%; height: <?= $slotH ?>%;
-                                            background-color: rgba(16, 185, 129, 0.08); border-color: #059669 !important; border-width: 2px !important;
                                             z-index: 20; animation: slotPulse 2.2s ease-in-out infinite; pointer-events: auto;">
-                                    <span class="badge bg-success position-absolute top-0 start-0 m-1 px-1.5 py-0.5" style="font-size: 0.62rem; z-index: 5;">
-                                        Slot Anda &bull; Step <?= (int) $signer['step_order'] ?>
+                                    <span class="position-absolute top-0 start-0 m-1 px-2 py-0 rounded-pill fw-semibold"
+                                          style="font-size: 0.60rem; z-index: 5; background: var(--sigma-purple-700); color: #ffffff;">
+                                        Slot Anda &bull; Tahap <?= (int) $signer['step_order'] ?>
                                     </span>
 
                                     <!-- Tampilan Preview: Format QR + Tanda Tangan + Nama -->
                                     <div id="slotViewQrAndSig" class="w-100 h-100 position-relative d-flex align-items-stretch">
-                                        <!-- Kolom kiri: coretan tanda tangan, nama, garis pemisah, dan NIP/NIM -->
                                         <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
                                             <!-- Pratinjau tanda tangan dengan fit-contain (BUG-07) -->
                                             <div class="position-relative flex-grow-1" style="min-height: 0;">
@@ -301,63 +300,59 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                                      style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;"
                                                      title="Pratinjau tanda tangan (rasio aspek dipertahankan)">
                                                 <div id="slotPreviewEmpty" class="w-100 h-100 d-flex align-items-center justify-content-center">
-                                                    <span class="text-muted" style="font-size: 0.58rem;">
+                                                    <span style="font-size: 0.58rem; color: var(--sigma-purple-700);">
                                                         <i class="bi bi-pen me-1"></i>Pilih metode tanda tangan
                                                     </span>
                                                 </div>
                                             </div>
-                                            <!-- Identitas penandatangan: Nama, garis, NIP/NIM -->
                                             <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                <div class="text-dark fw-bold text-truncate" style="font-size: 0.6rem;">
-                                                    <?= htmlspecialchars($profileName) ?>
+                                                <div class="fw-bold text-truncate" style="font-size: 0.6rem; color: var(--text-heading);">
+                                                    <?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?>
                                                 </div>
                                                 <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                                 <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
-                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
-                                                        <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                                    <div class="text-truncate" style="font-size: 0.52rem; color: var(--text-muted);">
+                                                        <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?>: <?= htmlspecialchars($profileIdent, ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                 <?php elseif (!empty($profilePos) && $profilePos !== '-'): ?>
-                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
-                                                        <?= htmlspecialchars($profilePos) ?>
+                                                    <div class="text-truncate" style="font-size: 0.52rem; color: var(--text-muted);">
+                                                        <?= htmlspecialchars($profilePos, ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
-                                        <!-- Kolom kanan: QR Code verifikasi di dalam kotak slot -->
                                         <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
                                             <div class="d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
-                                                 style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 1rem;"
+                                                 style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 1rem; color: var(--sigma-navy);"
                                                  title="QR Code verifikasi dibubuhkan otomatis di dalam kotak, di sebelah kanan identitas">
-                                                <i class="bi bi-qr-code text-dark"></i>
+                                                <i class="bi bi-qr-code"></i>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Tampilan Preview: Format Hanya Kode QR (Dilengkapi Nama, Garis Pemisah, & NIP/NIM) -->
+                                    <!-- Tampilan Preview: Format Hanya Kode QR -->
                                     <div id="slotViewQrOnly" class="w-100 h-100 position-relative d-none align-items-stretch">
-                                        <!-- Kolom kiri: Nama, garis pemisah, dan NIP/NIM (tanpa coretan, rata tengah vertikal) -->
                                         <div class="d-flex flex-column justify-content-center" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
                                             <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                <div class="text-dark fw-bold text-truncate" style="font-size: 0.6rem;">
-                                                    <?= htmlspecialchars($profileName) ?>
+                                                <div class="fw-bold text-truncate" style="font-size: 0.6rem; color: var(--text-heading);">
+                                                    <?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?>
                                                 </div>
                                                 <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                                 <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
-                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
-                                                        <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                                    <div class="text-truncate" style="font-size: 0.52rem; color: var(--text-muted);">
+                                                        <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?>: <?= htmlspecialchars($profileIdent, ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                 <?php elseif (!empty($profilePos) && $profilePos !== '-'): ?>
-                                                    <div class="text-muted text-truncate" style="font-size: 0.52rem;">
-                                                        <?= htmlspecialchars($profilePos) ?>
+                                                    <div class="text-truncate" style="font-size: 0.52rem; color: var(--text-muted);">
+                                                        <?= htmlspecialchars($profilePos, ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
-                                        <!-- Kolom kanan: QR Code verifikasi di dalam kotak slot -->
                                         <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
-                                            <div class="d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border border-success-subtle text-success"
-                                                 style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 1rem;"
-                                                 title="QR Code verifikasi dibubuhkan otomatis di dalam kotak, di sebelah kanan identitas">
+                                            <div class="d-flex flex-column align-items-center justify-content-center checkerboard-bg rounded border"
+                                                 style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 1rem; border-color: var(--sigma-lavender) !important; color: var(--sigma-purple-700);"
+                                                 title="QR Code verifikasi dibubuhkan otomatis di dalam kotak">
                                                 <i class="bi bi-qr-code"></i>
                                             </div>
                                         </div>
@@ -369,13 +364,13 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                     </div>
 
                     <!-- Petunjuk Bawah Kanvas -->
-                    <div class="text-muted mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem;">
+                    <div class="mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem; color: var(--text-muted);">
                         <span>
-                            <i class="bi bi-lock-fill me-1 text-success"></i>
-                            Posisi slot tanda tangan telah dikunci oleh Pengaju di <strong>Halaman <?= $pageNo ?></strong>. Gunakan tombol navigasi di atas untuk membaca halaman lain.
+                            <i class="bi bi-lock-fill me-1 text-sigma-purple"></i>
+                            Posisi slot dikunci oleh Pengaju di <strong>Halaman <?= $pageNo ?></strong>. Gunakan navigasi di atas untuk meninjau halaman lain.
                         </span>
-                        <span class="badge bg-light text-muted border">
-                            <i class="bi bi-layers me-1"></i> Menampilkan Halaman: <strong id="activePageBadge" class="text-dark"><?= $pageNo ?></strong>
+                        <span class="badge-sigma badge-sigma-purple">
+                            <i class="bi bi-layers"></i> Halaman: <strong id="activePageBadge"><?= $pageNo ?></strong>
                         </span>
                     </div>
                 </div>
@@ -384,46 +379,46 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 
         <!-- Kolom Kanan: Metode Tanda Tangan & Konfirmasi -->
         <div class="col-lg-5">
-            <div class="card-clean mb-4">
-                <div class="card-clean-header py-3 px-3">
+            <div class="card-sigma mb-4">
+                <div class="card-sigma-header">
                     <div>
-                        <h6 class="fw-bold text-dark mb-0">Format &amp; Metode Tanda Tangan</h6>
-                        <small class="text-muted">Pilih jenis tampilan pengesahan dan metode tanda tangan</small>
+                        <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">Format &amp; Metode Tanda Tangan</h2>
+                        <small style="color: var(--text-muted);">Pilih jenis tampilan pengesahan dan sumber tanda tangan</small>
                     </div>
                 </div>
-                <div class="card-clean-body p-3">
+                <div class="card-sigma-body p-3">
 
                     <!-- Pilihan Format Tanda Tangan (QR + TTD + Nama vs Hanya QR) -->
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark mb-2 d-flex align-items-center gap-1.5">
-                            <i class="bi bi-ui-radios-grid text-success"></i>
-                            <span>Pilih Format Tampilan:</span>
+                        <label class="sigma-form-label mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-ui-radios-grid text-sigma-purple"></i>
+                            <span>Pilih Format Tampilan (ADR-10):</span>
                         </label>
                         <input type="hidden" name="signature_format" id="signatureFormatInput" value="qr_and_signature">
                         <div class="row g-2">
                             <div class="col-6">
-                                <div class="border rounded-3 p-2.5 h-100 format-card active border-success bg-light text-center"
+                                <div class="border rounded-3 p-3 h-100 format-card active sigma-card-active text-center"
                                      id="btnFormatQrAndSig" role="button" style="cursor: pointer; transition: all 0.2s ease;">
-                                    <div class="d-flex align-items-center justify-content-center gap-1 text-success mb-1">
+                                    <div class="d-flex align-items-center justify-content-center gap-1 text-sigma-purple mb-1">
                                         <i class="bi bi-pen-fill fs-5"></i>
                                         <i class="bi bi-plus-lg small"></i>
                                         <i class="bi bi-qr-code fs-6"></i>
                                     </div>
-                                    <div class="fw-bold text-dark small" style="font-size: 0.78rem;">QR + TTD + Nama</div>
-                                    <div class="text-muted mt-0.5" style="font-size: 0.65rem; line-height: 1.25;">
+                                    <div class="fw-bold small" style="font-size: 0.78rem; color: var(--text-heading);">QR + TTD + Nama</div>
+                                    <div class="mt-1" style="font-size: 0.66rem; line-height: 1.25; color: var(--text-muted);">
                                         Coretan tanda tangan, nama resmi, dan kode QR
                                     </div>
                                 </div>
                             </div>
                             <div class="col-6">
-                                <div class="border rounded-3 p-2.5 h-100 format-card text-center"
+                                <div class="border rounded-3 p-3 h-100 format-card text-center"
                                      id="btnFormatQrOnly" role="button" style="cursor: pointer; transition: all 0.2s ease;">
-                                    <div class="d-flex align-items-center justify-content-center text-primary mb-1">
+                                    <div class="d-flex align-items-center justify-content-center text-sigma-navy mb-1">
                                         <i class="bi bi-qr-code fs-4"></i>
                                     </div>
-                                    <div class="fw-bold text-dark small" style="font-size: 0.78rem;">Hanya Kode QR</div>
-                                    <div class="text-muted mt-0.5" style="font-size: 0.65rem; line-height: 1.25;">
-                                        Kode QR, nama resmi, dan <?= htmlspecialchars($profileIdLabel) ?> tanpa coretan
+                                    <div class="fw-bold small" style="font-size: 0.78rem; color: var(--text-heading);">Hanya Kode QR</div>
+                                    <div class="mt-1" style="font-size: 0.66rem; line-height: 1.25; color: var(--text-muted);">
+                                        Kode QR, nama resmi, dan <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?> tanpa coretan
                                     </div>
                                 </div>
                             </div>
@@ -432,25 +427,25 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 
                     <!-- Bagian Metode Goresan (Khusus Format QR + TTD + Nama) -->
                     <div id="scribbleMethodSection">
-                        <div class="border-top pt-3 mb-2">
-                            <div class="small fw-bold text-dark mb-2 d-flex align-items-center gap-1.5">
-                                <i class="bi bi-palette text-success"></i>
+                        <div class="border-top pt-3 mb-2" style="border-color: var(--border-subtle) !important;">
+                            <div class="small fw-bold mb-2 d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                                <i class="bi bi-palette text-sigma-purple"></i>
                                 <span>Pilih Sumber Goresan Tanda Tangan:</span>
                             </div>
                         </div>
 
                         <!-- Tab Metode -->
-                        <ul class="nav nav-pills nav-fill mb-3" id="methodTabs" role="tablist">
+                        <ul class="nav nav-pills nav-fill mb-3 sigma-pills-nav" id="methodTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link <?= $restoreTab === 'template' ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
                                         id="tab-template-btn" data-bs-toggle="pill" data-bs-target="#tab-template" type="button" role="tab">
-                                    <i class="bi bi-person-badge"></i> Template Tersimpan
+                                    <i class="bi bi-person-badge"></i> Template
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link <?= ($restoreTab === 'canvas' || $restoreTab === null) ? 'active' : '' ?> d-inline-flex align-items-center justify-content-center gap-2 py-2 px-2 small fw-semibold"
                                         id="tab-canvas-btn" data-bs-toggle="pill" data-bs-target="#tab-canvas" type="button" role="tab">
-                                    <i class="bi bi-brush"></i> Gores Kanvas
+                                    <i class="bi bi-brush"></i> Kanvas
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
@@ -465,19 +460,19 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                             <!-- TAB 1: Template Tersimpan -->
                             <div class="tab-pane fade <?= $restoreTab === 'template' ? 'show active' : '' ?>" id="tab-template" role="tabpanel">
                                 <?php if (empty($templates)): ?>
-                                    <div class="alert alert-warning py-2.5 px-3 small d-flex align-items-start gap-2 mb-0" style="border-radius: var(--radius-md);">
-                                        <i class="bi bi-exclamation-circle-fill mt-0.5"></i>
+                                    <div class="alert alert-warning alert-sigma py-2 px-3 small d-flex align-items-start gap-2 mb-0">
+                                        <i class="bi bi-exclamation-circle-fill mt-1"></i>
                                         <div>
                                             <strong>Anda belum memiliki template tanda tangan (BUG-08).</strong><br>
-                                            Silakan gunakan tab <em>"Gores Kanvas"</em> atau <em>"Upload PNG"</em>, atau buat template terlebih dahulu di menu
-                                            <a href="<?= BASE_URL ?>/user-signatures/create" target="_blank" class="fw-semibold">Template TTD</a>.
+                                            Silakan gunakan tab <em>"Kanvas"</em> atau <em>"Upload PNG"</em>, atau buat template di menu
+                                            <a href="<?= BASE_URL ?>/user-signatures/create" target="_blank" class="fw-semibold" style="color: var(--sigma-purple-700);">Template TTD</a>.
                                         </div>
                                     </div>
                                 <?php else: ?>
                                     <?php if (!$defaultTemplateId): ?>
-                                        <div class="alert alert-info py-2 px-3 small mb-2 d-flex align-items-center gap-2" style="border-radius: var(--radius-md);">
-                                            <i class="bi bi-info-circle-fill"></i>
-                                            <span>Tidak ada template default — silakan pilih salah satu di bawah atau gunakan metode lain.</span>
+                                        <div class="sigma-guide-banner py-2 px-3 small mb-2 d-flex align-items-center gap-2">
+                                            <i class="bi bi-info-circle-fill text-sigma-purple"></i>
+                                            <span>Tidak ada template default — pilih salah satu di bawah atau gunakan metode lain.</span>
                                         </div>
                                     <?php endif; ?>
                                     <div class="row g-2">
@@ -487,19 +482,19 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                                 $isChecked = ($tplId === $defaultTemplateId);
                                             ?>
                                             <div class="col-6">
-                                                <label class="d-block border rounded-3 p-2 h-100 position-relative <?= $isChecked ? 'border-success bg-light' : '' ?>"
-                                                       style="cursor: pointer; transition: all 0.15s ease;" id="tplLabel_<?= htmlspecialchars($tplId) ?>">
-                                                    <input type="radio" name="template_id" value="<?= htmlspecialchars($tplId) ?>"
-                                                           class="form-check-input position-absolute top-0 end-0 mt-1.5 me-1.5 template-radio"
+                                                <label class="d-block border rounded-3 p-2 h-100 position-relative <?= $isChecked ? 'sigma-card-active' : '' ?>"
+                                                       style="cursor: pointer; transition: all 0.15s ease;" id="tplLabel_<?= htmlspecialchars($tplId, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <input type="radio" name="template_id" value="<?= htmlspecialchars($tplId, ENT_QUOTES, 'UTF-8') ?>"
+                                                           class="form-check-input position-absolute top-0 end-0 mt-2 me-2 template-radio"
                                                            <?= $isChecked ? 'checked' : '' ?>>
                                                     <div class="sig-card-preview checkerboard-bg mb-1" style="height: 100px;">
-                                                        <img src="<?= BASE_URL ?>/user-signatures/<?= htmlspecialchars($tplId) ?>/preview"
-                                                             alt="<?= htmlspecialchars($tpl['label'] ?: 'Template') ?>" loading="lazy">
+                                                        <img src="<?= BASE_URL ?>/user-signatures/<?= htmlspecialchars($tplId, ENT_QUOTES, 'UTF-8') ?>/preview"
+                                                             alt="<?= htmlspecialchars($tpl['label'] ?: 'Template', ENT_QUOTES, 'UTF-8') ?>" loading="lazy">
                                                     </div>
-                                                    <div class="text-truncate small fw-semibold text-dark" style="font-size: 0.72rem;">
-                                                        <?= htmlspecialchars($tpl['label'] ?: 'Tanda Tangan') ?>
+                                                    <div class="text-truncate small fw-semibold" style="font-size: 0.72rem; color: var(--text-heading);">
+                                                        <?= htmlspecialchars($tpl['label'] ?: 'Tanda Tangan', ENT_QUOTES, 'UTF-8') ?>
                                                         <?php if ((int) $tpl['is_default'] === 1): ?>
-                                                            <span class="badge bg-success ms-1" style="font-size: 0.58rem;">Default</span>
+                                                            <span class="badge-sigma badge-sigma-success py-0 px-1 ms-1" style="font-size: 0.58rem;">Default</span>
                                                         <?php endif; ?>
                                                     </div>
                                                 </label>
@@ -511,19 +506,19 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 
                             <!-- TAB 2: Gores Kanvas Digital -->
                             <div class="tab-pane fade <?= ($restoreTab === 'canvas' || $restoreTab === null) ? 'show active' : '' ?>" id="tab-canvas" role="tabpanel">
-                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 bg-light border rounded-top border-bottom-0 small">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 border rounded-top border-bottom-0 small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="text-muted" style="font-size: 0.72rem;">Warna:</span>
+                                        <span style="font-size: 0.72rem; color: var(--text-muted);">Warna:</span>
                                         <button type="button" class="btn btn-sm btn-color p-0 rounded-circle active" data-color="#0f172a" title="Hitam Klasik"
                                                 style="width: 20px; height: 20px; background: #0f172a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
                                         <button type="button" class="btn btn-sm btn-color p-0 rounded-circle" data-color="#1e3a8a" title="Biru Resmi Dokumen"
                                                 style="width: 20px; height: 20px; background: #1e3a8a; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></button>
-                                        <span class="text-muted ms-1" style="font-size: 0.72rem;">Ketebalan:</span>
-                                        <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="1.8" style="font-size: 0.7rem;">Tipis</button>
-                                        <button type="button" class="btn btn-sm btn-pnj-primary btn-width py-0.5 px-2 active" data-width="2.8" style="font-size: 0.7rem;">Sedang</button>
-                                        <button type="button" class="btn btn-sm btn-subtle btn-width py-0.5 px-2" data-width="4.2" style="font-size: 0.7rem;">Tebal</button>
+                                        <span class="ms-1" style="font-size: 0.72rem; color: var(--text-muted);">Tebal:</span>
+                                        <button type="button" class="btn-sigma-outline btn-width py-1 px-2" data-width="1.8" style="font-size: 0.7rem; min-height: 26px;">Tipis</button>
+                                        <button type="button" class="btn-sigma-navy btn-width py-1 px-2 active" data-width="2.8" style="font-size: 0.7rem; min-height: 26px;">Sedang</button>
+                                        <button type="button" class="btn-sigma-outline btn-width py-1 px-2" data-width="4.2" style="font-size: 0.7rem; min-height: 26px;">Tebal</button>
                                     </div>
-                                    <button type="button" id="btnClearCanvas" class="btn btn-subtle btn-sm text-danger border-danger-subtle d-inline-flex align-items-center gap-1 py-1 px-2.5" style="font-size: 0.72rem;">
+                                    <button type="button" id="btnClearCanvas" class="btn-sigma-outline text-danger d-inline-flex align-items-center gap-1 py-1 px-2" style="font-size: 0.72rem; min-height: 26px;">
                                         <i class="bi bi-eraser-fill"></i> Bersihkan
                                     </button>
                                 </div>
@@ -534,7 +529,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                         <span>Garis Dasar</span>
                                     </div>
                                 </div>
-                                <div class="form-text mt-1 text-muted" style="font-size: 0.72rem;">
+                                <div class="form-text mt-1" style="font-size: 0.72rem; color: var(--text-muted);">
                                     <i class="bi bi-info-circle me-1"></i>Mendukung sentuhan layar HP/tablet. Goresan diproses dengan latar belakang transparan.
                                 </div>
                             </div>
@@ -544,24 +539,24 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                 <div class="sig-upload-box" id="dropZone" style="padding: 1.5rem 1rem;">
                                     <input type="file" name="signature_file" id="signatureFileInput" accept="image/png" class="d-none">
                                     <div id="uploadPrompt">
-                                        <div class="text-success fs-2 mb-1"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-                                        <div class="fw-bold text-dark small mb-1">Klik untuk Memilih atau Seret ke Sini</div>
-                                        <div class="text-muted small mb-2">Hanya <strong>PNG transparan (.png)</strong>, maksimal 2 MB.</div>
-                                        <span class="btn btn-subtle btn-sm px-3"><i class="bi bi-folder2-open me-1"></i> Pilih Berkas PNG</span>
+                                        <div class="text-sigma-purple fs-2 mb-1"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                                        <div class="fw-bold small mb-1" style="color: var(--text-heading);">Klik untuk Memilih atau Seret ke Sini</div>
+                                        <div class="small mb-2" style="color: var(--text-muted);">Hanya <strong>PNG transparan (.png)</strong>, maksimal 2 MB.</div>
+                                        <span class="btn-sigma-outline btn-sigma-sm"><i class="bi bi-folder2-open"></i> Pilih Berkas PNG</span>
                                     </div>
                                     <div id="uploadPreviewWrapper" class="d-none">
                                         <div class="checkerboard-bg p-2 rounded border mx-auto d-inline-flex align-items-center justify-content-center mb-2" style="max-width: 280px; height: 130px; overflow: hidden;">
                                             <img id="uploadPreviewImg" src="" alt="Pratinjau Berkas" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                         </div>
                                         <div class="d-flex align-items-center justify-content-center gap-2">
-                                            <span id="uploadFileName" class="small fw-semibold text-dark text-truncate" style="max-width: 210px;"></span>
-                                            <button type="button" id="btnRemoveFile" class="btn btn-subtle btn-sm text-danger border-danger-subtle py-0.5 px-2" style="font-size: 0.72rem;">
+                                            <span id="uploadFileName" class="small fw-semibold text-truncate" style="max-width: 210px; color: var(--text-heading);"></span>
+                                            <button type="button" id="btnRemoveFile" class="btn-sigma-outline text-danger py-1 px-2" style="font-size: 0.72rem; min-height: 26px;">
                                                 <i class="bi bi-x-circle me-1"></i> Ganti File
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-text mt-1 text-muted" style="font-size: 0.72rem;">
+                                <div class="form-text mt-1" style="font-size: 0.72rem; color: var(--text-muted);">
                                     <i class="bi bi-lightbulb me-1"></i>Gunakan gambar berlatar transparan agar menyatu dengan lembar PDF tanpa menutupi teks.
                                 </div>
                             </div>
@@ -569,13 +564,13 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                     </div> <!-- end scribbleMethodSection -->
 
                     <!-- Bagian Informasi Format Hanya Kode QR -->
-                    <div id="qrOnlyInfoSection" class="alert alert-primary py-3 px-3 d-none mb-0" style="border-radius: var(--radius-md);">
-                        <div class="d-flex align-items-start gap-2.5">
-                            <i class="bi bi-info-circle-fill text-primary fs-5 mt-0.5"></i>
-                            <div class="small">
-                                <strong>Format Hanya Kode QR (Dilengkapi Nama &amp; <?= htmlspecialchars($profileIdLabel) ?>) Aktif:</strong><br>
-                                Dokumen akan disahkan secara elektronik dengan menampilkan <strong>Nama Resmi</strong>, garis pemisah, dan <strong><?= htmlspecialchars($profileIdLabel) ?></strong> di sisi kiri serta stempel <strong>Kode QR</strong> verifikasi resmi SIGMA PNJ di sisi kanan slot Anda.<br>
-                                <span class="text-muted mt-1 d-block">Anda tidak perlu menggambar kanvas atau memilih template coretan fisik. Klik tombol <strong>Tanda Tangani &amp; Terbitkan</strong> di bawah untuk langsung memproses pengesahan.</span>
+                    <div id="qrOnlyInfoSection" class="sigma-guide-banner d-none mb-0">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-info-circle-fill text-sigma-purple fs-5 mt-1"></i>
+                            <div class="small" style="color: var(--sigma-navy);">
+                                <strong>Format Hanya Kode QR (Dilengkapi Nama &amp; <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?>) Aktif:</strong><br>
+                                Dokumen disahkan secara elektronik dengan menampilkan <strong>Nama Resmi</strong>, garis pemisah, dan <strong><?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?></strong> di sisi kiri serta stempel <strong>Kode QR</strong> verifikasi SIGMA di sisi kanan slot Anda.<br>
+                                <span class="mt-1 d-block" style="color: var(--text-muted);">Klik tombol <strong>Tanda Tangani &amp; Terbitkan</strong> di bawah untuk langsung memproses pengesahan.</span>
                             </div>
                         </div>
                     </div>
@@ -584,46 +579,46 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
             </div>
 
             <!-- Ringkasan Identitas & Tombol Aksi -->
-            <div class="card-clean mb-4">
-                <div class="card-clean-body p-3">
+            <div class="card-sigma mb-4">
+                <div class="card-sigma-body p-3">
                     <div class="mb-3">
-                        <div class="text-muted small text-uppercase mb-2" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                        <div class="small text-uppercase fw-bold mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em; color: var(--sigma-purple-700);">
                             Ringkasan Konfirmasi
                         </div>
-                        <ul class="list-unstyled small d-flex flex-column gap-1.5 mb-0">
-                            <li class="d-flex justify-content-between">
-                                <span class="text-muted">Format Pengesahan</span>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold" id="summaryFormatLabel">QR + TTD + Nama</span>
+                        <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+                            <li class="d-flex justify-content-between align-items-center">
+                                <span style="color: var(--text-muted);">Format Pengesahan</span>
+                                <span class="badge-sigma badge-sigma-purple" id="summaryFormatLabel">QR + TTD + Nama</span>
                             </li>
                             <li class="d-flex justify-content-between">
-                                <span class="text-muted">Penandatangan</span>
-                                <span class="fw-semibold text-dark"><?= htmlspecialchars($profileName) ?></span>
+                                <span style="color: var(--text-muted);">Penandatangan</span>
+                                <span class="fw-semibold" style="color: var(--text-heading);"><?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?></span>
                             </li>
                             <li class="d-flex justify-content-between">
-                                <span class="text-muted">Jabatan / Peran</span>
-                                <span class="fw-semibold text-dark"><?= htmlspecialchars($signer['role_title'] ?: $profilePos) ?></span>
+                                <span style="color: var(--text-muted);">Jabatan / Peran</span>
+                                <span class="fw-semibold" style="color: var(--text-heading);"><?= htmlspecialchars($signer['role_title'] ?: $profilePos, ENT_QUOTES, 'UTF-8') ?></span>
                             </li>
                             <li class="d-flex justify-content-between">
-                                <span class="text-muted">Posisi Slot</span>
-                                <span class="fw-semibold text-dark">Hal. <?= $pageNo ?> (<?= number_format($slotX, 1) ?>%, <?= number_format($slotY, 1) ?>%)</span>
+                                <span style="color: var(--text-muted);">Posisi Slot</span>
+                                <span class="fw-semibold" style="color: var(--text-heading);">Hal. <?= $pageNo ?> (<?= number_format($slotX, 1) ?>%, <?= number_format($slotY, 1) ?>%)</span>
                             </li>
                             <li class="d-flex justify-content-between">
-                                <span class="text-muted">Tanda Tangan Sebelumnya</span>
-                                <span class="fw-semibold text-dark"><?= count($signaturesPlaced) ?> dari <?= (int) $totalSteps ?></span>
+                                <span style="color: var(--text-muted);">Tanda Tangan Sebelumnya</span>
+                                <span class="fw-semibold" style="color: var(--text-heading);"><?= count($signaturesPlaced) ?> dari <?= (int) $totalSteps ?></span>
                             </li>
                         </ul>
                     </div>
 
                     <div class="d-flex flex-column gap-2">
-                        <button type="button" id="btnOpenConfirm" class="btn btn-pnj-primary w-100 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalConfirm" disabled>
-                            <i class="bi bi-pen-fill me-1.5"></i> Tanda Tangani &amp; Terbitkan
+                        <button type="button" id="btnOpenConfirm" class="btn-sigma-navy w-100 py-2" data-bs-toggle="modal" data-bs-target="#modalConfirm" disabled>
+                            <i class="bi bi-pen-fill"></i> Tanda Tangani &amp; Terbitkan
                         </button>
-                        <button type="button" class="btn btn-outline-danger w-100 py-2" data-bs-toggle="modal" data-bs-target="#modalDecline">
-                            <i class="bi bi-x-circle me-1.5"></i> Tolak Berkas
+                        <button type="button" class="btn-sigma-outline w-100 py-2 text-danger" data-bs-toggle="modal" data-bs-target="#modalDecline">
+                            <i class="bi bi-x-circle"></i> Tolak Berkas
                         </button>
                     </div>
-                    <div class="text-center mt-2.5">
-                        <small class="text-muted" style="font-size: 0.72rem;">
+                    <div class="text-center mt-2">
+                        <small style="font-size: 0.72rem; color: var(--text-muted);">
                             <i class="bi bi-shield-lock me-1"></i>Setelah dikonfirmasi, tanda tangan bersifat permanen dan tidak dapat ditarik kembali.
                         </small>
                     </div>
@@ -634,29 +629,29 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 </form>
 
     <!-- Modal Konfirmasi Penandatanganan -->
-    <div class="modal fade" id="modalConfirm" tabindex="-1" aria-labelledby="modalConfirmLabel" aria-hidden="true">
+    <div class="modal fade modal-sigma" id="modalConfirm" tabindex="-1" aria-labelledby="modalConfirmLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-success text-white">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background: var(--sigma-navy);">
                     <h5 class="modal-title fs-6 fw-bold" id="modalConfirmLabel">
-                        <i class="bi bi-pen-fill me-1.5"></i> Konfirmasi Penandatanganan Resmi
+                        <i class="bi bi-pen-fill me-2"></i> Konfirmasi Penandatanganan Resmi
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="mb-3 text-dark small">
+                    <p class="mb-3 small" style="color: var(--text-heading);">
                         Apakah Anda yakin membubuhi tanda tangan resmi pada dokumen
-                        <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong>?
+                        <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong>?
                     </p>
-                    <div class="d-flex align-items-center justify-content-between p-2 mb-2 bg-light rounded border small">
-                        <span class="text-muted"><i class="bi bi-ui-radios-grid me-1"></i>Format Tanda Tangan:</span>
-                        <span class="badge bg-success-subtle text-success border border-success fw-bold" id="modalConfirmFormatBadge">
+                    <div class="d-flex align-items-center justify-content-between p-2 mb-2 rounded border small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                        <span style="color: var(--text-muted);"><i class="bi bi-ui-radios-grid me-1"></i>Format Tanda Tangan:</span>
+                        <span class="badge-sigma badge-sigma-purple" id="modalConfirmFormatBadge">
                             QR + Tanda Tangan + Nama
                         </span>
                     </div>
-                    <div class="d-flex align-items-center justify-content-between p-2 mb-3 bg-light rounded border small">
-                        <span class="text-muted"><i class="bi bi-file-earmark-text me-1"></i>Halaman Penempatan:</span>
-                        <span class="badge bg-success-subtle text-success border border-success fw-bold" id="modalConfirmPageBadge">
+                    <div class="d-flex align-items-center justify-content-between p-2 mb-3 rounded border small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                        <span style="color: var(--text-muted);"><i class="bi bi-file-earmark-text me-1"></i>Halaman Penempatan:</span>
+                        <span class="badge-sigma badge-sigma-success" id="modalConfirmPageBadge">
                             Halaman <?= $pageNo ?>
                         </span>
                     </div>
@@ -666,59 +661,59 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                             <div class="d-flex flex-column align-items-center justify-content-end h-100" style="width: 58%; min-width: 0;">
                                 <img id="modalPreviewImg" src="" alt="Pratinjau tanda tangan" class="d-none"
                                      style="max-height: 54px; max-width: 100%; object-fit: contain;">
-                                <span id="modalPreviewEmpty" class="text-muted small">Belum ada pratinjau tanda tangan.</span>
+                                <span id="modalPreviewEmpty" class="small" style="color: var(--text-muted);">Belum ada pratinjau tanda tangan.</span>
                                 <div id="modalPreviewName" class="w-100 text-center mt-1 d-none" style="line-height: 1.2;">
-                                    <div class="fw-bold text-dark text-truncate" style="font-size: 0.78rem;">
-                                        <?= htmlspecialchars($profileName) ?>
+                                    <div class="fw-bold text-truncate" style="font-size: 0.78rem; color: var(--text-heading);">
+                                        <?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?>
                                     </div>
                                     <div style="border-top: 1px solid #0f172a; margin: 2px auto; width: 90%;"></div>
                                     <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
-                                        <div class="text-muted text-truncate" style="font-size: 0.7rem;">
-                                            <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                        <div class="text-truncate" style="font-size: 0.7rem; color: var(--text-muted);">
+                                            <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?>: <?= htmlspecialchars($profileIdent, ENT_QUOTES, 'UTF-8') ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="d-flex flex-column align-items-center justify-content-center bg-white border rounded p-2 text-dark">
+                            <div class="d-flex flex-column align-items-center justify-content-center bg-white border rounded p-2" style="color: var(--sigma-navy);">
                                 <i class="bi bi-qr-code fs-2"></i>
-                                <span class="text-success fw-semibold" style="font-size: 0.55rem;">SIGMA Verified</span>
+                                <span class="fw-semibold" style="font-size: 0.55rem; color: var(--sigma-success-text);">SIGMA Verified</span>
                             </div>
                         </div>
-                        <!-- Preview Format Hanya Kode QR (Dilengkapi Nama & NIP/NIM) -->
+                        <!-- Preview Format Hanya Kode QR -->
                         <div id="modalPreviewQrOnly" class="w-100 h-100 d-none align-items-center justify-content-center gap-3">
                             <div class="d-flex flex-column align-items-center justify-content-center" style="width: 58%; min-width: 0; line-height: 1.25;">
-                                <div class="fw-bold text-dark text-truncate w-100 text-center" style="font-size: 0.82rem;">
-                                    <?= htmlspecialchars($profileName) ?>
+                                <div class="fw-bold text-truncate w-100 text-center" style="font-size: 0.82rem; color: var(--text-heading);">
+                                    <?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?>
                                 </div>
                                 <div style="border-top: 1px solid #0f172a; margin: 3px auto; width: 90%;"></div>
                                 <?php if (!empty($profileIdent) && $profileIdent !== '-'): ?>
-                                    <div class="text-muted text-truncate w-100 text-center" style="font-size: 0.72rem;">
-                                        <?= htmlspecialchars($profileIdLabel) ?>: <?= htmlspecialchars($profileIdent) ?>
+                                    <div class="text-truncate w-100 text-center" style="font-size: 0.72rem; color: var(--text-muted);">
+                                        <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?>: <?= htmlspecialchars($profileIdent, ENT_QUOTES, 'UTF-8') ?>
                                     </div>
                                 <?php endif; ?>
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle mt-1.5" style="font-size: 0.62rem;">
+                                <span class="badge-sigma badge-sigma-purple mt-2" style="font-size: 0.62rem;">
                                     Tanpa Coretan TTD
                                 </span>
                             </div>
-                            <div class="d-flex flex-column align-items-center justify-content-center bg-white border border-success-subtle rounded p-2 text-success">
+                            <div class="d-flex flex-column align-items-center justify-content-center bg-white border rounded p-2" style="color: var(--sigma-success-text); border-color: #bbf7d0 !important;">
                                 <i class="bi bi-qr-code fs-1"></i>
                                 <span class="fw-semibold" style="font-size: 0.55rem;">SIGMA Verified</span>
                             </div>
                         </div>
                     </div>
-                    <div class="alert alert-warning py-2.5 px-3 small mb-0 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
-                        <i class="bi bi-exclamation-triangle-fill mt-0.5"></i>
+                    <div class="alert alert-warning alert-sigma py-2 px-3 small mb-0 d-flex align-items-start gap-2">
+                        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
                         <div>
                             Tindakan ini <strong>tidak dapat dibatalkan</strong>. Pengesahan dokumen beserta stempel QR verifikasi
                             identitas Anda akan tercatat permanen pada jejak audit dokumen.
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light py-2 px-3">
-                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Periksa Kembali</button>
-                    <button type="button" id="btnConfirmSign" class="btn btn-success btn-sm px-3 fw-semibold">
+                <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                    <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Periksa Kembali</button>
+                    <button type="button" id="btnConfirmSign" class="btn-sigma-navy btn-sigma-sm px-3">
                         <span class="spinner-border spinner-border-sm d-none me-1" id="confirmSpinner" role="status" aria-hidden="true"></span>
-                        <i class="bi bi-check-lg me-1" id="confirmIcon"></i> Tanda Tangani &amp; Terbitkan
+                        <i class="bi bi-check-lg" id="confirmIcon"></i> Tanda Tangani &amp; Terbitkan
                     </button>
                 </div>
             </div>
@@ -726,37 +721,38 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
     </div>
 
     <!-- Modal Penolakan Berkas oleh Penandatangan -->
-    <div class="modal fade" id="modalDecline" tabindex="-1" aria-labelledby="modalDeclineLabel" aria-hidden="true">
+    <div class="modal fade modal-sigma" id="modalDecline" tabindex="-1" aria-labelledby="modalDeclineLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-danger text-white">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background: var(--sigma-danger-text);">
                     <h5 class="modal-title fs-6 fw-bold" id="modalDeclineLabel">
-                        <i class="bi bi-x-octagon-fill me-1.5"></i> Tolak Berkas (Penolakan Penandatangan)
+                        <i class="bi bi-x-octagon-fill me-2"></i> Tolak Berkas (Penolakan Penandatangan)
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/decline" method="POST" id="declineForm">
+                <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/decline" method="POST" id="declineForm">
                     <div class="modal-body p-4">
-                        <div class="alert alert-danger py-2.5 px-3 small mb-3 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
-                            <i class="bi bi-exclamation-triangle-fill mt-0.5"></i>
+                        <div class="alert alert-danger alert-sigma py-2 px-3 small mb-3 d-flex align-items-start gap-2"
+                             style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">
+                            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
                             <div>
-                                <strong>Peringatan Kebijakan Kampus (ADR-08):</strong> Penolakan satu pihak
+                                <strong>Kebijakan Kampus (ADR-08):</strong> Penolakan satu pihak
                                 <strong>membatalkan seluruh dokumen</strong> menjadi Arsip Batal Permanen. Proses tidak dapat diulang.
                             </div>
                         </div>
                         <div class="mb-2">
-                            <label for="decline_reason" class="form-label small fw-semibold text-dark">
-                                Alasan Penolakan <span class="text-danger">*</span> <span class="text-muted fw-normal">(minimal 10 karakter)</span>
+                            <label for="decline_reason" class="sigma-form-label d-block">
+                                Alasan Penolakan <span class="text-danger">*</span> <span class="fw-normal" style="color: var(--text-muted);">(minimal 10 karakter)</span>
                             </label>
-                            <textarea class="form-control form-control-sm" id="decline_reason" name="decline_reason" rows="4"
-                                      placeholder="Jelaskan alasan Anda menolak berkas ini, misalnya: Berkas lampiran tidak lengkap dan perlu direvisi..." required></textarea>
-                            <div class="form-text text-end" id="declineCounter" style="font-size: 0.72rem;">0 / minimal 10 karakter</div>
+                            <textarea class="form-control sigma-input" id="decline_reason" name="decline_reason" rows="4"
+                                      placeholder="Jelaskan alasan Anda menolak berkas ini, misalnya: Berkas lampiran tidak lengkap..." required></textarea>
+                            <div class="form-text text-end" id="declineCounter" style="font-size: 0.72rem; color: var(--text-muted);">0 / minimal 10 karakter</div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light py-2 px-3">
-                        <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" id="btnConfirmDecline" class="btn btn-danger btn-sm px-3 fw-semibold" disabled>
-                            <i class="bi bi-x-lg me-1"></i> Konfirmasi Tolak Berkas
+                    <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                        <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" id="btnConfirmDecline" class="btn-sigma-danger btn-sigma-sm px-3" disabled>
+                            <i class="bi bi-x-lg"></i> Konfirmasi Tolak Berkas
                         </button>
                     </div>
                 </form>
@@ -766,8 +762,25 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 
 <style>
 @keyframes slotPulse {
-    0%, 100% { box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.35); }
-    50%      { box-shadow: 0 0 0 6px rgba(5, 150, 105, 0.15); }
+    0%, 100% { box-shadow: 0 0 0 3px rgba(120, 98, 158, 0.42); }
+    50%      { box-shadow: 0 0 0 6px rgba(120, 98, 158, 0.16); }
+}
+.sigma-card-active {
+    border-color: var(--sigma-purple-600) !important;
+    background-color: var(--sigma-tint-50) !important;
+    box-shadow: 0 2px 8px rgba(120, 98, 158, 0.14);
+}
+.sigma-pills-nav .nav-link {
+    color: var(--text-muted);
+    background: var(--sigma-tint-50);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    margin: 0 2px;
+}
+.sigma-pills-nav .nav-link.active {
+    background: var(--sigma-navy);
+    color: #ffffff;
+    border-color: var(--sigma-navy);
 }
 </style>
 
@@ -834,14 +847,14 @@ document.addEventListener('DOMContentLoaded', function () {
         signatureFormatInput.value = format;
 
         if (format === 'qr_only') {
-            if (btnFormatQrOnly) btnFormatQrOnly.classList.add('active', 'border-primary', 'bg-light');
-            if (btnFormatQrAndSig) btnFormatQrAndSig.classList.remove('active', 'border-success', 'bg-light');
+            if (btnFormatQrOnly) btnFormatQrOnly.classList.add('active', 'sigma-card-active');
+            if (btnFormatQrAndSig) btnFormatQrAndSig.classList.remove('active', 'sigma-card-active');
             if (scribbleMethodSection) scribbleMethodSection.classList.add('d-none');
             if (qrOnlyInfoSection) qrOnlyInfoSection.classList.remove('d-none');
 
             if (summaryFormatLabel) {
                 summaryFormatLabel.textContent = 'Hanya Kode QR';
-                summaryFormatLabel.className = 'badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold';
+                summaryFormatLabel.className = 'badge-sigma badge-sigma-violet';
             }
             if (slotViewQrAndSig) {
                 slotViewQrAndSig.classList.add('d-none');
@@ -853,7 +866,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (modalConfirmFormatBadge) {
                 modalConfirmFormatBadge.textContent = 'Hanya Kode QR (+ Nama & <?= htmlspecialchars($profileIdLabel) ?>)';
-                modalConfirmFormatBadge.className = 'badge bg-primary-subtle text-primary border border-primary fw-bold';
+                modalConfirmFormatBadge.className = 'badge-sigma badge-sigma-violet';
             }
             if (modalPreviewQrAndSig) {
                 modalPreviewQrAndSig.classList.add('d-none');
@@ -867,14 +880,14 @@ document.addEventListener('DOMContentLoaded', function () {
             // Format Hanya QR: langsung aktifkan tombol konfirmasi tanpa goresan kanvas
             if (btnOpenConfirm) btnOpenConfirm.disabled = false;
         } else {
-            if (btnFormatQrAndSig) btnFormatQrAndSig.classList.add('active', 'border-success', 'bg-light');
-            if (btnFormatQrOnly) btnFormatQrOnly.classList.remove('active', 'border-primary', 'bg-light');
+            if (btnFormatQrAndSig) btnFormatQrAndSig.classList.add('active', 'sigma-card-active');
+            if (btnFormatQrOnly) btnFormatQrOnly.classList.remove('active', 'sigma-card-active');
             if (scribbleMethodSection) scribbleMethodSection.classList.remove('d-none');
             if (qrOnlyInfoSection) qrOnlyInfoSection.classList.add('d-none');
 
             if (summaryFormatLabel) {
                 summaryFormatLabel.textContent = 'QR + TTD + Nama';
-                summaryFormatLabel.className = 'badge bg-success-subtle text-success border border-success-subtle fw-semibold';
+                summaryFormatLabel.className = 'badge-sigma badge-sigma-purple';
             }
             if (slotViewQrAndSig) {
                 slotViewQrAndSig.classList.remove('d-none');
@@ -886,7 +899,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (modalConfirmFormatBadge) {
                 modalConfirmFormatBadge.textContent = 'QR + Tanda Tangan + Nama';
-                modalConfirmFormatBadge.className = 'badge bg-success-subtle text-success border border-success fw-bold';
+                modalConfirmFormatBadge.className = 'badge-sigma badge-sigma-purple';
             }
             if (modalPreviewQrAndSig) {
                 modalPreviewQrAndSig.classList.remove('d-none');
@@ -1255,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 b.style.boxShadow = '0 0 0 1px #cbd5e1';
                 b.classList.remove('active');
             });
-            this.style.boxShadow = '0 0 0 2px var(--pnj-green-800)';
+            this.style.boxShadow = '0 0 0 2px var(--sigma-purple-700)';
             this.classList.add('active');
             currentColor = this.getAttribute('data-color');
             ctx.strokeStyle = currentColor;
@@ -1265,11 +1278,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-width').forEach(btn => {
         btn.addEventListener('click', function () {
             document.querySelectorAll('.btn-width').forEach(b => {
-                b.classList.remove('btn-pnj-primary', 'active');
-                b.classList.add('btn-subtle');
+                b.classList.remove('btn-sigma-navy', 'active');
+                b.classList.add('btn-sigma-outline');
             });
-            this.classList.remove('btn-subtle');
-            this.classList.add('btn-pnj-primary', 'active');
+            this.classList.remove('btn-sigma-outline');
+            this.classList.add('btn-sigma-navy', 'active');
             currentWidth = parseFloat(this.getAttribute('data-width'));
             ctx.lineWidth = currentWidth;
         });
@@ -1350,9 +1363,9 @@ document.addEventListener('DOMContentLoaded', function () {
             inputMethod.value = 'template';
             showSlotPreview('<?= BASE_URL ?>/user-signatures/' + this.value + '/preview');
             document.querySelectorAll('[id^="tplLabel_"]').forEach(l => {
-                l.classList.remove('border-success', 'bg-light');
+                l.classList.remove('sigma-card-active');
             });
-            document.getElementById('tplLabel_' + this.value).classList.add('border-success', 'bg-light');
+            document.getElementById('tplLabel_' + this.value).classList.add('sigma-card-active');
         });
     });
 
