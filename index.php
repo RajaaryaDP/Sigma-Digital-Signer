@@ -173,22 +173,32 @@ $expectsPost     = in_array($action, $postOnlyActions, true);
 $controllerName = str_replace('-', '', ucwords($page, '-'));
 $controllerFile = __DIR__ . '/controllers/' . $controllerName . '.php';
 
-if (!file_exists($controllerFile)) {
-    http_response_code(404);
-    echo '<div style="font-family:sans-serif;padding:2rem;text-align:center;">';
-    echo '<h2>404 - Halaman Tidak Ditemukan</h2>';
-    echo '<p>Halaman atau modul <code>' . htmlspecialchars($page) . '</code> belum tersedia.</p>';
-    echo '<a href="' . BASE_URL . '/documents" style="display:inline-block;padding:0.5rem 1rem;background:#1d4ed8;color:#fff;text-decoration:none;border-radius:6px;">Kembali ke Dashboard</a>';
-    echo '</div>';
+function sigma_render_404(string $subtitle): void
+{
+    if (!headers_sent()) {
+        http_response_code(404);
+    }
+    $backHref = isset($_SESSION['user']) ? BASE_URL . '/documents' : BASE_URL . '/';
+    $backLabel = isset($_SESSION['user']) ? 'Kembali ke Dashboard' : 'Kembali ke Beranda';
+    echo '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>404 - Halaman Tidak Ditemukan — SIGMA</title></head>';
+    echo '<body style="margin:0;font-family:Inter,Segoe UI,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8f8fc;padding:1.5rem;">';
+    echo '<div style="background:#fff;border:1px solid #e6e2f0;border-radius:16px;padding:2rem 2.25rem;max-width:460px;width:100%;text-align:center;box-shadow:0 4px 14px rgba(45,43,75,0.08);">';
+    echo '<div style="display:inline-flex;align-items:center;justify-content:center;padding:0.25rem 0.75rem;border-radius:999px;background:#f0ecf5;color:#77638f;font-size:0.75rem;font-weight:700;margin-bottom:0.75rem;">HTTP 404</div>';
+    echo '<h2 style="margin:0 0 0.5rem;color:#2d2b4b;">404 - Halaman Tidak Ditemukan</h2>';
+    echo '<p style="color:#69647d;font-size:0.9rem;margin-bottom:1.25rem;">' . $subtitle . '</p>';
+    echo '<a href="' . htmlspecialchars($backHref, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:0.55rem 1.25rem;background:#2d2b4b;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:0.88rem;">' . $backLabel . '</a>';
+    echo '</div></body></html>';
     exit;
+}
+
+if (!file_exists($controllerFile)) {
+    sigma_render_404('Halaman atau modul <code>' . htmlspecialchars($page, ENT_QUOTES, 'UTF-8') . '</code> belum tersedia.');
 }
 
 require_once $controllerFile;
 
 if (!class_exists($controllerName)) {
-    http_response_code(404);
-    echo '404 - Class controller not found';
-    exit;
+    sigma_render_404('Kelas controller tidak ditemukan.');
 }
 
 // Pengecualian metode ganda (GET + POST):
@@ -202,18 +212,14 @@ $isDocSign       = ($controllerName === 'Documents' && $action === 'sign');
 
 if (!$isAuthAction && !$isCivitasImport && !$isDocSign) {
     if (($expectsPost && $method !== 'POST') || (!$expectsPost && $method !== 'GET')) {
-        http_response_code(404);
-        echo '404 - Action method not allowed';
-        exit;
+        sigma_render_404('Metode permintaan HTTP tidak diizinkan untuk aksi ini.');
     }
 }
 
 $controller = new $controllerName();
 
 if (!method_exists($controller, $action)) {
-    http_response_code(404);
-    echo '404 - Method not found on controller';
-    exit;
+    sigma_render_404('Aksi atau rute yang diminta tidak tersedia.');
 }
 
 if ($id === null) {

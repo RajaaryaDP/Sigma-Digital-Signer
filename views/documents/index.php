@@ -1,387 +1,637 @@
 <?php
 require_once __DIR__ . '/../layout/header.php';
 
-$isAdmin = ($user['role'] ?? '') === 'admin';
-$civitasType = $user['civitas_type'] ?? 'civitas';
+$isAdmin = (($user['role'] ?? '') === 'admin');
+$statusFilter = $statusFilter ?? null;
+$focusQueue = (!$isAdmin && (($_GET['view'] ?? '') === 'queue'));
 
-$statusBadges = [
-    'draft'          => ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => 'Draft'],
-    'pending_review' => ['class' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle', 'label' => 'Review'],
-    'approved'       => ['class' => 'bg-info-subtle text-info-emphasis border border-info-subtle', 'label' => 'Disetujui'],
-    'signing'        => ['class' => 'bg-primary-subtle text-primary border border-primary-subtle', 'label' => 'Proses'],
-    'completed'      => ['class' => 'bg-success-subtle text-success border border-success-subtle', 'label' => 'Selesai'],
-    'rejected'       => ['class' => 'bg-danger-subtle text-danger border border-danger-subtle', 'label' => 'Ditolak'],
+$docCounts = $docCounts ?? [
+    'draft' => 0,
+    'pending_review' => 0,
+    'approved' => 0,
+    'signing' => 0,
+    'completed' => 0,
+    'rejected' => 0,
+    'total' => 0,
 ];
+
+$renderDocStatusBadge = static function (string $status, int $currentStep = 1): string {
+    switch ($status) {
+        case 'draft':
+            return '<span class="badge-sigma badge-sigma-neutral"><i class="bi bi-pencil-square"></i> Draft</span>';
+        case 'pending_review':
+            return '<span class="badge-sigma badge-sigma-warning"><i class="bi bi-hourglass-split"></i> Menunggu Review</span>';
+        case 'approved':
+            return '<span class="badge-sigma badge-sigma-violet"><i class="bi bi-check2-circle"></i> Disetujui Admin</span>';
+        case 'signing':
+            return '<span class="badge-sigma badge-sigma-purple"><i class="bi bi-pen"></i> Proses TTD (Tahap ' . $currentStep . ')</span>';
+        case 'completed':
+            return '<span class="badge-sigma badge-sigma-success"><i class="bi bi-patch-check-fill"></i> Selesai (Sah)</span>';
+        case 'rejected':
+            return '<span class="badge-sigma badge-sigma-danger"><i class="bi bi-x-octagon"></i> Ditolak / Batal</span>';
+        default:
+            return '<span class="badge-sigma badge-sigma-neutral">' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+};
+
+$renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string {
+    if ($isMyTurn) {
+        return '<span class="badge-sigma badge-sigma-warning"><i class="bi bi-pen-fill"></i> Giliran Anda</span>';
+    }
+    switch ($myStatus) {
+        case 'pending':
+            return '<span class="badge-sigma badge-sigma-purple"><i class="bi bi-hourglass-top"></i> Siap Ditandatangani</span>';
+        case 'waiting':
+            return '<span class="badge-sigma badge-sigma-neutral"><i class="bi bi-clock"></i> Menunggu Urutan</span>';
+        case 'signed':
+            return '<span class="badge-sigma badge-sigma-success"><i class="bi bi-check-circle-fill"></i> Sudah TTD</span>';
+        case 'declined':
+            return '<span class="badge-sigma badge-sigma-danger"><i class="bi bi-x-circle-fill"></i> Ditolak</span>';
+        default:
+            return '<span class="badge-sigma badge-sigma-neutral">' . htmlspecialchars($myStatus, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+};
 ?>
 
-<!-- Header -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <div>
-        <h4 class="fw-bold text-dark mb-0">
-            <?= $isAdmin ? 'Dashboard Dokumen' : 'Dokumen Saya' ?>
-        </h4>
+        <h1 class="h4 fw-bold mb-1" style="color: var(--text-heading);">
+            <?php if ($isAdmin): ?>
+                <?= $statusFilter === 'pending_review' ? 'Antrean Review Dokumen' : 'Dashboard Manajemen Dokumen' ?>
+            <?php else: ?>
+                <?= $focusQueue ? 'Antrean Tanda Tangan Anda' : 'Dashboard Dokumen & Tanda Tangan' ?>
+            <?php endif; ?>
+        </h1>
+        <p class="small mb-0" style="color: var(--text-muted);">
+            <?php if ($isAdmin): ?>
+                Pantau pengajuan masuk, verifikasi kelengkapan slot, dan awasi jejak penandatanganan kampus.
+            <?php else: ?>
+                Halo, <strong style="color: var(--text-heading);"><?= htmlspecialchars($user['name'] ?? 'Pengguna', ENT_QUOTES, 'UTF-8') ?></strong> — kelola pengajuan PDF dan giliran tanda tangan berjenjang Anda.
+            <?php endif; ?>
+        </p>
     </div>
-    <div class="d-flex align-items-center gap-2">
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
         <?php if ($isAdmin): ?>
-            <a href="<?= BASE_URL ?>/civitas" class="btn btn-subtle btn-sm">
-                <i class="bi bi-people me-1 text-success"></i> Master Data Civitas
+            <a href="<?= BASE_URL ?>/civitas" class="btn-sigma-outline btn-sigma-sm">
+                <i class="bi bi-people"></i> Master Civitas
             </a>
+            <a href="<?= BASE_URL ?>/document-templates" class="btn-sigma-outline btn-sigma-sm">
+                <i class="bi bi-file-earmark-richtext"></i> Template Dokumen
+            </a>
+            <?php if ($statusFilter !== 'pending_review'): ?>
+                <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn-sigma-navy btn-sigma-sm">
+                    <i class="bi bi-inboxes"></i> Antrean Review (<?= (int)($docCounts['pending_review'] ?? 0) ?>)
+                </a>
+            <?php else: ?>
+                <a href="<?= BASE_URL ?>/documents" class="btn-sigma-outline btn-sigma-sm">
+                    <i class="bi bi-grid"></i> Semua Dokumen
+                </a>
+            <?php endif; ?>
         <?php else: ?>
-            <a href="<?= BASE_URL ?>/documents/create" class="btn btn-pnj-primary btn-sm">
-                <i class="bi bi-plus-lg me-1"></i> Ajukan Dokumen
+            <a href="<?= BASE_URL ?>/user-signatures" class="btn-sigma-outline btn-sigma-sm">
+                <i class="bi bi-pen"></i> Template TTD
+            </a>
+            <a href="<?= BASE_URL ?>/documents/create" class="btn-sigma-navy">
+                <i class="bi bi-plus-lg"></i> Ajukan Dokumen Baru
             </a>
         <?php endif; ?>
     </div>
 </div>
 
-<!-- Stat Cards -->
-<div class="row g-3 mb-4">
-    <?php if ($isAdmin): ?>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <div class="text-muted small mb-1">Menunggu Review</div>
-                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['pending_review'] ?? 0) ?></div>
+<?php if ($isAdmin): ?>
+    <!-- Stat Cards Admin -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma">
+                <div>
+                    <div class="stat-val"><?= (int)($docCounts['pending_review'] ?? 0) ?></div>
+                    <div class="stat-label">Menunggu Review</div>
+                </div>
+                <div class="stat-icon" style="background: var(--sigma-warning-bg); color: var(--sigma-warning-text);">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <div class="text-muted small mb-1">Dalam Proses</div>
-                <div class="h3 fw-bold text-dark mb-0"><?= (int) (($docCounts['signing'] ?? 0) + ($docCounts['approved'] ?? 0)) ?></div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma">
+                <div>
+                    <div class="stat-val"><?= (int)($docCounts['signing'] ?? 0) ?></div>
+                    <div class="stat-label">Proses Tanda Tangan</div>
+                </div>
+                <div class="stat-icon" style="background: var(--sigma-tint-pill); color: var(--sigma-purple-700);">
+                    <i class="bi bi-pen"></i>
+                </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <div class="text-muted small mb-1">Selesai</div>
-                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['completed'] ?? 0) ?></div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma">
+                <div>
+                    <div class="stat-val"><?= (int)($docCounts['completed'] ?? 0) ?></div>
+                    <div class="stat-label">Dokumen Selesai</div>
+                </div>
+                <div class="stat-icon" style="background: var(--sigma-success-bg); color: var(--sigma-success-text);">
+                    <i class="bi bi-patch-check-fill"></i>
+                </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <div class="text-muted small mb-1">Total Civitas</div>
-                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($civitasCount ?? 0) ?></div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma">
+                <div>
+                    <div class="stat-val"><?= (int)($civitasCount ?? 0) ?></div>
+                    <div class="stat-label">Total Biodata Civitas</div>
+                </div>
+                <div class="stat-icon" style="background: var(--sigma-tint-100); color: var(--sigma-navy);">
+                    <i class="bi bi-people-fill"></i>
+                </div>
             </div>
         </div>
-    <?php else: ?>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <div class="text-muted small mb-1">Perlu TTD</div>
-                <div class="h3 fw-bold <?= ($pendingSignCount ?? 0) > 0 ? 'text-warning' : 'text-dark' ?> mb-0"><?= (int) ($pendingSignCount ?? 0) ?></div>
+    </div>
+
+    <?php if ((int)($docCounts['pending_review'] ?? 0) > 0 && $statusFilter !== 'pending_review'): ?>
+        <div class="alert alert-sigma d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4"
+             style="background: var(--sigma-warning-bg); border-color: #fde68a; color: var(--sigma-warning-text);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                <span class="small fw-semibold">
+                    Terdapat <?= (int)$docCounts['pending_review'] ?> dokumen baru yang menunggu review kelengkapan admin sebelum masuk tahap tanda tangan.
+                </span>
+            </div>
+            <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn-sigma-navy btn-sigma-sm">
+                Tinjau Antrean <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    <?php endif; ?>
+
+<?php else: ?>
+    <?php
+    $pendingSignCountVal = (int)($pendingSignCount ?? 0);
+    $waitingCountVal = count($waitingSignDocs ?? []);
+    $ongoingMyDocsCount = (int)($docCounts['draft'] ?? 0) + (int)($docCounts['pending_review'] ?? 0) + (int)($docCounts['signing'] ?? 0);
+    ?>
+    <!-- Stat Cards User / Civitas -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma" <?= $pendingSignCountVal > 0 ? 'style="border-color: #f59e0b;"' : '' ?>>
+                <div>
+                    <div class="stat-val"><?= $pendingSignCountVal ?></div>
+                    <div class="stat-label">Perlu TTD Saya</div>
+                </div>
+                <div class="stat-icon" style="background: var(--sigma-warning-bg); color: var(--sigma-warning-text);">
+                    <i class="bi bi-pen-fill"></i>
+                </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <div class="text-muted small mb-1">Pengajuan Saya</div>
-                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['total'] ?? 0) ?></div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma">
+                <div>
+                    <div class="stat-val"><?= $waitingCountVal ?></div>
+                    <div class="stat-label">Menunggu Giliran</div>
+                </div>
+                <div class="stat-icon" style="background: var(--sigma-tint-pill); color: var(--sigma-purple-700);">
+                    <i class="bi bi-clock-history"></i>
+                </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <?php 
-                    $inProgress = ($docCounts['pending_review'] ?? 0) + ($docCounts['approved'] ?? 0) + ($docCounts['signing'] ?? 0);
-                ?>
-                <div class="text-muted small mb-1">Dalam Proses</div>
-                <div class="h3 fw-bold text-dark mb-0"><?= (int) $inProgress ?></div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma">
+                <div>
+                    <div class="stat-val"><?= $ongoingMyDocsCount ?></div>
+                    <div class="stat-label">Pengajuan Berjalan</div>
+                </div>
+                <div class="stat-icon" style="background: #ede9fe; color: var(--sigma-info-text);">
+                    <i class="bi bi-send-check"></i>
+                </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card-clean p-3">
-                <div class="text-muted small mb-1">Selesai</div>
-                <div class="h3 fw-bold text-dark mb-0"><?= (int) ($docCounts['completed'] ?? 0) ?></div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-sigma">
+                <div>
+                    <div class="stat-val"><?= (int)($docCounts['completed'] ?? 0) ?></div>
+                    <div class="stat-label">Dokumen Selesai</div>
+                </div>
+                <div class="stat-icon" style="background: var(--sigma-success-bg); color: var(--sigma-success-text);">
+                    <i class="bi bi-patch-check-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <?php if (!empty($pendingSignDocs)): ?>
+        <div class="card-sigma mb-4" style="border-color: #d8cceb; background: var(--sigma-tint-50);">
+            <div class="card-sigma-body py-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge-sigma badge-sigma-warning"><i class="bi bi-bell-fill"></i> Giliran Anda</span>
+                        <span class="fw-bold small" style="color: var(--text-heading);">
+                            <?= count($pendingSignDocs) ?> dokumen menunggu tanda tangan Anda sekarang
+                        </span>
+                    </div>
+                    <a href="<?= BASE_URL ?>/documents?view=queue" class="small fw-semibold text-decoration-none" style="color: var(--sigma-purple-700);">
+                        Lihat semua antrean <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <?php foreach (array_slice($pendingSignDocs, 0, 4) as $pDoc): ?>
+                        <div class="d-flex align-items-center justify-content-between gap-3 bg-white border rounded-3 px-3 py-2 flex-grow-1" style="border-color: var(--border-subtle) !important; min-width: 240px;">
+                            <div class="text-truncate small fw-semibold" style="color: var(--text-heading);" title="<?= htmlspecialchars($pDoc['title'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                <i class="bi bi-file-earmark-pdf text-danger me-1"></i>
+                                <?= htmlspecialchars($pDoc['title'] ?? 'Dokumen', ENT_QUOTES, 'UTF-8') ?>
+                            </div>
+                            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($pDoc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-navy btn-sigma-sm flex-shrink-0">
+                                <i class="bi bi-pen"></i> Tanda Tangani
+                            </a>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
     <?php endif; ?>
-</div>
 
-<!-- Admin Notification: Pending Review -->
-<?php if ($isAdmin && ($docCounts['pending_review'] ?? 0) > 0 && ($statusFilter !== 'pending_review')): ?>
-    <div class="alert alert-warning py-2 px-3 mb-4 d-flex align-items-center justify-content-between small" style="border-radius: var(--radius-sm);">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-shield-exclamation text-warning"></i>
-            <span>Ada <strong><?= (int)$docCounts['pending_review'] ?></strong> dokumen menunggu review.</span>
-        </div>
-        <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn btn-warning btn-sm py-0.5 px-2.5 text-dark fw-semibold" style="font-size: 0.8rem;">
-            Tinjau &rarr;
+    <!-- Mode Switcher Ringkas User (Pengajuan vs Antrean TTD) -->
+    <div class="filter-chips-sigma mb-3">
+        <a href="<?= BASE_URL ?>/documents" class="filter-chip-sigma <?= !$focusQueue ? 'active' : '' ?>">
+            <i class="bi bi-folder2-open"></i> Dokumen Pengajuan Saya (<?= (int)($docCounts['total'] ?? 0) ?>)
+        </a>
+        <a href="<?= BASE_URL ?>/documents?view=queue" class="filter-chip-sigma <?= $focusQueue ? 'active' : '' ?>">
+            <i class="bi bi-pen"></i> Antrean & Tugas Tanda Tangan (<?= count($assignedDocs ?? []) ?>)
+            <?php if ($pendingSignCountVal > 0): ?>
+                <span class="badge-sigma badge-sigma-warning ms-1 py-0 px-2" style="font-size: 0.68rem;"><?= $pendingSignCountVal ?> aktif</span>
+            <?php endif; ?>
         </a>
     </div>
 <?php endif; ?>
 
-<!-- User Notification: Pending Signature -->
-<?php if (!$isAdmin && !empty($pendingSignDocs)): ?>
-    <div class="card-clean p-3 mb-4 border-warning" style="background: #fffdf5;">
-        <div class="small fw-semibold text-dark mb-2 d-flex align-items-center gap-1.5">
-            <i class="bi bi-pen text-warning"></i>
-            <span>Menunggu Tanda Tangan Anda (<?= count($pendingSignDocs) ?>)</span>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <?php foreach ($pendingSignDocs as $psd): ?>
-                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($psd['id']) ?>/sign" class="btn btn-sm btn-warning text-dark fw-medium py-1 px-2.5" style="font-size: 0.82rem;">
-                    <?= htmlspecialchars($psd['title']) ?> &rarr;
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-<?php endif; ?>
-
-<!-- Tabel Penugasan & Riwayat Tanda Tangan (Agar Dosen/Penandatangan Tetap Bisa Melihat Pratinjau TTD Setelah Tanda Tangan) -->
-<?php if (!$isAdmin && !empty($assignedDocs)): ?>
-    <?php
-        $mySigBadges = [
-            'waiting'  => ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => 'Menunggu Giliran', 'icon' => 'bi-clock'],
-            'pending'  => ['class' => 'bg-warning text-dark', 'label' => 'Giliran Anda', 'icon' => 'bi-pen-fill'],
-            'signed'   => ['class' => 'bg-success-subtle text-success border border-success-subtle', 'label' => 'Sudah Ditandatangani', 'icon' => 'bi-check-circle-fill'],
-            'declined' => ['class' => 'bg-danger-subtle text-danger border border-danger-subtle', 'label' => 'Menolak TTD', 'icon' => 'bi-x-circle-fill'],
-        ];
+<?php
+// Fungsi render blok Penugasan & Antrean TTD (untuk User Non-Admin)
+$renderAssignedQueueBlock = function () use ($assignedDocs, $renderDocStatusBadge, $renderSignerBadge): void {
+    $assignedList = $assignedDocs ?? [];
     ?>
-    <div class="card-clean mb-4">
-        <div class="card-clean-header flex-wrap gap-2 justify-content-between align-items-center">
-            <div class="fw-semibold text-dark d-flex align-items-center gap-1.5">
-                <i class="bi bi-pen-fill text-success"></i>
-                <span>Penugasan & Riwayat Tanda Tangan Saya</span>
-                <span class="text-muted fw-normal small ms-1">(<?= count($assignedDocs) ?>)</span>
+    <div class="card-sigma mb-4" id="assignedQueueSection">
+        <div class="card-sigma-header flex-wrap">
+            <div>
+                <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">
+                    <i class="bi bi-vector-pen me-1 text-sigma-purple"></i> Antrean & Penugasan Tanda Tangan Saya
+                </h2>
+                <div class="small" style="color: var(--text-muted);">
+                    Daftar dokumen dari sivitas lain yang menugaskan Anda sebagai penandatangan.
+                </div>
             </div>
-            <span class="text-muted small">Klik <strong>Pratinjau TTD</strong> untuk melihat posisi slot & tanda tangan pada berkas</span>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="filter-chips-sigma" id="queueFilterChips">
+                    <button type="button" class="filter-chip-sigma active" data-queue-filter="all">Semua</button>
+                    <button type="button" class="filter-chip-sigma" data-queue-filter="turn">Giliran Saya</button>
+                    <button type="button" class="filter-chip-sigma" data-queue-filter="waiting">Menunggu</button>
+                    <button type="button" class="filter-chip-sigma" data-queue-filter="signed">Selesai TTD</button>
+                </div>
+            </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr style="font-size: 0.75rem;">
-                        <th class="text-center" style="width: 40px;">#</th>
-                        <th>Judul Dokumen</th>
-                        <th>Pengaju</th>
-                        <th>Urutan Anda</th>
-                        <th class="text-center">Status TTD Anda</th>
-                        <th class="text-center">Status Dokumen</th>
-                        <th class="text-end" style="width: 170px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($assignedDocs as $aIdx => $aDoc): ?>
-                        <?php
-                            $aDocBadge = $statusBadges[$aDoc['status']] ?? ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => ucfirst($aDoc['status'])];
-                            $mySigStat = $aDoc['my_signer_status'] ?? 'waiting';
-                            $mySigB    = $mySigBadges[$mySigStat] ?? $mySigBadges['waiting'];
-                            $isMyTurn  = ($aDoc['status'] === 'signing' && $mySigStat === 'pending' && (int) $aDoc['step_order'] === (int) $aDoc['current_step']);
-                        ?>
-                        <tr class="<?= $isMyTurn ? 'table-warning' : '' ?>">
-                            <td class="text-center text-muted small"><?= $aIdx + 1 ?></td>
-                            <td>
-                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>#pdfPreviewSection" class="fw-semibold text-dark text-decoration-none">
-                                    <?= htmlspecialchars($aDoc['title']) ?>
-                                </a>
-                                <div class="text-muted small" style="font-size: 0.75rem;">
-                                    <?= htmlspecialchars($aDoc['file_name_original']) ?>
-                                </div>
-                            </td>
-                            <td class="small text-muted">
-                                <?= htmlspecialchars($aDoc['uploader_name']) ?>
-                            </td>
-                            <td class="small">
-                                <span class="badge bg-light text-dark border">Step <?= (int) $aDoc['step_order'] ?></span>
-                                <?php if (!empty($aDoc['role_title'])): ?>
-                                    <div class="text-muted mt-0.5" style="font-size: 0.72rem;"><?= htmlspecialchars($aDoc['role_title']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge <?= $mySigB['class'] ?> fw-medium" style="font-size: 0.72rem; padding: 0.3em 0.6em;">
-                                    <i class="bi <?= $mySigB['icon'] ?> me-0.5"></i><?= htmlspecialchars($mySigB['label']) ?>
-                                </span>
-                                <?php if (!empty($aDoc['my_signed_at'])): ?>
-                                    <div class="text-muted mt-0.5" style="font-size: 0.65rem;">
-                                        <?= date('d/m/Y H:i', strtotime($aDoc['my_signed_at'])) ?>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge <?= $aDocBadge['class'] ?> fw-normal" style="font-size: 0.72rem; padding: 0.3em 0.6em;">
-                                    <?= htmlspecialchars($aDocBadge['label']) ?>
-                                    <?php if ($aDoc['status'] === 'signing'): ?>
-                                        (Step <?= (int) $aDoc['current_step'] ?>)
-                                    <?php endif; ?>
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <?php if ($isMyTurn): ?>
-                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>/sign"
-                                           class="btn btn-warning btn-sm py-0.5 px-2 text-dark fw-semibold" style="font-size: 0.76rem;">
-                                            <i class="bi bi-pen-fill me-0.5"></i>Tanda Tangani
-                                        </a>
-                                    <?php endif; ?>
-                                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>#pdfPreviewSection"
-                                       class="btn <?= $mySigStat === 'signed' ? 'btn-success-subtle text-success border border-success-subtle fw-medium' : 'btn-subtle' ?> btn-sm py-0.5 px-2"
-                                       style="font-size: 0.76rem;"
-                                       title="Lihat pratinjau tanda tangan & posisi kotak slot pada dokumen">
-                                        <i class="bi bi-eye me-0.5"></i><?= $mySigStat === 'signed' ? 'Pratinjau TTD' : 'Detail & Slot' ?>
-                                    </a>
-                                    <?php if ($aDoc['status'] === 'completed'): ?>
-                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id']) ?>/download"
-                                           class="btn btn-subtle btn-sm py-0.5 px-2 text-success" style="font-size: 0.76rem;" title="Unduh PDF Final">
-                                            <i class="bi bi-download"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
+
+        <?php if (empty($assignedList)): ?>
+            <div class="card-sigma-body text-center py-5">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
+                     style="width: 56px; height: 56px; background: var(--sigma-tint-100); color: var(--sigma-purple-600); font-size: 1.4rem;">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <h3 class="h6 fw-bold mb-1" style="color: var(--text-heading);">Belum Ada Tugas Tanda Tangan</h3>
+                <p class="small mb-0" style="color: var(--text-muted);">
+                    Anda belum ditugaskan sebagai penandatangan pada dokumen aktif mana pun.
+                </p>
+            </div>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table-sigma" id="assignedQueueTable">
+                    <thead>
+                        <tr>
+                            <th>Dokumen PDF</th>
+                            <th>Pengaju</th>
+                            <th>Peran & Urutan</th>
+                            <th>Status Anda</th>
+                            <th>Status Dokumen</th>
+                            <th class="text-end">Aksi</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($assignedList as $aDoc):
+                            $mySigStat = (string)($aDoc['my_signer_status'] ?? 'waiting');
+                            $docStat = (string)($aDoc['status'] ?? '');
+                            $stepOrd = (int)($aDoc['step_order'] ?? 0);
+                            $curStep = (int)($aDoc['current_step'] ?? 0);
+                            $isMyTurn = ($docStat === 'signing' && $mySigStat === 'pending' && $stepOrd === $curStep);
+
+                            $rowCat = 'waiting';
+                            if ($isMyTurn) {
+                                $rowCat = 'turn';
+                            } elseif ($mySigStat === 'signed') {
+                                $rowCat = 'signed';
+                            }
+                            ?>
+                            <tr data-queue-cat="<?= htmlspecialchars($rowCat, ENT_QUOTES, 'UTF-8') ?>">
+                                <td>
+                                    <div class="fw-semibold" style="color: var(--text-heading);">
+                                        <?= htmlspecialchars($aDoc['title'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                    <div class="small text-truncate" style="max-width: 260px; color: var(--text-muted);">
+                                        <i class="bi bi-file-earmark-pdf text-danger me-1"></i>
+                                        <?= htmlspecialchars($aDoc['file_name_original'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-medium"><?= htmlspecialchars($aDoc['uploader_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold" style="color: var(--text-heading);">
+                                        <?= htmlspecialchars($aDoc['role_title'] ?? 'Penandatangan', ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                    <div class="small" style="color: var(--text-muted);">
+                                        Tahap #<?= $stepOrd ?> dari alur aktif (Tahap <?= $curStep ?>)
+                                    </div>
+                                </td>
+                                <td>
+                                    <?= $renderSignerBadge($mySigStat, $isMyTurn) ?>
+                                    <?php if (!empty($aDoc['my_signed_at'])): ?>
+                                        <div class="small mt-1" style="color: var(--text-muted); font-size: 0.72rem;">
+                                            <?= htmlspecialchars(date('d M Y H:i', strtotime((string)$aDoc['my_signed_at'])), ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?= $renderDocStatusBadge($docStat, $curStep) ?>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                                        <?php if ($isMyTurn): ?>
+                                            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-navy btn-sigma-sm">
+                                                <i class="bi bi-pen"></i> Tanda Tangani
+                                            </a>
+                                        <?php endif; ?>
+                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id'], ENT_QUOTES, 'UTF-8') ?>#pdfPreviewSection" class="btn-sigma-outline btn-sigma-sm">
+                                            <?= $mySigStat === 'signed' ? 'Pratinjau TTD' : 'Detail & Slot' ?>
+                                        </a>
+                                        <?php if ($docStat === 'completed'): ?>
+                                            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($aDoc['id'], ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-purple btn-sigma-sm" title="Unduh PDF Final">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
     </div>
+    <?php
+};
+
+// Fungsi render tabel utama Dokumen (Pengajuan User / Manajemen Admin)
+$renderMainDocumentsBlock = function () use ($isAdmin, $documents, $docCounts, $statusFilter, $renderDocStatusBadge): void {
+    $docList = $documents ?? [];
+    $tabs = [
+        ['key' => null, 'label' => 'Semua', 'count' => (int)($docCounts['total'] ?? 0), 'url' => BASE_URL . '/documents'],
+        ['key' => 'pending_review', 'label' => 'Menunggu Review', 'count' => (int)($docCounts['pending_review'] ?? 0), 'url' => BASE_URL . '/documents?status=pending_review'],
+        ['key' => 'signing', 'label' => 'Sedang TTD', 'count' => (int)($docCounts['signing'] ?? 0), 'url' => BASE_URL . '/documents?status=signing'],
+        ['key' => 'completed', 'label' => 'Selesai', 'count' => (int)($docCounts['completed'] ?? 0), 'url' => BASE_URL . '/documents?status=completed'],
+        ['key' => 'draft', 'label' => 'Draft', 'count' => (int)($docCounts['draft'] ?? 0), 'url' => BASE_URL . '/documents?status=draft'],
+        ['key' => 'rejected', 'label' => 'Ditolak', 'count' => (int)($docCounts['rejected'] ?? 0), 'url' => BASE_URL . '/documents?status=rejected'],
+    ];
+    ?>
+    <div class="card-sigma mb-4">
+        <div class="card-sigma-header flex-wrap">
+            <div>
+                <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">
+                    <i class="bi bi-files me-1 text-sigma-purple"></i>
+                    <?= $isAdmin ? 'Daftar Seluruh Dokumen Kampus' : 'Dokumen Pengajuan Saya' ?>
+                </h2>
+            </div>
+            <div class="sigma-search-box" style="min-width: 240px;">
+                <i class="bi bi-search sigma-search-icon"></i>
+                <input type="search" id="docTableSearchInput" class="form-control form-control-sm sigma-input" placeholder="Cari judul atau nama file..." aria-label="Cari dokumen">
+            </div>
+        </div>
+
+        <div class="px-3 pt-1" style="background: var(--surface);">
+            <ul class="nav-tabs-sigma">
+                <?php foreach ($tabs as $tab):
+                    $active = ($statusFilter === $tab['key']);
+                    ?>
+                    <li>
+                        <a href="<?= htmlspecialchars($tab['url'], ENT_QUOTES, 'UTF-8') ?>"
+                           class="nav-tab-item <?= $active ? 'active' : '' ?>">
+                            <span><?= htmlspecialchars($tab['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="badge-sigma <?= $active ? 'badge-sigma-purple' : 'badge-sigma-neutral' ?> py-0 px-2" style="font-size: 0.68rem;">
+                                <?= $tab['count'] ?>
+                            </span>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+
+        <?php if (empty($docList)): ?>
+            <div class="card-sigma-body text-center py-5">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
+                     style="width: 56px; height: 56px; background: var(--sigma-tint-100); color: var(--sigma-purple-600); font-size: 1.4rem;">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <h3 class="h6 fw-bold mb-1" style="color: var(--text-heading);">Tidak Ada Dokumen</h3>
+                <p class="small mb-3" style="color: var(--text-muted);">
+                    <?= $statusFilter ? 'Belum ada dokumen dengan status filter ini.' : ($isAdmin ? 'Belum ada pengajuan dokumen yang masuk ke sistem.' : 'Mulai dengan mengunggah berkas PDF pertama Anda.') ?>
+                </p>
+                <?php if (!$isAdmin): ?>
+                    <a href="<?= BASE_URL ?>/documents/create" class="btn-sigma-navy btn-sigma-sm">
+                        <i class="bi bi-plus-lg"></i> Ajukan Dokumen Baru
+                    </a>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table-sigma" id="mainDocumentsTable">
+                    <thead>
+                        <tr>
+                            <th>Judul & Berkas PDF</th>
+                            <?php if ($isAdmin): ?>
+                                <th>Pengaju</th>
+                            <?php endif; ?>
+                            <th>Jenis Alur</th>
+                            <th>Status</th>
+                            <th>Tanggal Diajukan</th>
+                            <th class="text-end">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($docList as $doc):
+                            $docId = (string)($doc['id'] ?? '');
+                            $docStatus = (string)($doc['status'] ?? 'draft');
+                            $curStep = (int)($doc['current_step'] ?? 1);
+                            $sigType = (string)($doc['signature_type'] ?? 'sequential');
+                            $searchHaystack = mb_strtolower(($doc['title'] ?? '') . ' ' . ($doc['file_name_original'] ?? '') . ' ' . ($doc['uploader_name'] ?? ''));
+                            ?>
+                            <tr data-search="<?= htmlspecialchars($searchHaystack, ENT_QUOTES, 'UTF-8') ?>">
+                                <td>
+                                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>"
+                                       class="fw-semibold text-decoration-none d-block" style="color: var(--text-heading);">
+                                        <?= htmlspecialchars($doc['title'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
+                                    </a>
+                                    <div class="small text-truncate" style="max-width: 280px; color: var(--text-muted);">
+                                        <i class="bi bi-file-earmark-pdf text-danger me-1"></i>
+                                        <?= htmlspecialchars($doc['file_name_original'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                </td>
+                                <?php if ($isAdmin): ?>
+                                    <td>
+                                        <div class="fw-medium"><?= htmlspecialchars($doc['uploader_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+                                    </td>
+                                <?php endif; ?>
+                                <td>
+                                    <?php if ($sigType === 'single'): ?>
+                                        <span class="badge-sigma badge-sigma-neutral"><i class="bi bi-person"></i> Tunggal</span>
+                                    <?php else: ?>
+                                        <span class="badge-sigma badge-sigma-purple"><i class="bi bi-diagram-3"></i> Berjenjang</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?= $renderDocStatusBadge($docStatus, $curStep) ?>
+                                </td>
+                                <td>
+                                    <span class="small" style="color: var(--text-muted);">
+                                        <?= !empty($doc['created_at']) ? htmlspecialchars(date('d M Y, H:i', strtotime((string)$doc['created_at'])), ENT_QUOTES, 'UTF-8') : '-' ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                                        <?php if ($isAdmin): ?>
+                                            <?php if ($docStatus === 'pending_review'): ?>
+                                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>" class="btn-sigma-navy btn-sigma-sm">
+                                                    <i class="bi bi-clipboard-check"></i> Tinjau
+                                                </a>
+                                            <?php else: ?>
+                                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>" class="btn-sigma-outline btn-sigma-sm">
+                                                    Detail
+                                                </a>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <?php if ($docStatus === 'draft'): ?>
+                                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/arrange" class="btn-sigma-navy btn-sigma-sm">
+                                                    <i class="bi bi-bounding-box"></i> Atur Slot
+                                                </a>
+                                                <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/delete" method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Batalkan dan hapus draft dokumen ini?');">
+                                                    <input type="hidden" name="status_filter" value="<?= htmlspecialchars((string)($statusFilter ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                                    <button type="submit" class="btn-sigma-outline btn-sigma-sm text-danger" title="Hapus Draft">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>" class="btn-sigma-outline btn-sigma-sm">
+                                                    Detail
+                                                </a>
+                                                <?php if ($docStatus === 'pending_review'): ?>
+                                                    <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/withdraw" method="POST" class="d-inline"
+                                                          onsubmit="return confirm('Tarik kembali dokumen ini ke status Draft agar slot dapat diubah?');">
+                                                        <button type="submit" class="btn-sigma-outline btn-sigma-sm" title="Tarik ke Draft">
+                                                            <i class="bi bi-arrow-counterclockwise"></i> Tarik
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+
+                                        <?php if ($docStatus === 'completed'): ?>
+                                            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-purple btn-sigma-sm" title="Unduh PDF Final">
+                                                <i class="bi bi-download"></i> Unduh
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php
+};
+?>
+
+<?php if ($isAdmin): ?>
+    <?php $renderMainDocumentsBlock(); ?>
+<?php else: ?>
+    <?php if ($focusQueue): ?>
+        <?php $renderAssignedQueueBlock(); ?>
+
+        <!-- Panduan Singkat 3 Langkah (Figma 204:435) -->
+        <div class="sigma-guide-banner mb-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div class="fw-bold small" style="color: var(--sigma-navy);">
+                    <i class="bi bi-lightbulb-fill me-1 text-sigma-purple"></i> Cara Menandatangani Dokumen Secara Berjenjang
+                </div>
+                <span class="badge-sigma badge-sigma-purple">Alur Sequential SIGMA</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="bg-white rounded-3 p-3 h-100 border" style="border-color: var(--border-subtle) !important;">
+                        <div class="fw-bold small mb-1" style="color: var(--sigma-purple-700);">1. Buka Antrean Giliran</div>
+                        <div class="small" style="color: var(--text-muted);">Pilih dokumen berstatus <strong>Giliran Anda</strong> untuk membuka pratinjau PDF ber-slot.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="bg-white rounded-3 p-3 h-100 border" style="border-color: var(--border-subtle) !important;">
+                        <div class="fw-bold small mb-1" style="color: var(--sigma-purple-700);">2. Pilih Template atau Gambar</div>
+                        <div class="small" style="color: var(--text-muted);">Gunakan template PNG transparan default Anda, gambar di kanvas, atau unggah PNG baru.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="bg-white rounded-3 p-3 h-100 border" style="border-color: var(--border-subtle) !important;">
+                        <div class="fw-bold small mb-1" style="color: var(--sigma-purple-700);">3. Bubuhkan & Sahkan</div>
+                        <div class="small" style="color: var(--text-muted);">Sistem otomatis memajukan tahap ke penandatangan berikutnya atau menerbitkan PDF Final.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php $renderMainDocumentsBlock(); ?>
+    <?php else: ?>
+        <?php $renderMainDocumentsBlock(); ?>
+        <?php $renderAssignedQueueBlock(); ?>
+    <?php endif; ?>
 <?php endif; ?>
 
-<!-- Main Documents Table -->
-<div class="card-clean mb-4">
-    <div class="card-clean-header flex-wrap gap-2 justify-content-between align-items-center">
-        <div class="fw-semibold text-dark">
-            <?= $isAdmin ? 'Antrean Dokumen' : 'Dokumen Pengajuan Saya' ?>
-            <span class="text-muted fw-normal small ms-1">(<?= count($documents) ?>)</span>
-        </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('docTableSearchInput');
+    const docTable = document.getElementById('mainDocumentsTable');
+    if (searchInput && docTable) {
+        const rows = docTable.querySelectorAll('tbody tr[data-search]');
+        searchInput.addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            rows.forEach(function (row) {
+                const hay = row.getAttribute('data-search') || '';
+                row.style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
+            });
+        });
+    }
 
-        <!-- Filter Status Tab -->
-        <div class="d-flex flex-wrap gap-1">
-            <?php
-            $filters = [
-                ''               => 'Semua',
-                'draft'          => 'Draft',
-                'pending_review' => 'Review',
-                'signing'        => 'Proses',
-                'completed'      => 'Selesai',
-                'rejected'       => 'Ditolak',
-            ];
-            foreach ($filters as $key => $lbl):
-                $active = ($statusFilter === $key || ($key === '' && empty($statusFilter)));
-            ?>
-                <a href="<?= BASE_URL ?>/documents<?= $key ? '?status=' . $key : '' ?>" 
-                   class="btn btn-sm <?= $active ? 'btn-pnj-primary' : 'btn-subtle' ?> py-1 px-2.5" 
-                   style="font-size: 0.78rem;">
-                    <?= $lbl ?>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-
-    <?php if (empty($documents)): ?>
-        <div class="py-5 text-center text-muted">
-            <i class="bi bi-inbox fs-2 opacity-50 d-block mb-2"></i>
-            <p class="small mb-2"><?= !empty($statusFilter) ? 'Tidak ada dokumen dengan status ini.' : 'Belum ada dokumen.' ?></p>
-            <?php if (!$isAdmin && empty($statusFilter)): ?>
-                <a href="<?= BASE_URL ?>/documents/create" class="btn btn-pnj-primary btn-sm">
-                    <i class="bi bi-plus-lg me-1"></i> Ajukan Dokumen
-                </a>
-            <?php endif; ?>
-        </div>
-    <?php else: ?>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr style="font-size: 0.75rem;">
-                        <th class="text-center" style="width: 40px;">#</th>
-                        <th>Judul Dokumen</th>
-                        <?php if ($isAdmin): ?>
-                            <th>Pengaju</th>
-                        <?php endif; ?>
-                        <th>Tipe</th>
-                        <th class="text-center">Status</th>
-                        <th>Tanggal</th>
-                        <th class="text-end" style="width: 215px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($documents as $idx => $doc): ?>
-                        <?php 
-                            $badge = $statusBadges[$doc['status']] ?? ['class' => 'bg-secondary-subtle text-secondary border border-secondary-subtle', 'label' => ucfirst($doc['status'])];
-                            $isPendingReviewAdmin = ($isAdmin && $doc['status'] === 'pending_review');
-                        ?>
-                        <tr class="<?= $isPendingReviewAdmin ? 'table-warning' : '' ?>">
-                            <td class="text-center text-muted small"><?= $idx + 1 ?></td>
-                            <td>
-                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" class="fw-semibold text-dark text-decoration-none">
-                                    <?= htmlspecialchars($doc['title']) ?>
-                                </a>
-                                <div class="text-muted small" style="font-size: 0.75rem;">
-                                    <?= htmlspecialchars($doc['file_name_original']) ?>
-                                </div>
-                            </td>
-                            <?php if ($isAdmin): ?>
-                                <td class="small text-muted">
-                                    <?= htmlspecialchars($doc['uploader_name']) ?>
-                                </td>
-                            <?php endif; ?>
-                            <td class="small text-muted">
-                                <?= $doc['signature_type'] === 'single' ? 'Mandiri' : 'Berjenjang (Step ' . (int)$doc['current_step'] . ')' ?>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge <?= $badge['class'] ?> fw-normal" style="font-size: 0.72rem; padding: 0.3em 0.6em;">
-                                    <?= htmlspecialchars($badge['label']) ?>
-                                </span>
-                            </td>
-                            <td class="small text-muted">
-                                <?= date('d/m/Y', strtotime($doc['created_at'])) ?>
-                            </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1 text-nowrap">
-                                    <?php if ($isPendingReviewAdmin): ?>
-                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
-                                           class="btn btn-warning btn-sm py-0.5 px-2 text-dark fw-medium" style="font-size: 0.78rem;">
-                                            Tinjau
-                                        </a>
-                                    <?php elseif ($doc['status'] === 'draft' && !$isAdmin): ?>
-                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" 
-                                           class="btn btn-subtle btn-sm py-0.5 px-2" style="font-size: 0.78rem;">
-                                            Atur Slot
-                                        </a>
-                                    <?php else: ?>
-                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>" 
-                                           class="btn btn-subtle btn-sm py-0.5 px-2" style="font-size: 0.78rem;">
-                                            Detail
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php
-                                        $currentUserId = $user['id'] ?? ($_SESSION['user']['id'] ?? '');
-                                        $canCancelDraft = ($doc['status'] === 'draft') && !$isAdmin && (($doc['uploader_id'] ?? '') === $currentUserId);
-                                        $canWithdrawReview = ($doc['status'] === 'pending_review') && !$isAdmin && (($doc['uploader_id'] ?? '') === $currentUserId);
-                                    ?>
-                                    <?php if ($canWithdrawReview): ?>
-                                        <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/withdraw"
-                                              method="POST"
-                                              class="d-inline"
-                                              onsubmit="return confirm('Tarik kembali pengajuan dokumen ' + <?= htmlspecialchars(json_encode($doc['title'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?> + ' ke Draft untuk diperbaiki?');">
-                                            <button type="submit"
-                                                    class="btn btn-outline-warning text-dark btn-sm py-0.5 px-2"
-                                                    style="font-size: 0.78rem;"
-                                                    title="Tarik pengajuan dari antrean review Admin kembali ke Draft">
-                                                Tarik ke Draft
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
-                                    <?php if ($canCancelDraft): ?>
-                                        <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete"
-                                              method="POST"
-                                              class="d-inline"
-                                              onsubmit="return confirm('Batalkan dan hapus draft dokumen ' + <?= htmlspecialchars(json_encode($doc['title'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?> + '?');">
-                                            <input type="hidden" name="status_filter" value="<?= htmlspecialchars((string)($_GET['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                                            <button type="submit"
-                                                    class="btn btn-outline-danger btn-sm py-0.5 px-2"
-                                                    style="font-size: 0.78rem;"
-                                                    title="Batalkan dan hapus draft dokumen">
-                                                Batalkan
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
-                                    <?php if ($doc['status'] === 'completed'): ?>
-                                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" 
-                                           class="btn btn-subtle btn-sm py-0.5 px-2 text-success" style="font-size: 0.78rem;" title="Unduh PDF">
-                                            <i class="bi bi-download"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php endif; ?>
-</div>
+    const queueChips = document.getElementById('queueFilterChips');
+    const queueTable = document.getElementById('assignedQueueTable');
+    if (queueChips && queueTable) {
+        const buttons = queueChips.querySelectorAll('button[data-queue-filter]');
+        const qRows = queueTable.querySelectorAll('tbody tr[data-queue-cat]');
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const target = this.getAttribute('data-queue-filter') || 'all';
+                buttons.forEach(function (b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                qRows.forEach(function (r) {
+                    const cat = r.getAttribute('data-queue-cat');
+                    r.style.display = (target === 'all' || cat === target) ? '' : 'none';
+                });
+            });
+        });
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

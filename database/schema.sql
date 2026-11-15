@@ -406,3 +406,38 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs (user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_document ON audit_logs (document_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs (created_at);
+
+
+-- ============================================================
+-- 8. DOCUMENT_TEMPLATES (Template Dokumen Resmi Kampus)
+--    Menyimpan berkas contoh dokumen Word (.docx) yang dikelola
+--    Admin dan dapat diunduh seluruh pengguna terautentikasi.
+--    Kebijakan penghapusan: Hard Delete (tanpa deleted_at).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS document_templates (
+    id                 CHAR(36)      NOT NULL,
+    name               VARCHAR(200)  NOT NULL,
+    description        TEXT          DEFAULT NULL,
+    file_name_original VARCHAR(255)  NOT NULL,
+    file_path          VARCHAR(500)  NOT NULL,
+    file_size          BIGINT        NOT NULL CHECK (file_size >= 0),
+    created_by         CHAR(36)      DEFAULT NULL,
+    updated_by         CHAR(36)      DEFAULT NULL,
+    created_at         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_document_templates PRIMARY KEY (id),
+    CONSTRAINT fk_document_templates_created_by
+        FOREIGN KEY (created_by) REFERENCES users (id)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_document_templates_updated_by
+        FOREIGN KEY (updated_by) REFERENCES users (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_templates_name_lower ON document_templates (LOWER(name));
+CREATE INDEX IF NOT EXISTS idx_document_templates_updated_at ON document_templates (updated_at);
+
+DROP TRIGGER IF EXISTS trg_document_templates_updated_at ON document_templates;
+CREATE TRIGGER trg_document_templates_updated_at
+BEFORE UPDATE ON document_templates
+FOR EACH ROW EXECUTE FUNCTION update_timestamp_trigger();

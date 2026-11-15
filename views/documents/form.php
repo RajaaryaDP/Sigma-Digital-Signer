@@ -12,60 +12,60 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
     <div class="col-lg-10 col-xl-9">
         <!-- Back Link -->
         <div class="mb-3">
-            <a href="<?= BASE_URL ?>/documents" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1.5">
+            <a href="<?= BASE_URL ?>/documents" class="text-decoration-none small d-inline-flex align-items-center gap-2" style="color: var(--text-muted);">
                 <i class="bi bi-arrow-left"></i>
                 <span>Kembali ke Dashboard Dokumen</span>
             </a>
         </div>
 
         <!-- Form Card -->
-        <div class="card-clean mb-4">
-            <div class="card-clean-header py-3">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" 
-                         style="width: 34px; height: 34px; background: var(--pnj-green-50); color: var(--pnj-green-800);">
+        <div class="card-sigma mb-4">
+            <div class="card-sigma-header py-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center"
+                         style="width: 40px; height: 40px; background: var(--sigma-tint-100); color: var(--sigma-purple-700);">
                         <i class="bi bi-cloud-arrow-up-fill fs-5"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold text-dark mb-0">Ajukan Dokumen Baru</h5>
-                        <small class="text-muted">Unggah dokumen PDF dan tentukan alur penandatanganan berjenjang kampus</small>
+                        <h1 class="h5 fw-bold mb-0" style="color: var(--text-heading);">Ajukan Dokumen Baru</h1>
+                        <small style="color: var(--text-muted);">Unggah dokumen PDF dan tentukan alur penandatanganan berjenjang kampus</small>
                     </div>
                 </div>
             </div>
 
-            <div class="card-clean-body p-4">
+            <div class="card-sigma-body p-4">
                 <form id="docForm" action="<?= BASE_URL ?>/documents/store" method="POST" enctype="multipart/form-data">
 
                     <!-- Section 1: Informasi Dokumen -->
                     <div class="mb-4">
-                        <div class="fw-semibold text-dark small text-uppercase mb-3 pb-1 border-bottom" style="letter-spacing: 0.5px;">
+                        <div class="fw-bold small text-uppercase mb-3 pb-2 border-bottom" style="letter-spacing: 0.05em; color: var(--sigma-navy); border-color: var(--border-subtle) !important;">
                             1. Informasi & Berkas Dokumen
                         </div>
 
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label fw-medium">Judul Dokumen <span class="text-danger">*</span></label>
-                                <input type="text" name="title" 
-                                       class="form-control <?= isset($errors['title']) ? 'is-invalid' : '' ?>" 
+                                <label class="sigma-form-label d-block">Judul Dokumen <span class="text-danger">*</span></label>
+                                <input type="text" name="title"
+                                       class="form-control sigma-input <?= isset($errors['title']) ? 'is-invalid' : '' ?>"
                                        placeholder="Contoh: Lembar Pengesahan Tugas Akhir — Ahmad Fauzi"
-                                       value="<?= htmlspecialchars($values['title'] ?? '') ?>" 
+                                       value="<?= htmlspecialchars($values['title'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                        maxlength="500" required>
                                 <?php if (isset($errors['title'])): ?>
-                                    <div class="invalid-feedback small"><?= htmlspecialchars($errors['title']) ?></div>
+                                    <div class="invalid-feedback small"><?= htmlspecialchars($errors['title'], ENT_QUOTES, 'UTF-8') ?></div>
                                 <?php endif; ?>
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label fw-medium">Deskripsi / Catatan Tambahan <span class="text-muted small">(Opsional)</span></label>
-                                <textarea name="description" rows="2" 
-                                          class="form-control" 
-                                          placeholder="Keterangan singkat mengenai keperluan dokumen atau pesan pengantar"><?= htmlspecialchars($values['description'] ?? '') ?></textarea>
+                                <label class="sigma-form-label d-block">Deskripsi / Catatan Tambahan <span class="fw-normal" style="color: var(--text-muted);">(Opsional)</span></label>
+                                <textarea name="description" rows="2"
+                                          class="form-control sigma-input"
+                                          placeholder="Keterangan singkat mengenai keperluan dokumen atau pesan pengantar"><?= htmlspecialchars($values['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-medium">Tipe Alur Tanda Tangan <span class="text-danger">*</span></label>
-                                <select name="signature_type" id="signatureType" 
-                                        class="form-select <?= isset($errors['signature_type']) ? 'is-invalid' : '' ?>" required>
+                                <label class="sigma-form-label d-block">Tipe Alur Tanda Tangan <span class="text-danger">*</span></label>
+                                <select name="signature_type" id="signatureType"
+                                        class="form-select sigma-input <?= isset($errors['signature_type']) ? 'is-invalid' : '' ?>" required>
                                     <option value="sequential" <?= $curType === 'sequential' ? 'selected' : '' ?>>
                                         Tanda Tangan Berjenjang (Sequential)
                                     </option>
@@ -73,21 +73,21 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                         Tanda Tangan Mandiri (Single-Sign)
                                     </option>
                                 </select>
-                                <div class="form-text small" id="sigTypeHelp">
+                                <div class="form-text small" id="sigTypeHelp" style="color: var(--text-muted);">
                                     Berjenjang: melalui verifikasi Admin lalu ditandatangani sesuai urutan jenjang jabatan.
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-medium">Berkas Dokumen PDF <span class="text-danger">*</span></label>
+                                <label class="sigma-form-label d-block">Berkas Dokumen PDF <span class="text-danger">*</span></label>
                                 <input type="file" name="pdf_file" id="pdfFileInput"
-                                       class="form-control <?= isset($errors['pdf_file']) ? 'is-invalid' : '' ?>" 
+                                       class="form-control sigma-input <?= isset($errors['pdf_file']) ? 'is-invalid' : '' ?>"
                                        accept=".pdf,application/pdf" required>
-                                <div class="form-text small">
+                                <div class="form-text small" style="color: var(--text-muted);">
                                     Hanya berkas PDF (.pdf) dengan ukuran maksimum 10 MB.
                                 </div>
                                 <?php if (isset($errors['pdf_file'])): ?>
-                                    <div class="invalid-feedback small d-block"><?= htmlspecialchars($errors['pdf_file']) ?></div>
+                                    <div class="invalid-feedback small d-block"><?= htmlspecialchars($errors['pdf_file'], ENT_QUOTES, 'UTF-8') ?></div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -95,17 +95,17 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
 
                     <!-- Section 2: Penandatangan Berjenjang (Sequential only) -->
                     <div id="sequentialSection" class="mb-4 <?= $curType === 'single' ? 'd-none' : '' ?>" style="<?= $curType === 'single' ? 'display: none;' : '' ?>">
-                        <div class="d-flex justify-content-between align-items-center mb-3 pb-1 border-bottom">
-                            <div class="fw-semibold text-dark small text-uppercase" style="letter-spacing: 0.5px;">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-subtle) !important;">
+                            <div class="fw-bold small text-uppercase" style="letter-spacing: 0.05em; color: var(--sigma-navy);">
                                 2. Susunan Penandatangan Berjenjang
                             </div>
-                            <button type="button" id="btnAddSigner" class="btn btn-subtle btn-sm">
-                                <i class="bi bi-person-plus me-1 text-success"></i> Tambah Penandatangan
+                            <button type="button" id="btnAddSigner" class="btn-sigma-outline btn-sigma-sm">
+                                <i class="bi bi-person-plus text-sigma-purple"></i> Tambah Penandatangan
                             </button>
                         </div>
 
-                        <p class="text-muted small mb-3">
-                            Tentukan urutan hierarki penandatangan (dimulai dari urutan ke-1). Setelah disetujui Admin, 
+                        <p class="small mb-3" style="color: var(--text-muted);">
+                            Tentukan urutan hierarki penandatangan (dimulai dari urutan ke-1). Setelah disetujui Admin,
                             dokumen akan diteruskan secara bergiliran.
                         </p>
 
@@ -114,96 +114,94 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                             $deptList  = $departments ?? [];
                             $prodiList = $studyPrograms ?? [];
                         ?>
-                        <div class="card border bg-light bg-opacity-50 mb-3">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="small fw-semibold text-dark">
-                                        <i class="bi bi-funnel me-1 text-success"></i>Filter Nama Penandatangan / Dosen
+                        <div class="rounded-3 border p-3 mb-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                <span class="small fw-semibold" style="color: var(--text-heading);">
+                                    <i class="bi bi-funnel me-1 text-sigma-purple"></i> Filter Nama Penandatangan / Dosen
+                                </span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge-sigma badge-sigma-purple" id="signerFilterCountBadge">
+                                        <?= count($availableSigners) ?> tersedia
                                     </span>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle" id="signerFilterCountBadge">
-                                            <?= count($availableSigners) ?> tersedia
-                                        </span>
-                                        <button type="button" id="btnResetSignerFilter" class="btn btn-link btn-sm text-decoration-none p-0 text-secondary" style="font-size: 0.78rem;">
-                                            <i class="bi bi-arrow-counterclockwise"></i> Reset
-                                        </button>
-                                    </div>
+                                    <button type="button" id="btnResetSignerFilter" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.78rem; color: var(--sigma-purple-700);">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                    </button>
                                 </div>
-                                <div class="row g-2">
-                                    <div class="col-md-4">
-                                        <label for="filterDepartment" class="form-label small text-muted mb-1">Jurusan</label>
-                                        <select id="filterDepartment" class="form-select form-select-sm">
-                                            <option value="">Semua Jurusan</option>
-                                            <?php foreach ($deptList as $dept): ?>
-                                                <option value="<?= htmlspecialchars($dept['id']) ?>"
-                                                        data-name="<?= htmlspecialchars($dept['name']) ?>">
-                                                    <?= htmlspecialchars($dept['name']) ?><?= !empty($dept['code']) ? ' (' . htmlspecialchars($dept['code']) . ')' : '' ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="filterStudyProgram" class="form-label small text-muted mb-1">Program Studi (Prodi)</label>
-                                        <select id="filterStudyProgram" class="form-select form-select-sm">
-                                            <option value="">Semua Prodi</option>
-                                            <?php foreach ($prodiList as $pr): ?>
-                                                <option value="<?= htmlspecialchars($pr['id']) ?>"
-                                                        data-dept-id="<?= htmlspecialchars($pr['department_id']) ?>">
-                                                    <?= htmlspecialchars($pr['name']) ?><?= !empty($pr['degree']) ? ' (' . htmlspecialchars($pr['degree']) . ')' : '' ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label for="filterCivitasType" class="form-label small text-muted mb-1">Kategori</label>
-                                        <select id="filterCivitasType" class="form-select form-select-sm">
-                                            <option value="">Semua</option>
-                                            <option value="dosen">Dosen</option>
-                                            <option value="mahasiswa">Mahasiswa</option>
-                                            <option value="tendik">Tendik</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="filterSignerSearch" class="form-label small text-muted mb-1">Cari Nama / NIP</label>
-                                        <input type="text" id="filterSignerSearch" class="form-control form-control-sm"
-                                               placeholder="Ketik nama atau NIP...">
-                                    </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label for="filterDepartment" class="form-label small mb-1" style="color: var(--text-muted);">Jurusan</label>
+                                    <select id="filterDepartment" class="form-select form-select-sm sigma-input">
+                                        <option value="">Semua Jurusan</option>
+                                        <?php foreach ($deptList as $dept): ?>
+                                            <option value="<?= htmlspecialchars($dept['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-name="<?= htmlspecialchars($dept['name'], ENT_QUOTES, 'UTF-8') ?>">
+                                                <?= htmlspecialchars($dept['name'], ENT_QUOTES, 'UTF-8') ?><?= !empty($dept['code']) ? ' (' . htmlspecialchars($dept['code'], ENT_QUOTES, 'UTF-8') . ')' : '' ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
-                                <div class="form-text small mt-1 mb-0">
-                                    Dosen yang mengampu lebih dari 1 prodi otomatis tampil di masing-masing prodi maupun jurusan terkait. Pilihan yang sudah dipilih di baris tabel tidak akan terhapus saat filter diganti.
+                                <div class="col-md-3">
+                                    <label for="filterStudyProgram" class="form-label small mb-1" style="color: var(--text-muted);">Program Studi (Prodi)</label>
+                                    <select id="filterStudyProgram" class="form-select form-select-sm sigma-input">
+                                        <option value="">Semua Prodi</option>
+                                        <?php foreach ($prodiList as $pr): ?>
+                                            <option value="<?= htmlspecialchars($pr['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-dept-id="<?= htmlspecialchars($pr['department_id'], ENT_QUOTES, 'UTF-8') ?>">
+                                                <?= htmlspecialchars($pr['name'], ENT_QUOTES, 'UTF-8') ?><?= !empty($pr['degree']) ? ' (' . htmlspecialchars($pr['degree'], ENT_QUOTES, 'UTF-8') . ')' : '' ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
+                                <div class="col-md-2">
+                                    <label for="filterCivitasType" class="form-label small mb-1" style="color: var(--text-muted);">Kategori</label>
+                                    <select id="filterCivitasType" class="form-select form-select-sm sigma-input">
+                                        <option value="">Semua</option>
+                                        <option value="dosen">Dosen</option>
+                                        <option value="mahasiswa">Mahasiswa</option>
+                                        <option value="tendik">Tendik</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filterSignerSearch" class="form-label small mb-1" style="color: var(--text-muted);">Cari Nama / NIP</label>
+                                    <input type="text" id="filterSignerSearch" class="form-control form-control-sm sigma-input"
+                                           placeholder="Ketik nama atau NIP...">
+                                </div>
+                            </div>
+                            <div class="form-text small mt-2 mb-0" style="color: var(--text-muted);">
+                                Dosen yang mengampu lebih dari 1 prodi otomatis tampil di masing-masing prodi maupun jurusan terkait. Pilihan yang sudah dipilih di baris tabel tidak akan terhapus saat filter diganti.
                             </div>
                         </div>
 
                         <?php if (isset($errors['signers'])): ?>
-                            <div class="alert alert-danger py-2 px-3 small mb-3" role="alert">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= htmlspecialchars($errors['signers']) ?>
+                            <div class="alert alert-danger alert-sigma py-2 px-3 small mb-3" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= htmlspecialchars($errors['signers'], ENT_QUOTES, 'UTF-8') ?>
                             </div>
                         <?php endif; ?>
 
                         <!-- Table Daftar Penandatangan -->
-                        <div class="table-responsive border rounded-3 mb-2">
-                            <table class="table table-hover align-middle mb-0" id="signersTable">
-                                <thead class="table-light">
+                        <div class="table-responsive border rounded-3 mb-2" style="border-color: var(--border-subtle) !important;">
+                            <table class="table-sigma" id="signersTable">
+                                <thead>
                                     <tr>
-                                        <th style="width: 80px;" class="text-center">Urutan</th>
+                                        <th style="width: 84px;" class="text-center">Urutan</th>
                                         <th>Penandatangan (Civitas) <span class="text-danger">*</span></th>
                                         <th>Peran / Jabatan Dokumen</th>
-                                        <th style="width: 60px;" class="text-center">Aksi</th>
+                                        <th style="width: 64px;" class="text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="signersTableBody">
                                     <?php foreach ($signersData as $idx => $s): ?>
                                     <tr class="signer-row">
                                         <td class="text-center">
-                                            <span class="badge bg-secondary step-number-badge"><?= $idx + 1 ?></span>
+                                            <span class="badge-sigma badge-sigma-purple step-number-badge"><?= $idx + 1 ?></span>
                                             <input type="hidden" name="signer_step_order[]" class="step-order-input" value="<?= $idx + 1 ?>">
                                         </td>
                                         <td>
-                                            <select name="signer_user_id[]" class="form-select form-select-sm signer-user-select" required>
+                                            <select name="signer_user_id[]" class="form-select form-select-sm sigma-input signer-user-select" required>
                                                 <option value="">-- Pilih Civitas Kampus --</option>
                                                 <?php foreach ($availableSigners as $as): ?>
-                                                    <?php 
+                                                    <?php
                                                         $isSelected = ($s['user_id'] ?? '') === $as['id'];
                                                         $cType = ucfirst($as['civitas_type'] ?? 'Civitas');
                                                         $idNum = !empty($as['identifier']) ? " ({$as['identifier']})" : '';
@@ -212,19 +210,19 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                                             ? ' [' . implode(', ', $as['study_program_codes']) . ']'
                                                             : (!empty($as['department']) ? ' [' . $as['department'] . ']' : '');
                                                     ?>
-                                                    <option value="<?= htmlspecialchars($as['id']) ?>" 
-                                                            data-position="<?= htmlspecialchars($as['position'] ?? '') ?>"
+                                                    <option value="<?= htmlspecialchars($as['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                                            data-position="<?= htmlspecialchars($as['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                             <?= $isSelected ? 'selected' : '' ?>>
-                                                        <?= htmlspecialchars($as['name'] . $idNum . " [{$cType}]" . $pos . $prodiSuffix) ?>
+                                                        <?= htmlspecialchars($as['name'] . $idNum . " [{$cType}]" . $pos . $prodiSuffix, ENT_QUOTES, 'UTF-8') ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="text" name="signer_role_title[]" 
-                                                   class="form-control form-control-sm signer-role-input" 
+                                            <input type="text" name="signer_role_title[]"
+                                                   class="form-control form-control-sm sigma-input signer-role-input"
                                                    placeholder="Contoh: Dosen Pembimbing I / Ketua Jurusan"
-                                                   value="<?= htmlspecialchars($s['role_title'] ?? '') ?>">
+                                                   value="<?= htmlspecialchars($s['role_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                         </td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-outline-danger btn-sm border-0 btn-remove-signer" title="Hapus baris">
@@ -273,12 +271,12 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                     <script type="application/json" id="prodiCatalogJson"><?= json_encode($prodiCatalogPayload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
 
                     <!-- Submit Actions -->
-                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-                        <a href="<?= BASE_URL ?>/documents" class="btn btn-subtle">
-                            <i class="bi bi-x-lg me-1"></i> Batal
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                        <a href="<?= BASE_URL ?>/documents" class="btn-sigma-outline">
+                            <i class="bi bi-x-lg"></i> Batal
                         </a>
-                        <button type="submit" id="btnSubmitForm" class="btn btn-pnj-primary px-4">
-                            <i class="bi bi-arrow-right-circle me-1.5"></i>
+                        <button type="submit" id="btnSubmitForm" class="btn-sigma-navy px-4">
+                            <i class="bi bi-arrow-right-circle"></i>
                             <span id="submitBtnText">Unggah & Atur Slot Tanda Tangan</span>
                         </button>
                     </div>
@@ -532,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const tdOrder = document.createElement('td');
         tdOrder.className = 'text-center';
         const badge = document.createElement('span');
-        badge.className = 'badge bg-secondary step-number-badge';
+        badge.className = 'badge-sigma badge-sigma-purple step-number-badge';
         badge.textContent = '1';
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
@@ -545,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const tdSelect = document.createElement('td');
         const selectEl = document.createElement('select');
         selectEl.name = 'signer_user_id[]';
-        selectEl.className = 'form-select form-select-sm signer-user-select';
+        selectEl.className = 'form-select form-select-sm sigma-input signer-user-select';
         if (sigTypeSelect.value !== 'single') {
             selectEl.setAttribute('required', 'required');
         }
@@ -556,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const roleInput = document.createElement('input');
         roleInput.type = 'text';
         roleInput.name = 'signer_role_title[]';
-        roleInput.className = 'form-control form-control-sm signer-role-input';
+        roleInput.className = 'form-control form-control-sm sigma-input signer-role-input';
         roleInput.placeholder = 'Contoh: Dosen Pembimbing I / Ketua Jurusan';
         tdRole.appendChild(roleInput);
 
@@ -635,4 +633,3 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>
-

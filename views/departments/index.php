@@ -2,24 +2,26 @@
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-        <h4 class="fw-bold text-dark mb-1">Master Jurusan &amp; Program Studi</h4>
-        <p class="text-muted small mb-0">
+        <div class="text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 0.08em; color: var(--sigma-purple-600);">
+            Struktur Akademik Kampus
+        </div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-heading);">Master Jurusan &amp; Program Studi</h4>
+        <p class="small mb-0" style="color: var(--text-muted);">
             Kelola daftar Jurusan dan Program Studi (Prodi) sebagai dasar penugasan Dosen (multi-prodi) &amp; filter penandatangan dokumen.
         </p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
-        <a href="<?= BASE_URL ?>/civitas" class="btn btn-subtle d-inline-flex align-items-center gap-2">
+        <a href="<?= BASE_URL ?>/civitas" class="btn-sigma-outline text-decoration-none">
             <i class="bi bi-person-vcard"></i>
             <span>Master Data Civitas</span>
         </a>
         <?php if (!empty($departments)): ?>
-            <a href="<?= BASE_URL ?>/prodi/create" class="btn btn-subtle d-inline-flex align-items-center gap-2"
-               style="border-color: #a7f3d0; background: #ecfdf5; color: #065f46;">
+            <a href="<?= BASE_URL ?>/prodi/create" class="btn-sigma-purple text-decoration-none">
                 <i class="bi bi-mortarboard"></i>
                 <span>+ Tambah Prodi</span>
             </a>
         <?php endif; ?>
-        <a href="<?= BASE_URL ?>/departments/create" class="btn btn-pnj-primary d-inline-flex align-items-center gap-2">
+        <a href="<?= BASE_URL ?>/departments/create" class="btn-sigma-navy text-decoration-none">
             <i class="bi bi-plus-lg"></i>
             <span>Tambah Jurusan</span>
         </a>
@@ -29,50 +31,42 @@
 <!-- Ringkasan & Pencarian -->
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="card-clean h-100">
-            <div class="card-clean-body p-3 d-flex align-items-center gap-3">
-                <div class="rounded-3 d-flex align-items-center justify-content-center"
-                     style="width: 44px; height: 44px; background: var(--pnj-green-50); color: var(--pnj-green-800);">
-                    <i class="bi bi-building fs-5"></i>
-                </div>
-                <div>
-                    <div class="text-muted small">Total Jurusan</div>
-                    <div class="fs-4 fw-bold text-dark"><?= count($departments) ?></div>
-                </div>
+        <div class="stat-card-sigma">
+            <div>
+                <div class="stat-label mb-1">Total Jurusan</div>
+                <div class="stat-val"><?= count($departments) ?></div>
+            </div>
+            <div class="stat-icon" style="background: var(--sigma-tint-100); color: var(--sigma-purple-700);">
+                <i class="bi bi-building"></i>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card-clean h-100">
-            <div class="card-clean-body p-3 d-flex align-items-center gap-3">
-                <div class="rounded-3 d-flex align-items-center justify-content-center"
-                     style="width: 44px; height: 44px; background: #e0f2fe; color: #0369a1;">
-                    <i class="bi bi-mortarboard fs-5"></i>
-                </div>
-                <div>
-                    <div class="text-muted small">Total Program Studi</div>
-                    <div class="fs-4 fw-bold text-dark"><?= (int) $totalProdi ?></div>
-                </div>
+        <div class="stat-card-sigma">
+            <div>
+                <div class="stat-label mb-1">Total Program Studi</div>
+                <div class="stat-val"><?= (int) $totalProdi ?></div>
+            </div>
+            <div class="stat-icon" style="background: #e0f2fe; color: #0369a1;">
+                <i class="bi bi-mortarboard"></i>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card-clean h-100">
-            <div class="card-clean-body p-3 d-flex align-items-center">
+        <div class="card-sigma h-100 d-flex align-items-center">
+            <div class="card-sigma-body p-3 w-100">
                 <form action="<?= BASE_URL ?>/departments" method="GET" class="d-flex gap-2 w-100">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light text-muted border-end-0">
-                            <i class="bi bi-search"></i>
-                        </span>
+                    <div class="sigma-search-box flex-grow-1">
+                        <i class="bi bi-search sigma-search-icon"></i>
                         <input type="text"
                                name="q"
-                               class="form-control border-start-0"
+                               class="form-control"
                                placeholder="Cari jurusan atau prodi..."
                                value="<?= htmlspecialchars($search) ?>">
                     </div>
-                    <button class="btn btn-subtle px-3" type="submit">Cari</button>
+                    <button class="btn-sigma-navy btn-sigma-sm px-3" type="submit">Cari</button>
                     <?php if ($search !== ''): ?>
-                        <a href="<?= BASE_URL ?>/departments" class="btn btn-outline-secondary" title="Reset pencarian">
+                        <a href="<?= BASE_URL ?>/departments" class="btn-sigma-outline btn-sigma-sm text-decoration-none" title="Reset pencarian">
                             <i class="bi bi-x-lg"></i>
                         </a>
                     <?php endif; ?>
@@ -83,22 +77,22 @@
 </div>
 
 <?php if (empty($departments)): ?>
-    <div class="card-clean">
+    <div class="card-sigma">
         <div class="p-5 text-center">
-            <i class="bi bi-building text-muted" style="font-size: 2.5rem; opacity: 0.4;"></i>
-            <h6 class="fw-semibold text-dark mt-3 mb-1">
+            <i class="bi bi-building" style="font-size: 2.5rem; color: var(--sigma-lavender);"></i>
+            <h6 class="fw-semibold mt-3 mb-1" style="color: var(--text-heading);">
                 <?= $search !== '' ? 'Jurusan atau Prodi tidak ditemukan' : 'Belum ada data Jurusan' ?>
             </h6>
-            <p class="text-muted small mb-3">
+            <p class="small mb-3" style="color: var(--text-muted);">
                 <?= $search !== ''
                     ? 'Coba ubah kata kunci pencarian atau reset filter untuk melihat seluruh data.'
                     : 'Tambahkan Jurusan dan Program Studi terlebih dahulu agar dapat dikaitkan dengan data Dosen & Mahasiswa.' ?>
             </p>
             <?php if ($search !== ''): ?>
-                <a href="<?= BASE_URL ?>/departments" class="btn btn-subtle btn-sm">Tampilkan Semua</a>
+                <a href="<?= BASE_URL ?>/departments" class="btn-sigma-outline btn-sigma-sm text-decoration-none">Tampilkan Semua</a>
             <?php else: ?>
-                <a href="<?= BASE_URL ?>/departments/create" class="btn btn-pnj-primary btn-sm">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Jurusan Pertama
+                <a href="<?= BASE_URL ?>/departments/create" class="btn-sigma-navy btn-sigma-sm text-decoration-none">
+                    <i class="bi bi-plus-lg"></i> Tambah Jurusan Pertama
                 </a>
             <?php endif; ?>
         </div>
@@ -107,19 +101,18 @@
     <div class="d-flex flex-column gap-4">
         <?php foreach ($departments as $dept): ?>
             <?php $prodiList = $dept['study_programs'] ?? []; ?>
-            <div class="card-clean overflow-hidden">
-                <div class="card-clean-header py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="card-sigma overflow-hidden">
+                <div class="card-sigma-header py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <?php if (!empty($dept['code'])): ?>
-                                <span class="badge fw-semibold"
-                                      style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">
+                                <span class="badge-sigma badge-sigma-purple">
                                     <?= htmlspecialchars($dept['code']) ?>
                                 </span>
                             <?php endif; ?>
-                            <h5 class="mb-0 fw-bold text-dark"><?= htmlspecialchars($dept['name']) ?></h5>
+                            <h5 class="mb-0 fw-bold" style="color: var(--text-heading);"><?= htmlspecialchars($dept['name']) ?></h5>
                         </div>
-                        <div class="text-muted small mt-1">
+                        <div class="small mt-1" style="color: var(--text-muted);">
                             <span class="me-3">
                                 <i class="bi bi-mortarboard me-1"></i><?= (int) ($dept['prodi_count'] ?? count($prodiList)) ?> Prodi
                             </span>
@@ -130,20 +123,19 @@
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         <a href="<?= BASE_URL ?>/prodi/create?department_id=<?= urlencode($dept['id']) ?>"
-                           class="btn btn-sm btn-subtle"
-                           style="border-color: #a7f3d0; background: #ecfdf5; color: #065f46;">
-                            <i class="bi bi-plus-circle me-1"></i> Tambah Prodi
+                           class="btn-sigma-purple btn-sigma-sm text-decoration-none">
+                            <i class="bi bi-plus-circle"></i> Tambah Prodi
                         </a>
                         <a href="<?= BASE_URL ?>/departments/<?= htmlspecialchars($dept['id']) ?>/edit"
-                           class="btn btn-sm btn-subtle">
-                            <i class="bi bi-pencil-square me-1"></i> Ubah Jurusan
+                           class="btn-sigma-outline btn-sigma-sm text-decoration-none">
+                            <i class="bi bi-pencil-square"></i> Ubah Jurusan
                         </a>
                         <form action="<?= BASE_URL ?>/departments/<?= htmlspecialchars($dept['id']) ?>/delete"
                               method="POST"
                               class="d-inline"
                               onsubmit="return confirm('Yakin ingin menghapus Jurusan ' + <?= htmlspecialchars(json_encode($dept['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?> + '?');">
-                            <button type="submit" class="btn btn-sm btn-subtle text-danger">
-                                <i class="bi bi-trash3 me-1"></i> Hapus
+                            <button type="submit" class="btn-sigma-outline btn-sigma-sm text-danger" style="border-color: #fecaca;">
+                                <i class="bi bi-trash3"></i> Hapus
                             </button>
                         </form>
                     </div>
@@ -151,16 +143,16 @@
 
                 <div class="p-0">
                     <?php if (empty($prodiList)): ?>
-                        <div class="p-4 text-center text-muted small">
+                        <div class="p-4 text-center small" style="color: var(--text-muted);">
                             <i class="bi bi-info-circle me-1"></i>
                             Belum ada Program Studi di jurusan ini.
-                            <a href="<?= BASE_URL ?>/prodi/create?department_id=<?= urlencode($dept['id']) ?>" class="fw-semibold text-success ms-1">
+                            <a href="<?= BASE_URL ?>/prodi/create?department_id=<?= urlencode($dept['id']) ?>" class="fw-semibold text-decoration-none ms-1" style="color: var(--sigma-violet-600);">
                                 Tambah Prodi sekarang
                             </a>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
-                            <table class="table table-minimal mb-0">
+                            <table class="table table-sigma mb-0">
                                 <thead>
                                     <tr>
                                         <th style="width: 110px;">Kode</th>
@@ -168,7 +160,7 @@
                                         <th>Nama Program Studi</th>
                                         <th class="text-center" style="width: 150px;">Dosen Mengampu</th>
                                         <th class="text-center" style="width: 140px;">Total Civitas</th>
-                                        <th class="text-end" style="width: 150px;">Aksi</th>
+                                        <th class="text-end" style="width: 130px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -176,40 +168,39 @@
                                         <tr>
                                             <td>
                                                 <?php if (!empty($pr['code'])): ?>
-                                                    <code class="fw-semibold px-2 py-1 rounded"
-                                                          style="background: #f8fafc; color: #1e293b; border: 1px solid #e2e8f0; font-size: 0.8rem;">
+                                                    <code class="font-mono-hash fw-semibold px-2 py-1 rounded"
+                                                          style="background: var(--sigma-tint-50); color: var(--text-heading); border: 1px solid var(--border-subtle); font-size: 0.8rem;">
                                                         <?= htmlspecialchars($pr['code']) ?>
                                                     </code>
                                                 <?php else: ?>
-                                                    <span class="text-muted small">—</span>
+                                                    <span class="small" style="color: var(--text-muted);">—</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
                                                 <?php if (!empty($pr['degree'])): ?>
-                                                    <span class="badge px-2 py-1 fw-semibold"
-                                                          style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">
+                                                    <span class="badge-sigma"
+                                                          style="background: #e0f2fe; color: #0369a1;">
                                                         <?= htmlspecialchars($pr['degree']) ?>
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="text-muted small">—</span>
+                                                    <span class="small" style="color: var(--text-muted);">—</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="fw-medium text-dark"><?= htmlspecialchars($pr['name']) ?></td>
+                                            <td class="fw-medium" style="color: var(--text-heading);"><?= htmlspecialchars($pr['name']) ?></td>
                                             <td class="text-center">
-                                                <span class="badge rounded-pill px-2 py-1"
-                                                      style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">
+                                                <span class="badge-sigma badge-sigma-success">
                                                     <?= (int) ($pr['dosen_count'] ?? 0) ?> Dosen
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge rounded-pill bg-light text-secondary border px-2 py-1">
+                                                <span class="badge-sigma badge-sigma-neutral">
                                                     <?= (int) ($pr['civitas_count'] ?? 0) ?> Civitas
                                                 </span>
                                             </td>
                                             <td class="text-end">
                                                 <div class="d-inline-flex gap-1">
                                                     <a href="<?= BASE_URL ?>/prodi/<?= htmlspecialchars($pr['id']) ?>/edit"
-                                                       class="btn btn-subtle" style="padding: 0.25rem 0.55rem;"
+                                                       class="btn-sigma-outline btn-sigma-sm text-decoration-none"
                                                        title="Ubah Prodi">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </a>
@@ -217,7 +208,7 @@
                                                           method="POST"
                                                           class="d-inline"
                                                           onsubmit="return confirm('Yakin ingin menghapus Program Studi ' + <?= htmlspecialchars(json_encode($pr['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?> + '?');">
-                                                        <button type="submit" class="btn btn-subtle text-danger" style="padding: 0.25rem 0.55rem;" title="Hapus Prodi">
+                                                        <button type="submit" class="btn-sigma-outline btn-sigma-sm text-danger" style="border-color: #fecaca;" title="Hapus Prodi">
                                                             <i class="bi bi-trash3"></i>
                                                         </button>
                                                     </form>

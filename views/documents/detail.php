@@ -1,26 +1,26 @@
 <?php
-$title = 'Detail Dokumen — ' . htmlspecialchars($doc['title']) . ' — SIGMA';
+$title = 'Detail Dokumen — ' . htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') . ' — SIGMA';
 require_once __DIR__ . '/../layout/header.php';
 
-// Format status badge helper
+// Format status badge helper (Token SIGMA)
 $statusBadges = [
-    'draft'          => ['class' => 'bg-secondary', 'label' => 'Draft / Belum Diajukan', 'icon' => 'bi-pencil'],
-    'pending_review' => ['class' => 'bg-warning text-dark', 'label' => 'Menunggu Review Admin', 'icon' => 'bi-hourglass-split'],
-    'approved'       => ['class' => 'bg-info text-dark', 'label' => 'Disetujui Admin', 'icon' => 'bi-check2-circle'],
-    'signing'        => ['class' => 'bg-primary', 'label' => 'Proses Penandatanganan', 'icon' => 'bi-pen-fill'],
-    'completed'      => ['class' => 'bg-success', 'label' => 'Dokumen Selesai', 'icon' => 'bi-patch-check-fill'],
-    'rejected'       => ['class' => 'bg-danger', 'label' => 'Dokumen Ditolak', 'icon' => 'bi-x-octagon-fill'],
+    'draft'          => ['class' => 'badge-sigma-neutral', 'label' => 'Draft / Belum Diajukan', 'icon' => 'bi-pencil-square'],
+    'pending_review' => ['class' => 'badge-sigma-warning', 'label' => 'Menunggu Review Admin', 'icon' => 'bi-hourglass-split'],
+    'approved'       => ['class' => 'badge-sigma-violet',  'label' => 'Disetujui Admin', 'icon' => 'bi-check2-circle'],
+    'signing'        => ['class' => 'badge-sigma-purple',  'label' => 'Proses Penandatanganan', 'icon' => 'bi-pen-fill'],
+    'completed'      => ['class' => 'badge-sigma-success', 'label' => 'Dokumen Selesai (Sah)', 'icon' => 'bi-patch-check-fill'],
+    'rejected'       => ['class' => 'badge-sigma-danger',  'label' => 'Dokumen Ditolak', 'icon' => 'bi-x-octagon-fill'],
 ];
-$curBadge = $statusBadges[$doc['status']] ?? ['class' => 'bg-secondary', 'label' => ucfirst($doc['status']), 'icon' => 'bi-circle'];
+$curBadge = $statusBadges[$doc['status']] ?? ['class' => 'badge-sigma-neutral', 'label' => ucfirst((string)$doc['status']), 'icon' => 'bi-circle'];
 
 $signerBadges = [
-    'waiting'  => ['class' => 'bg-secondary', 'label' => 'Menunggu Giliran', 'icon' => 'bi-clock'],
-    'pending'  => ['class' => 'bg-warning text-dark', 'label' => 'Giliran Aktif', 'icon' => 'bi-pen'],
-    'signed'   => ['class' => 'bg-success', 'label' => 'Sudah Ditandatangani', 'icon' => 'bi-check-circle-fill'],
-    'declined' => ['class' => 'bg-danger', 'label' => 'Menolak Tanda Tangan', 'icon' => 'bi-x-circle-fill'],
+    'waiting'  => ['class' => 'badge-sigma-neutral', 'label' => 'Menunggu Giliran', 'icon' => 'bi-clock'],
+    'pending'  => ['class' => 'badge-sigma-warning', 'label' => 'Giliran Aktif', 'icon' => 'bi-pen'],
+    'signed'   => ['class' => 'badge-sigma-success', 'label' => 'Sudah Ditandatangani', 'icon' => 'bi-check-circle-fill'],
+    'declined' => ['class' => 'badge-sigma-danger',  'label' => 'Menolak Tanda Tangan', 'icon' => 'bi-x-circle-fill'],
 ];
 
-// Deteksi jika ada signer yang menolak (untuk akurasi stepper & banner penolakan)
+// Deteksi jika ada signer yang menolak
 $declinedSigner = null;
 foreach ($signers as $s) {
     if (($s['status'] ?? '') === 'declined') {
@@ -29,7 +29,7 @@ foreach ($signers as $s) {
     }
 }
 
-// Indeks tanda tangan yang sudah terpasang berdasarkan document_signer_id dan signer_id
+// Indeks tanda tangan terpasang
 $signaturesByDocSigner = [];
 $signaturesByUser      = [];
 if (!empty($signatures)) {
@@ -45,10 +45,7 @@ if (!empty($signatures)) {
 
 $currentUserId = $_SESSION['user']['id'] ?? '';
 
-// Tentukan halaman awal pratinjau PDF secara cerdas:
-// - Jika yang membuka adalah penandatangan ($mySigner), buka langsung halaman slot miliknya
-// - Jika sedang proses signing, buka halaman slot giliran aktif (current_step)
-// - Selain itu, buka halaman slot penandatangan pertama (atau halaman 1)
+// Halaman awal pratinjau PDF secara cerdas
 $initialPreviewPage = 1;
 if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
     $initialPreviewPage = (int) $mySigner['page_number'];
@@ -62,6 +59,8 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 } elseif (!empty($signers) && (int) ($signers[0]['page_number'] ?? 0) > 0) {
     $initialPreviewPage = (int) $signers[0]['page_number'];
 }
+
+$isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySigner['status'] === 'pending' && (int)$mySigner['step_order'] === (int)$doc['current_step']);
 ?>
 
 <!-- Pustaka Mozilla PDF.js untuk pratinjau lembar dokumen + overlay slot & tanda tangan (ADR-09) -->
@@ -69,88 +68,51 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 
 <!-- Back Link -->
 <div class="mb-3">
-    <a href="<?= BASE_URL ?>/documents" class="text-decoration-none text-muted small d-inline-flex align-items-center gap-1.5">
+    <a href="<?= BASE_URL ?>/documents" class="text-decoration-none small d-inline-flex align-items-center gap-2" style="color: var(--text-muted);">
         <i class="bi bi-arrow-left"></i>
         <span>Kembali ke Dashboard Dokumen</span>
     </a>
 </div>
 
-<!-- Header Detail Dokumen -->
-<div class="card-clean mb-4">
-    <div class="card-clean-body p-4">
+<!-- Header Detail Dokumen + Stepper 4 Langkah -->
+<div class="card-sigma mb-4">
+    <div class="card-sigma-body p-4">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
             <div>
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <span class="badge <?= $curBadge['class'] ?> py-1.5 px-2.5 fs-7 d-inline-flex align-items-center gap-1">
+                    <span class="badge-sigma <?= $curBadge['class'] ?>">
                         <i class="bi <?= $curBadge['icon'] ?>"></i>
-                        <?= htmlspecialchars($curBadge['label']) ?>
+                        <?= htmlspecialchars($curBadge['label'], ENT_QUOTES, 'UTF-8') ?>
                     </span>
-                    <span class="badge bg-light text-dark border">
-                        <i class="bi <?= $doc['signature_type'] === 'single' ? 'bi-person-check' : 'bi-diagram-3' ?> me-1"></i>
+                    <span class="badge-sigma badge-sigma-purple">
+                        <i class="bi <?= $doc['signature_type'] === 'single' ? 'bi-person-check' : 'bi-diagram-3' ?>"></i>
                         <?= $doc['signature_type'] === 'single' ? 'Tanda Tangan Mandiri' : 'Tanda Tangan Berjenjang' ?>
                     </span>
-                    <span class="text-muted small">
-                        Diajukan oleh: <strong><?= htmlspecialchars($doc['uploader_name']) ?></strong>
+                    <span class="small" style="color: var(--text-muted);">
+                        Diajukan oleh: <strong style="color: var(--text-heading);"><?= htmlspecialchars($doc['uploader_name'], ENT_QUOTES, 'UTF-8') ?></strong>
                     </span>
                 </div>
-                <h3 class="fw-bold text-dark mb-2"><?= htmlspecialchars($doc['title']) ?></h3>
+                <h1 class="h4 fw-bold mb-1" style="color: var(--text-heading);"><?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?></h1>
                 <?php if (!empty($doc['description'])): ?>
-                    <p class="text-muted mb-0 small"><?= nl2br(htmlspecialchars($doc['description'])) ?></p>
+                    <p class="mb-0 small" style="color: var(--text-muted);"><?= nl2br(htmlspecialchars($doc['description'], ENT_QUOTES, 'UTF-8')) ?></p>
                 <?php endif; ?>
             </div>
 
-            <!-- Tombol Aksi Dokumen -->
-            <div class="d-flex flex-wrap gap-2">
-                <?php if ($doc['status'] === 'draft' && $isOwner): ?>
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/arrange" class="btn btn-pnj-primary btn-sm">
-                        <i class="bi bi-aspect-ratio me-1"></i> Atur Slot Tanda Tangan
-                    </a>
-
-                    <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/delete" method="POST" 
-                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus draft dokumen ini? Berkas PDF akan dihapus secara permanen.');">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                            <i class="bi bi-trash me-1"></i> Hapus Draft
-                        </button>
-                    </form>
-                <?php endif; ?>
-
-                <?php if ($doc['status'] === 'pending_review' && $isOwner): ?>
-                    <button type="button" class="btn btn-outline-warning text-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalWithdraw">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> Tarik ke Draft
-                    </button>
-                <?php endif; ?>
-
-                <?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
-                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalReject">
-                        <i class="bi bi-x-circle me-1"></i> Tolak Dokumen
-                    </button>
-                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalApprove">
-                        <i class="bi bi-check-circle me-1"></i> Setujui Dokumen
-                    </button>
-                <?php endif; ?>
-
-                <?php if (!$isAdmin && $mySigner): ?>
-                    <?php if ($doc['status'] === 'signing' && $mySigner['status'] === 'pending' && (int) $mySigner['step_order'] === (int) $doc['current_step']): ?>
-                        <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/sign" class="btn btn-pnj-primary btn-sm">
-                            <i class="bi bi-pen-fill me-1"></i> Tanda Tangani Sekarang
-                        </a>
-                    <?php elseif ($mySigner['status'] === 'waiting' && $doc['status'] === 'signing'): ?>
-                        <button type="button" class="btn btn-secondary btn-sm" disabled
-                                title="Menunggu tanda tangan penandatangan Step <?= (int) $doc['current_step'] ?>">
-                            <i class="bi bi-lock-fill me-1"></i> Menunggu Giliran
-                        </button>
-                    <?php endif; ?>
-                <?php endif; ?>
-
+            <!-- Aksi Ringkas Header -->
+            <div class="d-flex flex-wrap gap-2 flex-shrink-0">
                 <?php if ($doc['status'] === 'completed'): ?>
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-success btn-sm shadow-sm d-flex align-items-center gap-1.5 fw-semibold">
-                        <i class="bi bi-file-earmark-check-fill"></i>
-                        <span>Unduh Dokumen Final</span>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-navy btn-sigma-sm">
+                        <i class="bi bi-file-earmark-check-fill"></i> Unduh PDF Final
                     </a>
                 <?php else: ?>
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download" class="btn btn-subtle btn-sm d-flex align-items-center gap-1.5">
-                        <i class="bi bi-download"></i>
-                        <span>Unduh Berkas Asli</span>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-outline btn-sigma-sm">
+                        <i class="bi bi-download"></i> Unduh Berkas Asli
+                    </a>
+                <?php endif; ?>
+
+                <?php if ($isCanSignNow): ?>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-purple btn-sigma-sm">
+                        <i class="bi bi-pen-fill"></i> Tanda Tangani Sekarang
                     </a>
                 <?php endif; ?>
             </div>
@@ -158,223 +120,186 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 
         <!-- Banner Penolakan (Jika status rejected) -->
         <?php if ($doc['status'] === 'rejected'): ?>
-            <div class="alert alert-danger mt-4 mb-0 d-flex align-items-start gap-2.5" role="alert" style="border-radius: var(--radius-md);">
-                <i class="bi bi-x-circle-fill fs-5 mt-0.5"></i>
+            <div class="alert alert-danger alert-sigma mt-4 mb-0 d-flex align-items-start gap-3" role="alert"
+                 style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">
+                <i class="bi bi-x-circle-fill fs-5 mt-1"></i>
                 <div>
-                    <h6 class="fw-bold mb-1">Pengajuan Dokumen Ini Ditolak (Arsip Batal)</h6>
+                    <div class="fw-bold mb-1">Pengajuan Dokumen Ini Ditolak (Arsip Batal)</div>
                     <p class="mb-1 small">
-                        <strong>Alasan Penolakan:</strong> <?= nl2br(htmlspecialchars($doc['rejection_reason'] ?: 'Tidak ada keterangan spesifik.')) ?>
+                        <strong>Alasan Penolakan:</strong> <?= nl2br(htmlspecialchars($doc['rejection_reason'] ?: 'Tidak ada keterangan spesifik.', ENT_QUOTES, 'UTF-8')) ?>
                     </p>
                     <?php if ($declinedSigner): ?>
-                        <small class="text-muted d-block mb-1">
-                            Ditolak oleh penandatangan: <strong><?= htmlspecialchars($declinedSigner['signer_name']) ?></strong> (<?= htmlspecialchars($declinedSigner['role_title'] ?: ($declinedSigner['signer_position'] ?: 'Penandatangan')) ?>)
+                        <small class="d-block mb-1 opacity-75">
+                            Ditolak oleh penandatangan: <strong><?= htmlspecialchars($declinedSigner['signer_name'], ENT_QUOTES, 'UTF-8') ?></strong> (<?= htmlspecialchars($declinedSigner['role_title'] ?: ($declinedSigner['signer_position'] ?: 'Penandatangan'), ENT_QUOTES, 'UTF-8') ?>)
                         </small>
                     <?php elseif (!empty($doc['reviewed_at'])): ?>
-                        <small class="text-muted d-block mb-1">
-                            Ditolak saat review oleh: <strong><?= htmlspecialchars($doc['reviewer_name'] ?? 'Administrator') ?></strong> pada <?= date('d F Y, H:i', strtotime($doc['reviewed_at'])) ?> WIB
+                        <small class="d-block mb-1 opacity-75">
+                            Ditolak saat review oleh: <strong><?= htmlspecialchars($doc['reviewer_name'] ?? 'Administrator', ENT_QUOTES, 'UTF-8') ?></strong> pada <?= date('d F Y, H:i', strtotime($doc['reviewed_at'])) ?> WIB
                         </small>
                     <?php endif; ?>
-                    <small class="text-muted d-block mb-2">
-                        Sesuai regulasi kampus, dokumen yang ditolak tidak dapat diedit kembali. Silakan ajukan berkas baru dengan perbaikan yang diperlukan.
+                    <small class="d-block mb-2 opacity-75">
+                        Sesuai kebijakan SIGMA (ADR-08), dokumen yang ditolak bersifat arsip batal permanen dan tidak dapat diedit kembali. Silakan ajukan berkas baru.
                     </small>
                     <?php if ($isOwner): ?>
-                        <a href="<?= BASE_URL ?>/documents/create" class="btn btn-danger btn-sm">
-                            <i class="bi bi-plus-lg me-1"></i> Buat Pengajuan Baru
+                        <a href="<?= BASE_URL ?>/documents/create" class="btn-sigma-danger btn-sigma-sm">
+                            <i class="bi bi-plus-lg"></i> Buat Pengajuan Baru
                         </a>
                     <?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>
-    </div>
 
-    <!-- Stepper Progres Alur Penandatanganan (Khusus Sequential) -->
-    <?php if ($doc['signature_type'] === 'sequential'): ?>
-    <div class="card-clean-header border-top py-3 px-4 bg-light">
-        <div class="w-100">
-            <div class="text-muted small fw-semibold text-uppercase mb-2.5" style="letter-spacing: 0.5px;">
-                Alur Proses Berjenjang
-            </div>
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 text-center">
-                <!-- Tahap 1: Pengajuan -->
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success text-white" style="width: 28px; height: 28px; font-size: 0.8rem;">
-                        <i class="bi bi-check-lg"></i>
-                    </div>
-                    <span class="small fw-semibold text-dark">1. Upload & Atur Slot</span>
+        <!-- Stepper Progres 4 Langkah (Figma 230:682) -->
+        <?php if ($doc['signature_type'] === 'sequential'): ?>
+            <?php
+                $s1Class = 'done';
+                $s1Icon  = 'bi-check-lg';
+
+                $s2Class = '';
+                $s2Icon  = '2';
+                if ($doc['status'] === 'pending_review') {
+                    $s2Class = 'active';
+                    $s2Icon  = '<i class="bi bi-hourglass-split"></i>';
+                } elseif (in_array($doc['status'], ['approved', 'signing', 'completed']) || ($doc['status'] === 'rejected' && $declinedSigner)) {
+                    $s2Class = 'done';
+                    $s2Icon  = '<i class="bi bi-check-lg"></i>';
+                } elseif ($doc['status'] === 'rejected' && !$declinedSigner) {
+                    $s2Class = 'danger';
+                    $s2Icon  = '<i class="bi bi-x-lg"></i>';
+                }
+
+                $s3Class = '';
+                $s3Icon  = '3';
+                if ($doc['status'] === 'signing') {
+                    $s3Class = 'active';
+                    $s3Icon  = '<i class="bi bi-pen-fill"></i>';
+                } elseif ($doc['status'] === 'completed') {
+                    $s3Class = 'done';
+                    $s3Icon  = '<i class="bi bi-check-lg"></i>';
+                } elseif ($doc['status'] === 'rejected' && $declinedSigner) {
+                    $s3Class = 'danger';
+                    $s3Icon  = '<i class="bi bi-x-lg"></i>';
+                }
+
+                $s4Class = ($doc['status'] === 'completed') ? 'done' : '';
+                $s4Icon  = ($doc['status'] === 'completed') ? '<i class="bi bi-patch-check-fill"></i>' : '4';
+            ?>
+            <div class="sigma-stepper-bar mt-4">
+                <div class="small fw-bold text-uppercase mb-3" style="font-size: 0.7rem; letter-spacing: 0.06em; color: var(--sigma-purple-700);">
+                    Alur Proses Berjenjang (4 Tahap)
                 </div>
-
-                <i class="bi bi-chevron-right text-muted small d-none d-md-inline"></i>
-
-                <!-- Tahap 2: Review Admin -->
-                <div class="d-flex align-items-center gap-2">
-                    <?php 
-                        $step2Bg = 'bg-secondary text-white';
-                        $step2Icon = 'bi-circle';
-                        if ($doc['status'] === 'pending_review') {
-                            $step2Bg = 'bg-warning text-dark';
-                            $step2Icon = 'bi-hourglass-split';
-                        } elseif (in_array($doc['status'], ['approved', 'signing', 'completed']) || ($doc['status'] === 'rejected' && $declinedSigner)) {
-                            $step2Bg = 'bg-success text-white';
-                            $step2Icon = 'bi-check-lg';
-                        } elseif ($doc['status'] === 'rejected' && !$declinedSigner) {
-                            $step2Bg = 'bg-danger text-white';
-                            $step2Icon = 'bi-x-lg';
-                        }
-                    ?>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center <?= $step2Bg ?>" style="width: 28px; height: 28px; font-size: 0.8rem;">
-                        <i class="bi <?= $step2Icon ?>"></i>
+                <div class="sigma-stepper-track">
+                    <div class="sigma-step-item <?= $s1Class ?>">
+                        <div class="sigma-step-num"><i class="bi <?= $s1Icon ?>"></i></div>
+                        <div>
+                            <div class="small fw-bold" style="color: var(--text-heading);">1. Upload & Atur Slot</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Penetapan posisi koordinat %</div>
+                        </div>
                     </div>
-                    <span class="small fw-semibold text-dark">2. Peninjauan Admin</span>
-                </div>
-
-                <i class="bi bi-chevron-right text-muted small d-none d-md-inline"></i>
-
-                <!-- Tahap 3: Penandatanganan -->
-                <div class="d-flex align-items-center gap-2">
-                    <?php 
-                        $step3Bg = 'bg-secondary text-white';
-                        $step3Icon = 'bi-circle';
-                        if ($doc['status'] === 'signing') {
-                            $step3Bg = 'bg-primary text-white';
-                            $step3Icon = 'bi-pen-fill';
-                        } elseif ($doc['status'] === 'completed') {
-                            $step3Bg = 'bg-success text-white';
-                            $step3Icon = 'bi-check-lg';
-                        } elseif ($doc['status'] === 'rejected' && $declinedSigner) {
-                            $step3Bg = 'bg-danger text-white';
-                            $step3Icon = 'bi-x-lg';
-                        }
-                    ?>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center <?= $step3Bg ?>" style="width: 28px; height: 28px; font-size: 0.8rem;">
-                        <i class="bi <?= $step3Icon ?>"></i>
+                    <div class="sigma-step-item <?= $s2Class ?>">
+                        <div class="sigma-step-num"><?= $s2Icon ?></div>
+                        <div>
+                            <div class="small fw-bold" style="color: var(--text-heading);">2. Peninjauan Admin</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Verifikasi kelayakan berkas</div>
+                        </div>
                     </div>
-                    <span class="small fw-semibold text-dark">
-                        3. Penandatanganan (Step <?= (int) $doc['current_step'] ?>)
-                    </span>
-                </div>
-
-                <i class="bi bi-chevron-right text-muted small d-none d-md-inline"></i>
-
-                <!-- Tahap 4: Dokumen Selesai -->
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center <?= $doc['status'] === 'completed' ? 'bg-success text-white' : 'bg-secondary text-white' ?>" style="width: 28px; height: 28px; font-size: 0.8rem;">
-                        <i class="bi <?= $doc['status'] === 'completed' ? 'bi-check-lg' : 'bi-circle' ?>"></i>
+                    <div class="sigma-step-item <?= $s3Class ?>">
+                        <div class="sigma-step-num"><?= $s3Icon ?></div>
+                        <div>
+                            <div class="small fw-bold" style="color: var(--text-heading);">3. Penandatanganan</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Giliran aktif: Tahap <?= (int)$doc['current_step'] ?></div>
+                        </div>
                     </div>
-                    <span class="small fw-semibold text-dark">4. Selesai</span>
+                    <div class="sigma-step-item <?= $s4Class ?>">
+                        <div class="sigma-step-num"><?= $s4Icon ?></div>
+                        <div>
+                            <div class="small fw-bold" style="color: var(--text-heading);">4. Dokumen Selesai</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">PDF final berstempel & QR sah</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <?php endif; ?>
-</div>
-
-<!-- Panel Verifikasi Dokumen oleh Admin (Task 6) -->
-<?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
-<div class="card-clean mb-4" style="border: 1px solid #f59e0b; background: #fffdf5;">
-    <div class="card-clean-body p-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="badge bg-warning text-dark py-1 px-2.5 fs-7 fw-semibold d-inline-flex align-items-center gap-1">
-                        <i class="bi bi-shield-check"></i>
-                        Verifikasi Administrator Diperlukan
-                    </span>
-                    <span class="text-muted small">&bull; Menunggu Keputusan Anda</span>
-                </div>
-                <h5 class="fw-bold text-dark mb-1">Persetujuan Kelayakan Dokumen</h5>
-                <p class="text-muted small mb-0" style="max-width: 650px;">
-                    Silakan telaah lembar berkas PDF dan tata letak slot tanda tangan penandatangan berjenjang di bawah. Setelah disetujui, berkas akan diteruskan ke penandatangan urutan pertama (Step 1).
-                </p>
-            </div>
-            <div class="d-flex gap-2 flex-shrink-0">
-                <button type="button" class="btn btn-outline-danger px-3 py-2 btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalReject">
-                    <i class="bi bi-x-circle me-1"></i> Tolak Berkas
-                </button>
-                <button type="button" class="btn btn-success px-3 py-2 btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalApprove">
-                    <i class="bi bi-check-circle me-1"></i> Setujui Berkas
-                </button>
-            </div>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
-<?php endif; ?>
 
+<!-- Layout 2 Kolom Figma (230:286) -->
 <div class="row g-4">
-    <!-- Kolom Kiri: Penandatangan & Pratinjau Dokumen -->
+    <!-- Kolom Kiri (8/12): Penandatangan, Rekam TTD, & Pratinjau PDF -->
     <div class="col-lg-8">
         <!-- Daftar Penandatangan Berjenjang -->
         <?php if ($doc['signature_type'] === 'sequential'): ?>
-        <div class="card-clean mb-4">
-            <div class="card-clean-header py-3 px-3">
-                <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
-                    <i class="bi bi-people-fill text-success"></i>
-                    <span>Daftar Penandatangan Berjenjang (Urutan Jabatan)</span>
+        <div class="card-sigma mb-4">
+            <div class="card-sigma-header">
+                <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                    <i class="bi bi-people-fill text-sigma-purple"></i>
+                    <span>Daftar Penandatangan Berjenjang</span>
                 </span>
-                <span class="badge bg-light text-dark border">
+                <span class="badge-sigma badge-sigma-purple">
                     <?= count($signers) ?> Penandatangan
                 </span>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr style="font-size: 0.75rem;">
-                            <th class="text-center" style="width: 70px;">Urutan</th>
+                <table class="table-sigma">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 82px;">Urutan</th>
                             <th>Nama Penandatangan</th>
                             <th>Jabatan / Peran</th>
-                            <th>Posisi Slot (Hal & %)</th>
+                            <th>Posisi Slot</th>
                             <th class="text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($signers as $s): ?>
-                            <?php 
-                                $sBadge = $signerBadges[$s['status']] ?? ['class' => 'bg-secondary', 'label' => ucfirst($s['status']), 'icon' => 'bi-circle'];
+                            <?php
+                                $sBadge = $signerBadges[$s['status']] ?? ['class' => 'badge-sigma-neutral', 'label' => ucfirst((string)$s['status']), 'icon' => 'bi-circle'];
                                 $isCurrentStep = ($doc['status'] === 'signing' && (int)$s['step_order'] === (int)$doc['current_step']);
                             ?>
-                            <tr class="<?= $isCurrentStep ? 'table-warning' : '' ?>">
+                            <tr <?= $isCurrentStep ? 'style="background-color: #fffbeb;"' : '' ?>>
                                 <td class="text-center">
-                                    <span class="badge <?= $isCurrentStep ? 'bg-warning text-dark' : 'bg-secondary' ?> rounded-pill">
-                                        Step <?= $s['step_order'] ?>
+                                    <span class="badge-sigma <?= $isCurrentStep ? 'badge-sigma-warning' : 'badge-sigma-neutral' ?>">
+                                        Tahap <?= (int)$s['step_order'] ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-dark small"><?= htmlspecialchars($s['signer_name']) ?></div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">
-                                        <?= htmlspecialchars($s['signer_identifier'] ?: '-') ?> &bull; <?= ucfirst($s['signer_type'] ?? '') ?>
+                                    <div class="fw-bold small" style="color: var(--text-heading);"><?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?></div>
+                                    <div style="font-size: 0.74rem; color: var(--text-muted);">
+                                        <?= htmlspecialchars($s['signer_identifier'] ?: '-', ENT_QUOTES, 'UTF-8') ?> &bull; <?= ucfirst((string)($s['signer_type'] ?? '')) ?>
                                     </div>
                                 </td>
-                                <td class="small text-muted">
-                                    <?= htmlspecialchars($s['role_title'] ?: ($s['signer_position'] ?: '-')) ?>
+                                <td class="small" style="color: var(--text-muted);">
+                                    <?= htmlspecialchars($s['role_title'] ?: ($s['signer_position'] ?: '-'), ENT_QUOTES, 'UTF-8') ?>
                                 </td>
                                 <td class="small">
                                     <?php if ((float)$s['x_percent'] > 0 || (float)$s['y_percent'] > 0): ?>
                                         <button type="button"
-                                                class="badge bg-light text-dark border btn btn-sm py-1 px-2 text-decoration-none"
-                                                style="font-size: 0.74rem;"
-                                                onclick="jumpToPreviewPage(<?= (int) ($s['page_number'] ?: 1) ?>, 'detailSlot_<?= htmlspecialchars($s['id']) ?>')"
+                                                class="btn-sigma-outline btn-sigma-sm py-1 px-2"
+                                                style="font-size: 0.72rem; min-height: 28px;"
+                                                onclick="jumpToPreviewPage(<?= (int) ($s['page_number'] ?: 1) ?>, 'detailSlot_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>')"
                                                 title="Klik untuk melihat posisi kotak slot pada pratinjau PDF di bawah">
-                                            <i class="bi bi-geo-alt-fill text-success me-0.5"></i>Hal. <?= (int) $s['page_number'] ?> (X: <?= (float)$s['x_percent'] ?>%, Y: <?= (float)$s['y_percent'] ?>%)
+                                            <i class="bi bi-geo-alt-fill text-sigma-purple"></i> Hal. <?= (int) $s['page_number'] ?> (<?= (float)$s['x_percent'] ?>%, <?= (float)$s['y_percent'] ?>%)
                                         </button>
                                     <?php else: ?>
-                                        <span class="badge bg-light text-danger border" style="font-size: 0.75rem;">
-                                            <i class="bi bi-exclamation-circle me-1"></i> Belum diatur
+                                        <span class="badge-sigma badge-sigma-danger">
+                                            <i class="bi bi-exclamation-circle"></i> Belum diatur
                                         </span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge <?= $sBadge['class'] ?>" style="font-size: 0.75rem;">
-                                        <i class="bi <?= $sBadge['icon'] ?> me-1"></i>
-                                        <?= htmlspecialchars($sBadge['label']) ?>
+                                    <span class="badge-sigma <?= $sBadge['class'] ?>">
+                                        <i class="bi <?= $sBadge['icon'] ?>"></i>
+                                        <?= htmlspecialchars($sBadge['label'], ENT_QUOTES, 'UTF-8') ?>
                                     </span>
                                     <?php if (!empty($s['signed_at'])): ?>
-                                        <div class="text-muted mt-0.5" style="font-size: 0.65rem;">
+                                        <div class="mt-1" style="font-size: 0.68rem; color: var(--text-muted);">
                                             <?= date('d M Y, H:i', strtotime($s['signed_at'])) ?>
                                         </div>
                                     <?php endif; ?>
                                     <?php if (!empty($s['decline_reason'])): ?>
-                                        <div class="text-danger mt-1" style="font-size: 0.68rem;">
-                                            <i class="bi bi-chat-left-text me-0.5"></i><?= nl2br(htmlspecialchars($s['decline_reason'])) ?>
+                                        <div class="text-danger mt-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-chat-left-text me-1"></i><?= nl2br(htmlspecialchars($s['decline_reason'], ENT_QUOTES, 'UTF-8')) ?>
                                         </div>
                                     <?php endif; ?>
                                 </td>
@@ -388,15 +313,15 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 
         <!-- Rekam Tanda Tangan Terpasang (Task 7) -->
         <?php if (!empty($signatures)): ?>
-        <div class="card-clean mb-4">
-            <div class="card-clean-header py-3 px-3 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
-                    <i class="bi bi-pen-fill text-success"></i>
+        <div class="card-sigma mb-4">
+            <div class="card-sigma-header">
+                <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                    <i class="bi bi-pen-fill text-sigma-purple"></i>
                     <span>Rekam Tanda Tangan Terpasang</span>
                 </span>
-                <span class="badge bg-success"><?= count($signatures) ?> Tanda Tangan</span>
+                <span class="badge-sigma badge-sigma-success"><?= count($signatures) ?> Tanda Tangan</span>
             </div>
-            <div class="card-clean-body p-3">
+            <div class="card-sigma-body p-3">
                 <div class="d-flex flex-column gap-3">
                     <?php foreach ($signatures as $sig): ?>
                         <?php
@@ -409,73 +334,75 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                                 ? ('detailSlot_' . $sig['document_signer_id'])
                                 : ('detailSig_' . $sig['id']);
                         ?>
-                        <div class="d-flex align-items-center gap-3 border rounded-3 p-2.5">
+                        <div class="d-flex flex-wrap flex-sm-nowrap align-items-center gap-3 border rounded-3 p-3" style="border-color: var(--border-subtle) !important;">
                             <div class="checkerboard-bg rounded border flex-shrink-0 d-flex align-items-center justify-content-center"
                                  style="width: 165px; height: 80px; overflow: hidden;">
-                                <div class="d-flex align-items-stretch w-100 h-100 px-1.5 py-1">
+                                <div class="d-flex align-items-stretch w-100 h-100 px-2 py-1">
                                     <div class="d-flex flex-column <?= $isQrOnly ? 'justify-content-center' : 'justify-content-end' ?> text-center" style="width: 58%; min-width: 0; line-height: 1.15; padding-right: 3px;">
                                         <?php if (!$isQrOnly): ?>
                                             <div class="position-relative flex-grow-1" style="min-height: 0;">
-                                                <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
-                                                     alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                                <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id'], ENT_QUOTES, 'UTF-8') ?>/preview"
+                                                     alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>"
                                                      style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;">
                                             </div>
                                         <?php endif; ?>
-                                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.56rem;">
-                                            <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                        <div class="fw-bold text-truncate" style="font-size: 0.56rem; color: var(--text-heading);">
+                                            <?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>
                                         </div>
                                         <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                         <?php if ($sigIdent !== '' && $sigIdent !== '-'): ?>
-                                            <div class="text-muted text-truncate" style="font-size: 0.48rem;">
-                                                <?= htmlspecialchars($sigIdLabel) ?>: <?= htmlspecialchars($sigIdent) ?>
+                                            <div class="text-truncate" style="font-size: 0.48rem; color: var(--text-muted);">
+                                                <?= htmlspecialchars($sigIdLabel, ENT_QUOTES, 'UTF-8') ?>: <?= htmlspecialchars($sigIdent, ENT_QUOTES, 'UTF-8') ?>
                                             </div>
                                         <?php elseif (!empty($sig['signer_position_snapshot'])): ?>
-                                            <div class="text-muted text-truncate" style="font-size: 0.48rem;">
-                                                <?= htmlspecialchars($sig['signer_position_snapshot']) ?>
+                                            <div class="text-truncate" style="font-size: 0.48rem; color: var(--text-muted);">
+                                                <?= htmlspecialchars($sig['signer_position_snapshot'], ENT_QUOTES, 'UTF-8') ?>
                                             </div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="d-flex align-items-center justify-content-center" style="width: 42%;">
-                                        <div class="d-flex align-items-center justify-content-center rounded border border-success-subtle bg-white text-success" style="width: 42px; height: 42px;">
+                                        <div class="d-flex align-items-center justify-content-center rounded border bg-white"
+                                             style="width: 42px; height: 42px; border-color: #bbf7d0 !important; color: var(--sigma-success-text);">
                                             <i class="bi bi-qr-code fs-5"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="flex-grow-1 min-width-0">
-                                <div class="fw-bold text-dark small d-flex flex-wrap align-items-center gap-1">
-                                    <span><?= htmlspecialchars($sig['signer_name_snapshot']) ?></span>
+                                <div class="fw-bold small d-flex flex-wrap align-items-center gap-1 mb-1" style="color: var(--text-heading);">
+                                    <span><?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?></span>
                                     <?php if (!empty($sig['step_order'])): ?>
-                                        <span class="badge bg-light text-dark border" style="font-size: 0.60rem;">Step <?= (int) $sig['step_order'] ?></span>
+                                        <span class="badge-sigma badge-sigma-neutral py-0 px-2" style="font-size: 0.65rem;">Tahap <?= (int) $sig['step_order'] ?></span>
                                     <?php endif; ?>
-                                    <span class="badge bg-success" style="font-size: 0.62rem;">Tertanda</span>
+                                    <span class="badge-sigma badge-sigma-success py-0 px-2" style="font-size: 0.65rem;">Tertanda</span>
                                     <?php if ($isQrOnly): ?>
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.62rem;">
-                                            <i class="bi bi-qr-code me-0.5"></i>Hanya QR
+                                        <span class="badge-sigma badge-sigma-purple py-0 px-2" style="font-size: 0.65rem;">
+                                            <i class="bi bi-qr-code"></i> Hanya QR
                                         </span>
                                     <?php else: ?>
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.62rem;">
-                                            <i class="bi bi-pen me-0.5"></i>QR + TTD
+                                        <span class="badge-sigma badge-sigma-violet py-0 px-2" style="font-size: 0.65rem;">
+                                            <i class="bi bi-pen"></i> QR + TTD
                                         </span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="text-muted" style="font-size: 0.75rem;">
-                                    <?= htmlspecialchars($sig['signer_position_snapshot'] ?: '-') ?>
+                                <div style="font-size: 0.76rem; color: var(--text-muted);">
+                                    <?= htmlspecialchars($sig['signer_position_snapshot'] ?: '-', ENT_QUOTES, 'UTF-8') ?>
                                     &bull; <?= date('d F Y, H:i', strtotime($sig['signed_at'])) ?> WIB
                                 </div>
-                                <div class="text-muted d-flex flex-wrap align-items-center gap-2 mt-0.5" style="font-size: 0.7rem;">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-1" style="font-size: 0.72rem; color: var(--text-muted);">
                                     <span class="text-truncate">
                                         <i class="bi bi-qr-code me-1"></i>Token:
-                                        <code><?= htmlspecialchars($sig['verification_token']) ?></code>
+                                        <code class="font-mono-hash px-1 py-0 rounded" style="background: var(--sigma-tint-50); color: var(--sigma-navy);"><?= htmlspecialchars($sig['verification_token'], ENT_QUOTES, 'UTF-8') ?></code>
                                     </span>
-                                    <a href="<?= BASE_URL ?>/verify?token=<?= urlencode($sig['verification_token']) ?>" target="_blank" class="text-decoration-none text-success fw-bold" title="Buka verifikasi publik tanda tangan ini">
-                                        <i class="bi bi-box-arrow-up-right me-0.5"></i>Verifikasi
+                                    <a href="<?= BASE_URL ?>/verify?token=<?= urlencode($sig['verification_token']) ?>" target="_blank"
+                                       class="text-decoration-none fw-bold" style="color: var(--sigma-success-text);" title="Buka verifikasi publik tanda tangan ini">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i>Verifikasi
                                     </a>
                                     <button type="button"
-                                            class="btn btn-link btn-sm p-0 text-decoration-none text-primary fw-semibold"
-                                            style="font-size: 0.7rem;"
-                                            onclick="jumpToPreviewPage(<?= $sigPageNo ?>, '<?= htmlspecialchars($sigTargetSlotId) ?>')">
-                                        <i class="bi bi-eye-fill me-0.5"></i>Lihat di PDF (Hal. <?= $sigPageNo ?>)
+                                            class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold"
+                                            style="font-size: 0.72rem; color: var(--sigma-purple-700);"
+                                            onclick="jumpToPreviewPage(<?= $sigPageNo ?>, '<?= htmlspecialchars($sigTargetSlotId, ENT_QUOTES, 'UTF-8') ?>')">
+                                        <i class="bi bi-eye-fill me-1"></i>Lihat di PDF (Hal. <?= $sigPageNo ?>)
                                     </button>
                                 </div>
                             </div>
@@ -488,53 +415,53 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 
         <!-- Pratinjau Dokumen PDF Interaktif + Overlay Kotak Slot & Tanda Tangan -->
         <?php $isCompletedDoc = ($doc['status'] === 'completed'); ?>
-        <div class="card-clean mb-4" id="pdfPreviewSection">
-            <div class="card-clean-header py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="card-sigma mb-4" id="pdfPreviewSection">
+            <div class="card-sigma-header flex-wrap py-2 px-3">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="fw-semibold text-dark small d-flex align-items-center gap-1.5">
+                    <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
                         <i class="bi bi-file-earmark-pdf text-danger"></i>
-                        <span>Pratinjau Lembar Berkas & Slot Tanda Tangan</span>
+                        <span>Pratinjau Lembar Berkas & Slot</span>
                     </span>
                     <?php if ($isCompletedDoc): ?>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">
-                            <i class="bi bi-patch-check-fill me-0.5"></i>PDF Final Berstempel
+                        <span class="badge-sigma badge-sigma-success" style="font-size: 0.7rem;">
+                            <i class="bi bi-patch-check-fill"></i> PDF Final Berstempel
                         </span>
                     <?php else: ?>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.68rem;">
-                            <i class="bi bi-bounding-box-circles me-0.5"></i>Pratinjau Slot & TTD Aktif
+                        <span class="badge-sigma badge-sigma-purple" style="font-size: 0.7rem;">
+                            <i class="bi bi-bounding-box-circles"></i> Pratinjau Slot & TTD Aktif
                         </span>
                     <?php endif; ?>
                 </div>
 
                 <!-- Navigasi Halaman & Kontrol Overlay Slot -->
-                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="btn-group btn-group-sm" role="group" aria-label="Navigasi Halaman PDF">
-                        <button type="button" class="btn btn-subtle px-2 py-1" id="btnDetailPrevPage" disabled title="Halaman Sebelumnya">
+                        <button type="button" class="btn-sigma-outline px-2 py-1" id="btnDetailPrevPage" disabled title="Halaman Sebelumnya">
                             <i class="bi bi-chevron-left"></i>
                         </button>
-                        <span class="btn btn-subtle disabled fw-semibold text-dark px-2.5 py-1" style="font-size: 0.76rem; opacity: 1;">
+                        <span class="btn-sigma-outline px-3 py-1 fw-semibold" style="font-size: 0.76rem; pointer-events: none; background: var(--sigma-tint-50);">
                             Hal <span id="detailPageNumDisplay"><?= (int) $initialPreviewPage ?></span> / <span id="detailPageTotalDisplay">1</span>
                         </span>
-                        <button type="button" class="btn btn-subtle px-2 py-1" id="btnDetailNextPage" disabled title="Halaman Berikutnya">
+                        <button type="button" class="btn-sigma-outline px-2 py-1" id="btnDetailNextPage" disabled title="Halaman Berikutnya">
                             <i class="bi bi-chevron-right"></i>
                         </button>
                     </div>
 
-                    <button type="button" class="btn btn-subtle btn-sm py-1 px-2" id="btnToggleSlotOverlay" title="Tampilkan atau sembunyikan kotak batas slot tanda tangan">
-                        <i class="bi bi-bounding-box me-1 text-success"></i><span id="toggleSlotOverlayLabel">Sembunyikan Slot</span>
+                    <button type="button" class="btn-sigma-outline btn-sigma-sm py-1 px-2" id="btnToggleSlotOverlay" title="Tampilkan atau sembunyikan kotak batas slot tanda tangan">
+                        <i class="bi bi-bounding-box text-sigma-purple"></i> <span id="toggleSlotOverlayLabel">Sembunyikan Slot</span>
                     </button>
 
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/preview" target="_blank" class="btn btn-subtle btn-sm py-1 px-2" title="Buka berkas PDF di tab baru">
-                        <i class="bi bi-arrows-fullscreen me-1"></i>Layar Penuh
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/preview" target="_blank" class="btn-sigma-outline btn-sigma-sm py-1 px-2" title="Buka berkas PDF di tab baru">
+                        <i class="bi bi-arrows-fullscreen"></i> Layar Penuh
                     </a>
                 </div>
             </div>
 
             <!-- Bar Pintasan Lompat ke Slot Penandatangan -->
             <?php if (!empty($signers)): ?>
-            <div class="px-3 py-2 bg-light border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center flex-wrap gap-1.5">
-                    <span class="text-muted fw-semibold me-1" style="font-size: 0.72rem;">
+            <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <span class="fw-semibold" style="font-size: 0.74rem; color: var(--text-muted);">
                         <i class="bi bi-layers me-1"></i>Lokasi Slot:
                     </span>
                     <?php foreach ($signers as $s): ?>
@@ -546,46 +473,46 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                             $isMine = (!empty($mySigner) && $mySigner['id'] === $s['id']);
 
                             if ($isSignedSlot) {
-                                $pillClass = 'btn-success-subtle text-success border border-success-subtle';
+                                $pillStyle = 'background: var(--sigma-success-bg); color: var(--sigma-success-text); border: 1px solid #bbf7d0;';
                                 $pillIcon  = 'bi-check-circle-fill';
                             } elseif ($isActiveTurn) {
-                                $pillClass = 'btn-warning text-dark border border-warning';
+                                $pillStyle = 'background: var(--sigma-warning-bg); color: var(--sigma-warning-text); border: 1px solid #fde68a;';
                                 $pillIcon  = 'bi-pen-fill';
                             } elseif (!$hasCoord) {
-                                $pillClass = 'btn-outline-danger';
+                                $pillStyle = 'background: var(--sigma-danger-bg); color: var(--sigma-danger-text); border: 1px solid #fecaca;';
                                 $pillIcon  = 'bi-exclamation-circle';
                             } else {
-                                $pillClass = 'btn-white border text-dark bg-white';
+                                $pillStyle = 'background: #ffffff; color: var(--sigma-navy); border: 1px solid var(--border-strong);';
                                 $pillIcon  = 'bi-bounding-box';
                             }
                         ?>
                         <button type="button"
-                                class="btn btn-sm py-0.5 px-2 fw-medium <?= $pillClass ?>"
-                                style="font-size: 0.70rem;"
-                                onclick="jumpToPreviewPage(<?= $sPage ?>, 'detailSlot_<?= htmlspecialchars($s['id']) ?>')"
+                                class="btn btn-sm py-1 px-2 fw-medium rounded-pill"
+                                style="font-size: 0.72rem; <?= $pillStyle ?>"
+                                onclick="jumpToPreviewPage(<?= $sPage ?>, 'detailSlot_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>')"
                                 title="Klik untuk melihat slot Step <?= (int) $s['step_order'] ?> pada Halaman <?= $sPage ?>">
-                            <i class="bi <?= $pillIcon ?> me-0.5"></i>
-                            Step <?= (int) $s['step_order'] ?>: <?= htmlspecialchars($s['signer_name']) ?>
+                            <i class="bi <?= $pillIcon ?> me-1"></i>
+                            Tahap <?= (int) $s['step_order'] ?>: <?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?>
                             <?= $isMine ? ' (Anda)' : '' ?>
                             &bull; Hal. <?= $sPage ?>
                         </button>
                     <?php endforeach; ?>
                 </div>
-                <span class="text-muted" style="font-size: 0.68rem;">
-                    <i class="bi bi-info-circle me-0.5"></i>Klik tombol penandatangan untuk melompat ke halaman slotnya
+                <span style="font-size: 0.7rem; color: var(--text-muted);">
+                    <i class="bi bi-info-circle me-1"></i>Klik slot untuk melompat ke halaman terkait
                 </span>
             </div>
             <?php endif; ?>
 
-            <div class="card-clean-body p-3 bg-secondary bg-opacity-10 text-center">
+            <div class="card-sigma-body p-3 text-center" style="background: #f1eff7;">
                 <!-- Indikator Memuat PDF -->
-                <div id="detailPdfLoadingSpinner" class="py-5 text-muted">
-                    <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                <div id="detailPdfLoadingSpinner" class="py-5" style="color: var(--text-muted);">
+                    <div class="spinner-border spinner-border-sm text-sigma-purple me-2" role="status"></div>
                     <span class="small">Memuat lembar dokumen & pratinjau slot tanda tangan...</span>
                 </div>
 
                 <!-- Alert Fallback jika PDF.js gagal -->
-                <div id="detailPdfFallbackAlert" class="alert alert-warning py-2 px-3 small d-none text-start mb-3" style="border-radius: var(--radius-md);">
+                <div id="detailPdfFallbackAlert" class="alert alert-warning alert-sigma py-2 px-3 small d-none text-start mb-3">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>
                     Pratinjau kanvas tidak dapat dimuat otomatis. Menampilkan representasi lembar halaman beserta posisi kotak slot & tanda tangan di bawah ini.
                 </div>
@@ -607,10 +534,10 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                             <?php
                                 $renderedSignatureIds = [];
                                 $slotColors = [
-                                    ['border' => '#059669', 'bg' => 'rgba(16, 185, 129, 0.12)', 'badge' => 'bg-success'],
-                                    ['border' => '#2563eb', 'bg' => 'rgba(37, 99, 235, 0.12)', 'badge' => 'bg-primary'],
-                                    ['border' => '#d97706', 'bg' => 'rgba(217, 119, 6, 0.14)', 'badge' => 'bg-warning text-dark'],
-                                    ['border' => '#7c3aed', 'bg' => 'rgba(124, 58, 237, 0.12)', 'badge' => 'bg-secondary'],
+                                    ['border' => '#78629e', 'bg' => 'rgba(120, 98, 158, 0.12)', 'badgeStyle' => 'background: var(--sigma-purple-700); color: #ffffff;'],
+                                    ['border' => '#2d2b4b', 'bg' => 'rgba(45, 43, 75, 0.10)',  'badgeStyle' => 'background: var(--sigma-navy); color: #ffffff;'],
+                                    ['border' => '#6246d0', 'bg' => 'rgba(98, 70, 208, 0.12)', 'badgeStyle' => 'background: var(--sigma-violet-600); color: #ffffff;'],
+                                    ['border' => '#d97706', 'bg' => 'rgba(217, 119, 6, 0.14)', 'badgeStyle' => 'background: #f59e0b; color: #1e1b33;'],
                                 ];
                             ?>
                             <?php foreach ($signers as $idx => $s): ?>
@@ -631,7 +558,6 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                                         $sp = (int) $s['page_number'] > 0 ? (int) $s['page_number'] : 1;
                                     }
 
-                                    // Jika belum diatur sama sekali (0,0) saat draft, tampilkan di posisi default pratinjau
                                     $isUnconfiguredSlot = (!$matchedSig && $sx == 0 && $sy == 0);
                                     if ($isUnconfiguredSlot) {
                                         $sx = 10.0 + (($idx % 2) * 45.0);
@@ -652,44 +578,43 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                                             ? ($sigIdLbl . ': ' . $matchedSig['signer_identifier_snapshot'])
                                             : ($matchedSig['signer_position_snapshot'] ?? '');
                                     ?>
-                                    <div id="detailSlot_<?= htmlspecialchars($s['id']) ?>"
-                                         class="position-absolute rounded text-center overflow-hidden <?= ($sp !== $initialPreviewPage) ? 'd-none' : '' ?> <?= $isCompletedDoc ? '' : 'bg-white shadow-xs' ?>"
+                                    <div id="detailSlot_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                         class="position-absolute rounded text-center overflow-hidden <?= ($sp !== $initialPreviewPage) ? 'd-none' : '' ?> <?= $isCompletedDoc ? '' : 'bg-white shadow-sm' ?>"
                                          data-page="<?= $sp ?>"
                                          style="left: <?= $sx ?>%; top: <?= $sy ?>%; width: <?= $sw ?>%; height: <?= $sh ?>%;
-                                                border: <?= $isCompletedDoc ? '1.5px dashed #10b981' : '2px solid #059669' ?> !important;
-                                                background-color: <?= $isCompletedDoc ? 'rgba(16, 185, 129, 0.04)' : '#ffffff' ?>;
+                                                border: <?= $isCompletedDoc ? '1.5px dashed #166534' : '2px solid #166534' ?> !important;
+                                                background-color: <?= $isCompletedDoc ? 'rgba(220, 252, 231, 0.14)' : '#ffffff' ?>;
                                                 z-index: <?= $isMineSlot ? 22 : 16 ?>; pointer-events: auto; transition: box-shadow 0.25s ease;"
-                                         title="Step <?= (int) $s['step_order'] ?>: Telah ditandatangani oleh <?= htmlspecialchars($matchedSig['signer_name_snapshot']) ?>">
-                                        <span class="badge <?= $isMineSlot ? 'bg-success text-white' : 'bg-success-subtle text-success border border-success-subtle' ?> position-absolute top-0 start-0 m-0.5 px-1 py-0 text-truncate"
-                                              style="font-size: 0.52rem; max-width: 94%; z-index: 5;">
-                                            <i class="bi bi-check-circle-fill me-0.5"></i>Step <?= (int) $s['step_order'] ?> &bull; <?= $isMineSlot ? 'Tanda Tangan Anda' : 'Tertanda' ?>
+                                         title="Tahap <?= (int) $s['step_order'] ?>: Telah ditandatangani oleh <?= htmlspecialchars($matchedSig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <span class="position-absolute top-0 start-0 m-1 px-1 py-0 rounded-pill fw-semibold text-truncate"
+                                              style="font-size: 0.52rem; max-width: 94%; z-index: 5; <?= $isMineSlot ? 'background: #166534; color: #fff;' : 'background: var(--sigma-success-bg); color: var(--sigma-success-text); border: 1px solid #bbf7d0;' ?>">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Tahap <?= (int) $s['step_order'] ?> &bull; <?= $isMineSlot ? 'Tanda Tangan Anda' : 'Tertanda' ?>
                                         </span>
 
-                                        <!-- Isi visual 2 kolom: selalu tampil saat dokumen belum completed, atau saat fallback offline -->
                                         <div class="w-100 h-100 position-relative <?= $isCompletedDoc ? 'd-none completed-fallback-inner' : 'd-flex' ?> align-items-stretch">
                                             <div class="d-flex flex-column <?= $isSigQrOnly ? 'justify-content-center' : 'justify-content-end' ?>" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
                                                 <?php if (!$isSigQrOnly): ?>
                                                     <div class="position-relative flex-grow-1" style="min-height: 0;">
-                                                        <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($matchedSig['id']) ?>/preview"
-                                                             alt="Tanda tangan <?= htmlspecialchars($matchedSig['signer_name_snapshot']) ?>"
+                                                        <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($matchedSig['id'], ENT_QUOTES, 'UTF-8') ?>/preview"
+                                                             alt="Tanda tangan <?= htmlspecialchars($matchedSig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>"
                                                              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;">
                                                     </div>
                                                 <?php endif; ?>
                                                 <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                    <div class="text-dark fw-bold text-truncate" style="font-size: 0.58rem;">
-                                                        <?= htmlspecialchars($matchedSig['signer_name_snapshot']) ?>
+                                                    <div class="fw-bold text-truncate" style="font-size: 0.58rem; color: var(--text-heading);">
+                                                        <?= htmlspecialchars($matchedSig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                     <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                                     <?php if (!empty($sigIdentTxt)): ?>
-                                                        <div class="text-muted text-truncate" style="font-size: 0.48rem;">
-                                                            <?= htmlspecialchars($sigIdentTxt) ?>
+                                                        <div class="text-truncate" style="font-size: 0.48rem; color: var(--text-muted);">
+                                                            <?= htmlspecialchars($sigIdentTxt, ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
-                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white shadow-xs rounded border border-success-subtle text-success"
-                                                     style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 0.95rem;"
+                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white rounded border"
+                                                     style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 0.95rem; border-color: #bbf7d0 !important; color: var(--sigma-success-text);"
                                                      title="QR Verifikasi Resmi">
                                                     <i class="bi bi-qr-code"></i>
                                                 </div>
@@ -705,51 +630,51 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                                             : ($s['role_title'] ?: ($s['signer_position'] ?? ''));
 
                                         if ($s['status'] === 'declined') {
-                                            $boxBorder = '2px dashed #dc2626';
-                                            $boxBg     = 'rgba(220, 38, 38, 0.10)';
-                                            $badgeCls  = 'bg-danger text-white';
+                                            $boxBorder = '2px dashed #b22929';
+                                            $boxBg     = 'rgba(254, 226, 226, 0.85)';
+                                            $badgeStyle = 'background: #b22929; color: #fff;';
                                             $statusTxt = 'Menolak TTD';
                                         } elseif ($isCurrentTurnSlot) {
-                                            $boxBorder = '2px solid #d97706';
-                                            $boxBg     = 'rgba(245, 158, 11, 0.14)';
-                                            $badgeCls  = 'bg-warning text-dark';
+                                            $boxBorder = '2px dashed #78629e';
+                                            $boxBg     = 'rgba(248, 245, 252, 0.90)';
+                                            $badgeStyle = 'background: #f59e0b; color: #1e1b33;';
                                             $statusTxt = $isMineSlot ? 'Giliran Anda' : 'Giliran Aktif';
                                         } elseif ($isMineSlot) {
-                                            $boxBorder = '2px dashed #059669';
-                                            $boxBg     = 'rgba(16, 185, 129, 0.10)';
-                                            $badgeCls  = 'bg-success text-white';
+                                            $boxBorder = '2px dashed #78629e';
+                                            $boxBg     = 'rgba(248, 245, 252, 0.90)';
+                                            $badgeStyle = 'background: var(--sigma-purple-700); color: #fff;';
                                             $statusTxt = 'Slot Anda';
                                         } else {
                                             $boxBorder = '1.5px dashed ' . $sc['border'];
                                             $boxBg     = $sc['bg'];
-                                            $badgeCls  = $sc['badge'];
+                                            $badgeStyle = $sc['badgeStyle'];
                                             $statusTxt = $isUnconfiguredSlot ? 'Belum Diatur' : 'Slot TTD';
                                         }
                                     ?>
-                                    <div id="detailSlot_<?= htmlspecialchars($s['id']) ?>"
+                                    <div id="detailSlot_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>"
                                          class="position-absolute rounded text-center overflow-hidden <?= ($sp !== $initialPreviewPage) ? 'd-none' : '' ?>"
                                          data-page="<?= $sp ?>"
                                          style="left: <?= $sx ?>%; top: <?= $sy ?>%; width: <?= $sw ?>%; height: <?= $sh ?>%;
                                                 border: <?= $boxBorder ?> !important; background-color: <?= $boxBg ?>;
                                                 z-index: <?= $isCurrentTurnSlot ? 20 : 12 ?>; pointer-events: auto; transition: box-shadow 0.25s ease;"
-                                         title="Slot Step <?= (int) $s['step_order'] ?>: <?= htmlspecialchars($s['signer_name']) ?> (<?= htmlspecialchars($statusTxt) ?>)">
-                                        <span class="badge <?= $badgeCls ?> position-absolute top-0 start-0 m-0.5 px-1 py-0 text-truncate"
-                                              style="font-size: 0.52rem; max-width: 94%; z-index: 5;">
-                                            Step <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($statusTxt) ?>
+                                         title="Slot Tahap <?= (int) $s['step_order'] ?>: <?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?> (<?= htmlspecialchars($statusTxt, ENT_QUOTES, 'UTF-8') ?>)">
+                                        <span class="position-absolute top-0 start-0 m-1 px-1 py-0 rounded-pill fw-semibold text-truncate"
+                                              style="font-size: 0.52rem; max-width: 94%; z-index: 5; <?= $badgeStyle ?>">
+                                            Tahap <?= (int) $s['step_order'] ?> &bull; <?= htmlspecialchars($statusTxt, ENT_QUOTES, 'UTF-8') ?>
                                         </span>
                                         <div class="w-100 h-100 position-relative d-flex align-items-stretch">
                                             <div class="d-flex flex-column justify-content-end" style="width: 58%; padding: 13px 3px 3px 4px; min-width: 0;">
-                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted" style="font-size: 0.52rem; min-height: 0;">
-                                                    <span><i class="bi bi-pen me-0.5"></i>[Area TTD]</span>
+                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center" style="font-size: 0.52rem; min-height: 0; color: var(--text-muted);">
+                                                    <span><i class="bi bi-pen me-1"></i>[Area TTD]</span>
                                                 </div>
                                                 <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                    <div class="text-dark fw-bold text-truncate" style="font-size: 0.56rem;">
-                                                        <?= htmlspecialchars($s['signer_name']) ?>
+                                                    <div class="fw-bold text-truncate" style="font-size: 0.56rem; color: var(--text-heading);">
+                                                        <?= htmlspecialchars($s['signer_name'], ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                     <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                                     <?php if (!empty($sIdentTxt)): ?>
-                                                        <div class="text-muted text-truncate" style="font-size: 0.48rem;">
-                                                            <?= htmlspecialchars($sIdentTxt) ?>
+                                                        <div class="text-truncate" style="font-size: 0.48rem; color: var(--text-muted);">
+                                                            <?= htmlspecialchars($sIdentTxt, ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
@@ -765,7 +690,7 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                                 <?php endif; ?>
                             <?php endforeach; ?>
 
-                            <!-- Fallback untuk dokumen Single-Sign atau tanda tangan tanpa baris document_signers -->
+                            <!-- Fallback untuk Single-Sign / tanda tangan tanpa baris document_signers -->
                             <?php if (!empty($signatures)): ?>
                                 <?php foreach ($signatures as $sig): ?>
                                     <?php
@@ -782,41 +707,41 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
                                             ? ($sigIdLbl . ': ' . $sig['signer_identifier_snapshot'])
                                             : ($sig['signer_position_snapshot'] ?? '');
                                     ?>
-                                    <div id="detailSig_<?= htmlspecialchars($sig['id']) ?>"
-                                         class="position-absolute rounded text-center overflow-hidden <?= ($sp !== $initialPreviewPage) ? 'd-none' : '' ?> <?= $isCompletedDoc ? '' : 'bg-white shadow-xs' ?>"
+                                    <div id="detailSig_<?= htmlspecialchars($sig['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                         class="position-absolute rounded text-center overflow-hidden <?= ($sp !== $initialPreviewPage) ? 'd-none' : '' ?> <?= $isCompletedDoc ? '' : 'bg-white shadow-sm' ?>"
                                          data-page="<?= $sp ?>"
                                          style="left: <?= $sx ?>%; top: <?= $sy ?>%; width: <?= $sw ?>%; height: <?= $sh ?>%;
-                                                border: <?= $isCompletedDoc ? '1.5px dashed #10b981' : '2px solid #059669' ?> !important;
-                                                background-color: <?= $isCompletedDoc ? 'rgba(16, 185, 129, 0.04)' : '#ffffff' ?>;
+                                                border: <?= $isCompletedDoc ? '1.5px dashed #166534' : '2px solid #166534' ?> !important;
+                                                background-color: <?= $isCompletedDoc ? 'rgba(220, 252, 231, 0.14)' : '#ffffff' ?>;
                                                 z-index: 16; pointer-events: auto;">
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle position-absolute top-0 start-0 m-0.5 px-1 py-0"
-                                              style="font-size: 0.52rem; z-index: 5;">
-                                            <i class="bi bi-check-circle-fill me-0.5"></i>Tertanda
+                                        <span class="position-absolute top-0 start-0 m-1 px-1 py-0 rounded-pill fw-semibold"
+                                              style="font-size: 0.52rem; z-index: 5; background: var(--sigma-success-bg); color: var(--sigma-success-text); border: 1px solid #bbf7d0;">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Tertanda
                                         </span>
                                         <div class="w-100 h-100 position-relative <?= $isCompletedDoc ? 'd-none completed-fallback-inner' : 'd-flex' ?> align-items-stretch">
                                             <div class="d-flex flex-column <?= $isSigQrOnly ? 'justify-content-center' : 'justify-content-end' ?>" style="width: 58%; padding: 14px 3px 3px 4px; min-width: 0;">
                                                 <?php if (!$isSigQrOnly): ?>
                                                     <div class="position-relative flex-grow-1" style="min-height: 0;">
-                                                        <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id']) ?>/preview"
-                                                             alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot']) ?>"
+                                                        <img src="<?= BASE_URL ?>/signatures/<?= htmlspecialchars($sig['id'], ENT_QUOTES, 'UTF-8') ?>/preview"
+                                                             alt="Tanda tangan <?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>"
                                                              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;">
                                                     </div>
                                                 <?php endif; ?>
                                                 <div class="text-center" style="line-height: 1.15; min-width: 0;">
-                                                    <div class="text-dark fw-bold text-truncate" style="font-size: 0.58rem;">
-                                                        <?= htmlspecialchars($sig['signer_name_snapshot']) ?>
+                                                    <div class="fw-bold text-truncate" style="font-size: 0.58rem; color: var(--text-heading);">
+                                                        <?= htmlspecialchars($sig['signer_name_snapshot'], ENT_QUOTES, 'UTF-8') ?>
                                                     </div>
                                                     <div style="border-top: 1px solid #0f172a; margin: 1px 0;"></div>
                                                     <?php if (!empty($sigIdentTxt)): ?>
-                                                        <div class="text-muted text-truncate" style="font-size: 0.48rem;">
-                                                            <?= htmlspecialchars($sigIdentTxt) ?>
+                                                        <div class="text-truncate" style="font-size: 0.48rem; color: var(--text-muted);">
+                                                            <?= htmlspecialchars($sigIdentTxt, ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center justify-content-center" style="width: 42%; padding: 3px;">
-                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white shadow-xs rounded border border-success-subtle text-success"
-                                                     style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 0.95rem;">
+                                                <div class="d-flex flex-column align-items-center justify-content-center bg-white rounded border"
+                                                     style="aspect-ratio: 1 / 1; height: 78%; max-width: 100%; font-size: 0.95rem; border-color: #bbf7d0 !important; color: var(--sigma-success-text);">
                                                     <i class="bi bi-qr-code"></i>
                                                 </div>
                                             </div>
@@ -831,85 +756,163 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
         </div>
     </div>
 
-    <!-- Kolom Kanan: Informasi Berkas & Riwayat Audit -->
+    <!-- Kolom Kanan (4/12): Panel Tindakan Anda (Tanpa Minta Revisi), Integritas SHA-256, & Jejak Audit -->
     <div class="col-lg-4">
+        <?php
+            $hasActionPanel = ($doc['status'] === 'draft' && $isOwner)
+                || ($doc['status'] === 'pending_review' && $isOwner)
+                || ($isAdmin && $doc['status'] === 'pending_review')
+                || (!$isAdmin && $mySigner && in_array($doc['status'], ['signing', 'completed']))
+                || ($doc['status'] === 'completed');
+        ?>
+        <?php if ($hasActionPanel): ?>
+        <div class="card-sigma mb-4" <?= ($isAdmin && $doc['status'] === 'pending_review') || $isCanSignNow ? 'style="border-color: var(--sigma-purple-600);"' : '' ?>>
+            <div class="card-sigma-header">
+                <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                    <i class="bi bi-lightning-charge-fill text-sigma-purple"></i>
+                    <span>Tindakan Anda</span>
+                </span>
+                <?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
+                    <span class="badge-sigma badge-sigma-warning">Review Admin</span>
+                <?php elseif ($isCanSignNow): ?>
+                    <span class="badge-sigma badge-sigma-warning">Giliran TTD</span>
+                <?php endif; ?>
+            </div>
+            <div class="card-sigma-body p-3 d-grid gap-2">
+                <?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
+                    <p class="small mb-2" style="color: var(--text-muted);">
+                        Telaah lembar PDF dan posisi slot penandatangan sebelum mengizinkan alur berjenjang dimulai (Tahap 1).
+                    </p>
+                    <button type="button" class="btn-sigma-navy w-100" data-bs-toggle="modal" data-bs-target="#modalApprove">
+                        <i class="bi bi-check-circle"></i> Setujui Berkas
+                    </button>
+                    <button type="button" class="btn-sigma-outline w-100 text-danger" data-bs-toggle="modal" data-bs-target="#modalReject">
+                        <i class="bi bi-x-circle"></i> Tolak Berkas
+                    </button>
+                <?php endif; ?>
+
+                <?php if ($isCanSignNow): ?>
+                    <p class="small mb-2" style="color: var(--text-muted);">
+                        Saat ini adalah giliran tanda tangan Anda (Tahap <?= (int)$mySigner['step_order'] ?>).
+                    </p>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-navy w-100">
+                        <i class="bi bi-pen-fill"></i> Tanda Tangani Sekarang
+                    </a>
+                <?php elseif (!$isAdmin && $mySigner && $mySigner['status'] === 'waiting' && $doc['status'] === 'signing'): ?>
+                    <button type="button" class="btn-sigma-outline w-100" disabled style="opacity: 0.7;">
+                        <i class="bi bi-lock-fill"></i> Menunggu Giliran (Tahap <?= (int) $doc['current_step'] ?>)
+                    </button>
+                <?php endif; ?>
+
+                <?php if ($doc['status'] === 'draft' && $isOwner): ?>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/arrange" class="btn-sigma-navy w-100">
+                        <i class="bi bi-bounding-box"></i> Atur Slot Tanda Tangan
+                    </a>
+                    <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/delete" method="POST"
+                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus draft dokumen ini? Berkas PDF akan dihapus secara permanen.');">
+                        <button type="submit" class="btn-sigma-outline w-100 text-danger">
+                            <i class="bi bi-trash"></i> Hapus Draft
+                        </button>
+                    </form>
+                <?php endif; ?>
+
+                <?php if ($doc['status'] === 'pending_review' && $isOwner): ?>
+                    <button type="button" class="btn-sigma-outline w-100" data-bs-toggle="modal" data-bs-target="#modalWithdraw">
+                        <i class="bi bi-arrow-counterclockwise"></i> Tarik Pengajuan ke Draft
+                    </button>
+                <?php endif; ?>
+
+                <?php if ($doc['status'] === 'completed'): ?>
+                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-purple w-100">
+                        <i class="bi bi-file-earmark-check-fill"></i> Unduh PDF Final Berstempel
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Rincian Integritas Berkas -->
-        <div class="card-clean mb-4">
-            <div class="card-clean-header py-2.5 px-3">
-                <span class="fw-semibold text-dark small">
-                    <i class="bi bi-shield-check text-success me-1"></i> Integritas & Info Berkas
+        <div class="card-sigma mb-4">
+            <div class="card-sigma-header">
+                <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                    <i class="bi bi-shield-check text-sigma-purple"></i>
+                    <span>Integritas & Info Berkas</span>
                 </span>
             </div>
-            <div class="card-clean-body p-3">
-                <ul class="list-unstyled mb-0 d-flex flex-column gap-2.5 small">
+            <div class="card-sigma-body p-3">
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-3 small">
                     <li>
                         <div class="d-flex align-items-center justify-content-between">
-                            <span class="text-muted d-block" style="font-size: 0.75rem;">Nama Berkas Asli</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Nama Berkas Asli</span>
                             <?php if ($doc['status'] === 'completed'): ?>
-                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/download?type=original" 
-                                   class="btn btn-link btn-sm p-0 text-decoration-none text-muted" style="font-size: 0.7rem;" 
+                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download?type=original"
+                                   class="text-decoration-none fw-semibold" style="font-size: 0.72rem; color: var(--sigma-purple-700);"
                                    title="Unduh berkas PDF asli sebelum dibubuhi tanda tangan">
-                                    <i class="bi bi-download me-0.5"></i>Unduh Asli
+                                    <i class="bi bi-download me-1"></i>Unduh Asli
                                 </a>
                             <?php endif; ?>
                         </div>
-                        <span class="fw-medium text-dark text-break"><?= htmlspecialchars($doc['file_name_original']) ?></span>
+                        <div class="fw-semibold text-break mt-1" style="color: var(--text-heading);"><?= htmlspecialchars($doc['file_name_original'], ENT_QUOTES, 'UTF-8') ?></div>
+                    </li>
+                    <li class="d-flex justify-content-between gap-2">
+                        <div>
+                            <span class="d-block" style="font-size: 0.75rem; color: var(--text-muted);">Ukuran Berkas</span>
+                            <span class="fw-medium" style="color: var(--text-heading);"><?= number_format($doc['file_size'] / 1024, 1) ?> KB</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block" style="font-size: 0.75rem; color: var(--text-muted);">Waktu Unggah</span>
+                            <span class="fw-medium" style="color: var(--text-heading);"><?= date('d M Y, H:i', strtotime($doc['created_at'])) ?> WIB</span>
+                        </div>
                     </li>
                     <li>
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">Ukuran Berkas</span>
-                        <span class="fw-medium text-dark"><?= number_format($doc['file_size'] / 1024, 1) ?> KB</span>
-                    </li>
-                    <li>
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">Waktu Unggah</span>
-                        <span class="fw-medium text-dark"><?= date('d F Y, H:i:s', strtotime($doc['created_at'])) ?> WIB</span>
-                    </li>
-                    <li>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <span class="text-muted d-block" style="font-size: 0.75rem;">SHA-256 Hash Dokumen Asli</span>
-                            <button type="button" class="btn btn-link btn-sm p-0 text-secondary text-decoration-none fw-semibold" style="font-size: 0.7rem;" onclick="copyHash('<?= htmlspecialchars($doc['file_hash']) ?>', this)">
-                                Salin
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Hash Integritas SHA-256 (Asli)</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold"
+                                    style="font-size: 0.72rem; color: var(--sigma-purple-700);"
+                                    onclick="copyHash('<?= htmlspecialchars($doc['file_hash'], ENT_QUOTES, 'UTF-8') ?>', this)">
+                                <i class="bi bi-copy me-1"></i>Salin
                             </button>
                         </div>
-                        <code class="d-block p-1.5 bg-light rounded text-break mt-1" style="font-size: 0.7rem; font-family: monospace;">
-                            <?= htmlspecialchars($doc['file_hash']) ?>
-                        </code>
+                        <div class="sigma-hash-box"><?= htmlspecialchars($doc['file_hash'], ENT_QUOTES, 'UTF-8') ?></div>
                     </li>
                     <?php if (!empty($doc['final_file_hash'])): ?>
-                    <li class="border-top pt-2">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <span class="text-success fw-bold d-block" style="font-size: 0.75rem;">
-                                <i class="bi bi-patch-check-fill me-1"></i>SHA-256 Hash Final (Stamping)
+                    <li class="border-top pt-3" style="border-color: var(--border-subtle) !important;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-bold d-flex align-items-center gap-1" style="font-size: 0.75rem; color: var(--sigma-success-text);">
+                                <i class="bi bi-patch-check-fill"></i> Hash Integritas SHA-256 (Final)
                             </span>
-                            <button type="button" class="btn btn-link btn-sm p-0 text-success text-decoration-none fw-semibold" style="font-size: 0.7rem;" onclick="copyHash('<?= htmlspecialchars($doc['final_file_hash']) ?>', this)">
-                                Salin
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold"
+                                    style="font-size: 0.72rem; color: var(--sigma-success-text);"
+                                    onclick="copyHash('<?= htmlspecialchars($doc['final_file_hash'], ENT_QUOTES, 'UTF-8') ?>', this)">
+                                <i class="bi bi-copy me-1"></i>Salin
                             </button>
                         </div>
-                        <code class="d-block p-1.5 bg-success-subtle text-success rounded text-break mt-1" style="font-size: 0.7rem; font-family: monospace;">
-                            <?= htmlspecialchars($doc['final_file_hash']) ?>
-                        </code>
-                        <span class="text-muted d-block mt-0.5" style="font-size: 0.68rem;">
-                            Nilai integritas kriptografis berkas PDF setelah dibubuhi tanda tangan fisik & stempel QR Code.
+                        <div class="sigma-hash-box" style="background: var(--sigma-success-bg); border-color: #bbf7d0; color: var(--sigma-success-text);">
+                            <?= htmlspecialchars($doc['final_file_hash'], ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                        <span class="d-block mt-1" style="font-size: 0.7rem; color: var(--text-muted);">
+                            Sidik jari kriptografis SHA-256 berkas PDF setelah pembubuhan tanda tangan dan QR Token SIGMA.
                         </span>
                     </li>
                     <?php endif; ?>
                     <?php if (!empty($doc['reviewed_at'])): ?>
-                    <li class="border-top pt-2">
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">Status Review Admin</span>
+                    <li class="border-top pt-3" style="border-color: var(--border-subtle) !important;">
+                        <span class="d-block mb-1" style="font-size: 0.75rem; color: var(--text-muted);">Status Review Admin</span>
                         <?php $isAdminRejected = ($doc['status'] === 'rejected' && !$declinedSigner); ?>
-                        <span class="fw-semibold <?= $isAdminRejected ? 'text-danger' : 'text-success' ?>">
-                            <i class="bi <?= $isAdminRejected ? 'bi-x-circle' : 'bi-check2-circle' ?> me-1"></i>
+                        <span class="badge-sigma <?= $isAdminRejected ? 'badge-sigma-danger' : 'badge-sigma-success' ?>">
+                            <i class="bi <?= $isAdminRejected ? 'bi-x-circle' : 'bi-check2-circle' ?>"></i>
                             <?= $isAdminRejected ? 'Ditolak' : 'Disetujui' ?>
                         </span>
-                        <div class="text-muted mt-0.5" style="font-size: 0.7rem;">
-                            Oleh: <strong><?= htmlspecialchars($doc['reviewer_name'] ?? 'Administrator') ?></strong>
-                            <br><?= date('d F Y, H:i', strtotime($doc['reviewed_at'])) ?> WIB
+                        <div class="mt-1" style="font-size: 0.74rem; color: var(--text-muted);">
+                            Oleh: <strong style="color: var(--text-heading);"><?= htmlspecialchars($doc['reviewer_name'] ?? 'Administrator', ENT_QUOTES, 'UTF-8') ?></strong>
+                            &bull; <?= date('d M Y, H:i', strtotime($doc['reviewed_at'])) ?> WIB
                         </div>
                     </li>
                     <?php elseif ($doc['status'] === 'pending_review'): ?>
-                    <li class="border-top pt-2">
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">Status Review Admin</span>
-                        <span class="fw-semibold text-warning">
-                            <i class="bi bi-hourglass-split me-1"></i> Menunggu Peninjauan Admin
+                    <li class="border-top pt-3" style="border-color: var(--border-subtle) !important;">
+                        <span class="d-block mb-1" style="font-size: 0.75rem; color: var(--text-muted);">Status Review Admin</span>
+                        <span class="badge-sigma badge-sigma-warning">
+                            <i class="bi bi-hourglass-split"></i> Menunggu Peninjauan Admin
                         </span>
                     </li>
                     <?php endif; ?>
@@ -917,96 +920,99 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
             </div>
         </div>
 
-        <!-- Jejak Audit Trail Dokumen -->
-        <div class="card-clean mb-4">
-            <div class="card-clean-header py-2.5 px-3 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold text-dark small">
-                    <i class="bi bi-clock-history text-muted me-1"></i> Jejak Audit Dokumen
+        <!-- Jejak Audit Dokumen -->
+        <div class="card-sigma mb-4">
+            <div class="card-sigma-header">
+                <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
+                    <i class="bi bi-clock-history text-sigma-purple"></i>
+                    <span>Jejak Audit Dokumen</span>
                 </span>
-                <span class="badge bg-light text-muted border"><?= !empty($auditLog) ? count($auditLog) : 0 ?> Catatan</span>
+                <span class="badge-sigma badge-sigma-neutral"><?= !empty($auditLog) ? count($auditLog) : 0 ?> Catatan</span>
             </div>
-            <div class="card-clean-body p-3">
+            <div class="card-sigma-body p-3">
                 <?php if (empty($auditLog)): ?>
-                    <div class="text-center text-muted py-3 small">
+                    <div class="text-center py-3 small" style="color: var(--text-muted);">
                         Belum ada riwayat aktivitas tercatat.
                     </div>
                 <?php else: ?>
-                    <div class="timeline position-relative" style="padding-left: 1.25rem; border-left: 2px solid var(--border-subtle); margin-left: 0.5rem;">
-                        <?php 
+                    <div class="sigma-audit-timeline">
+                        <?php
                             $actionMap = [
-                                'document.create'          => ['label' => 'Dokumen Dibuat', 'badge' => 'bg-secondary', 'icon' => 'bi-file-earmark-plus'],
-                                'document.submit'          => ['label' => 'Diajukan ke Admin', 'badge' => 'bg-info text-dark', 'icon' => 'bi-send'],
-                                'document.withdraw'        => ['label' => 'Pengajuan Ditarik ke Draft', 'badge' => 'bg-warning text-dark', 'icon' => 'bi-arrow-counterclockwise'],
-                                'document.approve'         => ['label' => 'Disetujui Administrator', 'badge' => 'bg-success', 'icon' => 'bi-check2-circle'],
-                                'document.reject'          => ['label' => 'Ditolak Administrator', 'badge' => 'bg-danger', 'icon' => 'bi-x-circle'],
-                                'document.signed'          => ['label' => 'Tanda Tangan Dibubuhkan', 'badge' => 'bg-primary', 'icon' => 'bi-pen-fill'],
-                                'document.step_advanced'   => ['label' => 'Giliran Jenjang Dialihkan', 'badge' => 'bg-info text-dark', 'icon' => 'bi-arrow-right-circle'],
-                                'document.completed'       => ['label' => 'Alur Pengesahan Selesai', 'badge' => 'bg-success', 'icon' => 'bi-patch-check-fill'],
-                                'document.declined'        => ['label' => 'Tanda Tangan Ditolak Signer', 'badge' => 'bg-danger', 'icon' => 'bi-shield-x'],
-                                'document.final_generated' => ['label' => 'PDF Final Berstempel Diterbitkan', 'badge' => 'bg-success', 'icon' => 'bi-file-earmark-check-fill'],
-                                'document.download'        => ['label' => 'Berkas Diunduh', 'badge' => 'bg-secondary', 'icon' => 'bi-download'],
-                                'document.delete'          => ['label' => 'Dokumen Dihapus', 'badge' => 'bg-danger', 'icon' => 'bi-trash'],
+                                'document.create'          => ['label' => 'Dokumen Dibuat', 'tone' => 'neutral', 'icon' => 'bi-file-earmark-plus'],
+                                'document.submit'          => ['label' => 'Diajukan ke Admin', 'tone' => 'purple', 'icon' => 'bi-send'],
+                                'document.withdraw'        => ['label' => 'Pengajuan Ditarik ke Draft', 'tone' => 'warning', 'icon' => 'bi-arrow-counterclockwise'],
+                                'document.approve'         => ['label' => 'Disetujui Administrator', 'tone' => 'success', 'icon' => 'bi-check2-circle'],
+                                'document.reject'          => ['label' => 'Ditolak Administrator', 'tone' => 'danger', 'icon' => 'bi-x-circle'],
+                                'document.signed'          => ['label' => 'Tanda Tangan Dibubuhkan', 'tone' => 'purple', 'icon' => 'bi-pen-fill'],
+                                'document.step_advanced'   => ['label' => 'Giliran Jenjang Dialihkan', 'tone' => 'purple', 'icon' => 'bi-arrow-right-circle'],
+                                'document.completed'       => ['label' => 'Alur Pengesahan Selesai', 'tone' => 'success', 'icon' => 'bi-patch-check-fill'],
+                                'document.declined'        => ['label' => 'Tanda Tangan Ditolak Signer', 'tone' => 'danger', 'icon' => 'bi-shield-x'],
+                                'document.final_generated' => ['label' => 'PDF Final Berstempel Diterbitkan', 'tone' => 'success', 'icon' => 'bi-file-earmark-check-fill'],
+                                'document.download'        => ['label' => 'Berkas Diunduh', 'tone' => 'neutral', 'icon' => 'bi-download'],
+                                'document.delete'          => ['label' => 'Dokumen Dihapus', 'tone' => 'danger', 'icon' => 'bi-trash'],
+                            ];
+                            $toneDotColors = [
+                                'success' => 'var(--sigma-success-text)',
+                                'warning' => '#d97706',
+                                'danger'  => 'var(--sigma-danger-text)',
+                                'purple'  => 'var(--sigma-purple-600)',
+                                'neutral' => 'var(--sigma-navy)',
                             ];
                         ?>
                         <?php foreach ($auditLog as $log): ?>
-                            <?php 
+                            <?php
                                 $details = !empty($log['details']) ? json_decode($log['details'], true) : [];
                                 $actionConfig = $actionMap[$log['action']] ?? [
-                                    'label' => ucwords(str_replace(['document.', 'civitas.', '.'], ['', '', ' '], $log['action'])),
-                                    'badge' => 'bg-secondary',
+                                    'label' => ucwords(str_replace(['document.', 'civitas.', '.'], ['', '', ' '], (string)$log['action'])),
+                                    'tone'  => 'purple',
                                     'icon'  => 'bi-circle-fill'
                                 ];
-                                $dotColor = strpos($actionConfig['badge'], 'danger') !== false ? 'bg-danger' : 
-                                           (strpos($actionConfig['badge'], 'warning') !== false ? 'bg-warning' : 
-                                           (strpos($actionConfig['badge'], 'primary') !== false ? 'bg-primary' : 
-                                           (strpos($actionConfig['badge'], 'info') !== false ? 'bg-info' : 'bg-success')));
+                                $dotStyle = 'background: ' . ($toneDotColors[$actionConfig['tone']] ?? 'var(--sigma-purple-600)') . ';';
                             ?>
-                            <div class="mb-3 position-relative">
-                                <div class="position-absolute rounded-circle <?= $dotColor ?> border border-white" 
-                                     style="width: 10px; height: 10px; left: -1.6rem; top: 4px;"></div>
-                                <div class="fw-bold text-dark small d-flex align-items-center gap-1">
-                                    <i class="bi <?= $actionConfig['icon'] ?> text-muted" style="font-size: 0.8rem;"></i>
-                                    <span><?= htmlspecialchars($actionConfig['label']) ?></span>
+                            <div class="sigma-audit-item">
+                                <div class="sigma-audit-dot" style="<?= $dotStyle ?>"></div>
+                                <div class="fw-bold small d-flex align-items-center gap-1" style="color: var(--text-heading);">
+                                    <i class="bi <?= $actionConfig['icon'] ?> text-sigma-purple" style="font-size: 0.82rem;"></i>
+                                    <span><?= htmlspecialchars($actionConfig['label'], ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
-                                <div class="text-muted" style="font-size: 0.72rem;">
-                                    Oleh: <strong><?= htmlspecialchars($log['user_name'] ?? 'Sistem') ?></strong>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">
+                                    Oleh: <strong style="color: var(--text-body);"><?= htmlspecialchars($log['user_name'] ?? 'Sistem', ENT_QUOTES, 'UTF-8') ?></strong>
                                     &bull; <?= date('d/m/Y H:i', strtotime($log['created_at'])) ?>
                                 </div>
                                 <?php if (!empty($details)): ?>
-                                    <div class="mt-1" style="font-size: 0.7rem;">
+                                    <div class="mt-1" style="font-size: 0.72rem;">
                                         <?php if (!empty($details['reason'])): ?>
-                                            <div class="text-danger bg-danger-subtle rounded p-1.5 border border-danger-subtle">
-                                                <i class="bi bi-chat-left-text me-1"></i><strong>Alasan:</strong> <?= htmlspecialchars($details['reason']) ?>
+                                            <div class="rounded p-2 border mt-1" style="background: var(--sigma-danger-bg); border-color: #fecaca !important; color: var(--sigma-danger-text-dark);">
+                                                <i class="bi bi-chat-left-text me-1"></i><strong>Alasan:</strong> <?= htmlspecialchars($details['reason'], ENT_QUOTES, 'UTF-8') ?>
                                             </div>
                                         <?php elseif (isset($details['step_from'], $details['step_to'])): ?>
-                                            <span class="badge bg-light text-dark border">
-                                                Step <?= (int)$details['step_from'] ?> &rarr; Step <?= (int)$details['step_to'] ?>
+                                            <span class="badge-sigma badge-sigma-purple py-0 px-2" style="font-size: 0.68rem;">
+                                                Tahap <?= (int)$details['step_from'] ?> &rarr; Tahap <?= (int)$details['step_to'] ?>
                                             </span>
                                         <?php elseif (!empty($details['signer_name'])): ?>
                                             <?php $methodBadge = !empty($details['method']) ? ' (' . ucfirst($details['method']) . ')' : ''; ?>
-                                            <span class="badge bg-light text-dark border">
-                                                Step <?= (int)($details['step_order'] ?? 1) ?> &bull; <?= htmlspecialchars($details['signer_name']) . $methodBadge ?>
+                                            <span class="badge-sigma badge-sigma-purple py-0 px-2" style="font-size: 0.68rem;">
+                                                Tahap <?= (int)($details['step_order'] ?? 1) ?> &bull; <?= htmlspecialchars($details['signer_name'] . $methodBadge, ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         <?php elseif (!empty($details['final_file_hash'])): ?>
-                                            <div class="text-success bg-light rounded p-1 font-monospace text-truncate" title="SHA-256 Hash Final">
-                                                <i class="bi bi-patch-check-fill me-1"></i>Hash: <?= substr($details['final_file_hash'], 0, 16) ?>...
+                                            <div class="sigma-hash-box py-1 px-2 mt-1 text-truncate" title="Hash SHA-256 Final">
+                                                Hash: <?= substr((string)$details['final_file_hash'], 0, 18) ?>...
                                             </div>
                                         <?php elseif (isset($details['is_final'])): ?>
-                                            <span class="badge <?= !empty($details['is_final']) ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-light text-muted border' ?>">
-                                                <i class="bi <?= !empty($details['is_final']) ? 'bi-file-earmark-check' : 'bi-file-earmark-pdf' ?> me-0.5"></i>
+                                            <span class="badge-sigma <?= !empty($details['is_final']) ? 'badge-sigma-success' : 'badge-sigma-neutral' ?> py-0 px-2" style="font-size: 0.68rem;">
                                                 <?= !empty($details['is_final']) ? 'Dokumen Final Berstempel' : 'Berkas Asli' ?>
                                             </span>
                                         <?php elseif (!empty($details['final_step'])): ?>
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                                <i class="bi bi-check-all me-1"></i>Semua <?= (int)$details['final_step'] ?> Tahap Lengkap
+                                            <span class="badge-sigma badge-sigma-success py-0 px-2" style="font-size: 0.68rem;">
+                                                Semua <?= (int)$details['final_step'] ?> Tahap Lengkap
                                             </span>
                                         <?php elseif (isset($details['status_from'], $details['status_to'])): ?>
-                                            <span class="badge bg-light text-muted border">
-                                                <?= htmlspecialchars($details['status_from']) ?> &rarr; <?= htmlspecialchars($details['status_to']) ?>
+                                            <span class="badge-sigma badge-sigma-neutral py-0 px-2" style="font-size: 0.68rem;">
+                                                <?= htmlspecialchars($details['status_from'], ENT_QUOTES, 'UTF-8') ?> &rarr; <?= htmlspecialchars($details['status_to'], ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         <?php elseif (!empty($details['file_name'])): ?>
-                                            <span class="text-muted">
-                                                <i class="bi bi-file-earmark-pdf me-0.5"></i><?= htmlspecialchars($details['file_name']) ?>
+                                            <span style="color: var(--text-muted);">
+                                                <i class="bi bi-file-earmark-pdf me-1"></i><?= htmlspecialchars($details['file_name'], ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         <?php endif; ?>
                                     </div>
@@ -1022,31 +1028,32 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 
 <?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
 <!-- Modal Konfirmasi Persetujuan Dokumen -->
-<div class="modal fade" id="modalApprove" tabindex="-1" aria-labelledby="modalApproveLabel" aria-hidden="true">
+<div class="modal fade modal-sigma" id="modalApprove" tabindex="-1" aria-labelledby="modalApproveLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success text-white">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background: var(--sigma-navy);">
                 <h5 class="modal-title fs-6 fw-bold" id="modalApproveLabel">
-                    <i class="bi bi-check2-circle me-1.5"></i> Konfirmasi Persetujuan Dokumen
+                    <i class="bi bi-check2-circle me-2"></i> Konfirmasi Persetujuan Dokumen
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/approve" method="POST">
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/approve" method="POST">
                 <div class="modal-body p-4">
-                    <p class="mb-3 text-dark">
-                        Apakah Anda yakin ingin menyetujui dokumen <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong>?
+                    <p class="mb-3" style="color: var(--text-heading);">
+                        Apakah Anda yakin ingin menyetujui dokumen <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong>?
                     </p>
-                    <div class="alert alert-info py-2.5 px-3 small mb-0 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
-                        <i class="bi bi-info-circle-fill mt-0.5 text-primary"></i>
+                    <div class="alert alert-sigma py-2 px-3 small mb-0 d-flex align-items-start gap-2"
+                         style="background: var(--sigma-tint-50); border-color: #dfd7ee; color: var(--sigma-navy);">
+                        <i class="bi bi-info-circle-fill mt-1 text-sigma-purple"></i>
                         <div>
-                            Setelah disetujui, alur penandatanganan berjenjang akan segera dimulai. Berkas akan dialihkan ke status <strong>Proses Tanda Tangan</strong> dan penandatangan pada <strong>Step 1</strong> akan menerima giliran aktif di dashboard mereka.
+                            Setelah disetujui, alur penandatanganan berjenjang akan segera dimulai. Berkas dialihkan ke status <strong>Proses Penandatanganan</strong> dan penandatangan pada <strong>Tahap 1</strong> menerima giliran aktif.
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light py-2 px-3">
-                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success btn-sm px-3 fw-semibold">
-                        <i class="bi bi-check-lg me-1"></i> Ya, Setujui Dokumen
+                <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                    <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn-sigma-navy btn-sigma-sm">
+                        <i class="bi bi-check-lg"></i> Ya, Setujui Dokumen
                     </button>
                 </div>
             </form>
@@ -1055,35 +1062,36 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 </div>
 
 <!-- Modal Tolak Dokumen -->
-<div class="modal fade" id="modalReject" tabindex="-1" aria-labelledby="modalRejectLabel" aria-hidden="true">
+<div class="modal fade modal-sigma" id="modalReject" tabindex="-1" aria-labelledby="modalRejectLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background: var(--sigma-danger-text);">
                 <h5 class="modal-title fs-6 fw-bold" id="modalRejectLabel">
-                    <i class="bi bi-x-octagon-fill me-1.5"></i> Tolak Pengajuan Dokumen
+                    <i class="bi bi-x-octagon-fill me-2"></i> Tolak Pengajuan Dokumen
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/reject" method="POST">
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/reject" method="POST">
                 <div class="modal-body p-4">
-                    <div class="alert alert-danger py-2.5 px-3 small mb-3 d-flex align-items-start gap-2" style="border-radius: var(--radius-md);">
-                        <i class="bi bi-exclamation-triangle-fill mt-0.5"></i>
+                    <div class="alert alert-sigma py-2 px-3 small mb-3 d-flex align-items-start gap-2"
+                         style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">
+                        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
                         <div>
-                            <strong>Peringatan Kebijakan Kampus (ADR-08):</strong> Dokumen yang ditolak berstatus <em>Arsip Batal Permanen</em> dan tidak dapat diedit kembali. Pengaju harus membuat pengajuan baru.
+                            <strong>Kebijakan Kampus (ADR-08):</strong> Dokumen yang ditolak berstatus <em>Arsip Batal Permanen</em> dan tidak dapat diedit kembali. Pengaju harus membuat pengajuan baru.
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="rejection_reason" class="form-label small fw-semibold text-dark">
+                    <div class="mb-2">
+                        <label for="rejection_reason" class="sigma-form-label d-block">
                             Alasan Penolakan <span class="text-danger">*</span>
                         </label>
-                        <textarea class="form-control form-control-sm" id="rejection_reason" name="rejection_reason" rows="3" 
-                                  placeholder="Tuliskan alasan penolakan secara jelas (contoh: Posisi slot tanda tangan menimpa teks surat, lampiran belum lengkap, dll)..." required></textarea>
+                        <textarea class="form-control sigma-input" id="rejection_reason" name="rejection_reason" rows="3"
+                                  placeholder="Tuliskan alasan penolakan secara jelas (contoh: posisi slot menimpa teks surat, lampiran belum lengkap)..." required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer bg-light py-2 px-3">
-                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-danger btn-sm px-3 fw-semibold">
-                        <i class="bi bi-x-lg me-1"></i> Konfirmasi Tolak Dokumen
+                <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                    <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn-sigma-danger btn-sigma-sm">
+                        <i class="bi bi-x-lg"></i> Konfirmasi Tolak Dokumen
                     </button>
                 </div>
             </form>
@@ -1094,28 +1102,28 @@ if (!empty($mySigner) && (int) ($mySigner['page_number'] ?? 0) > 0) {
 
 <?php if ($isOwner && $doc['status'] === 'pending_review'): ?>
 <!-- Modal Konfirmasi Tarik Pengajuan ke Draft -->
-<div class="modal fade" id="modalWithdraw" tabindex="-1" aria-labelledby="modalWithdrawLabel" aria-hidden="true">
+<div class="modal fade modal-sigma" id="modalWithdraw" tabindex="-1" aria-labelledby="modalWithdrawLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-warning-subtle text-dark border-bottom">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--sigma-warning-bg); color: var(--sigma-warning-text);">
                 <h5 class="modal-title fs-6 fw-bold" id="modalWithdrawLabel">
-                    <i class="bi bi-arrow-counterclockwise me-1.5"></i> Tarik Pengajuan ke Draft?
+                    <i class="bi bi-arrow-counterclockwise me-2"></i> Tarik Pengajuan ke Draft?
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id']) ?>/withdraw" method="POST">
+            <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/withdraw" method="POST">
                 <div class="modal-body p-4">
-                    <p class="mb-3 text-dark">
-                        Anda akan menarik pengajuan dokumen <strong>"<?= htmlspecialchars($doc['title']) ?>"</strong> dari antrean peninjauan Administrator kembali ke status <strong>Draft</strong>.
+                    <p class="mb-3" style="color: var(--text-heading);">
+                        Anda akan menarik pengajuan dokumen <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong> dari antrean peninjauan Administrator kembali ke status <strong>Draft</strong>.
                     </p>
-                    <div class="alert alert-light border py-2.5 px-3 small mb-0 text-muted">
-                        Setelah ditarik ke Draft, Administrator tidak perlu meninjau berkas ini. Anda akan langsung diarahkan ke halaman <strong>Atur Slot</strong> untuk mengubah posisi tanda tangan atau memilih <strong>Batalkan Draft</strong> bila ingin menghapus pengajuan.
+                    <div class="rounded-3 border p-3 small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important; color: var(--text-muted);">
+                        Setelah ditarik ke Draft, Anda akan langsung diarahkan ke halaman <strong>Atur Slot</strong> untuk mengubah posisi tanda tangan atau membatalkan pengajuan.
                     </div>
                 </div>
-                <div class="modal-footer bg-light py-2 px-3">
-                    <button type="button" class="btn btn-subtle btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning btn-sm px-3 fw-semibold text-dark">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> Ya, Tarik ke Draft
+                <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
+                    <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn-sigma-navy btn-sigma-sm">
+                        <i class="bi bi-arrow-counterclockwise"></i> Ya, Tarik ke Draft
                     </button>
                 </div>
             </form>
@@ -1138,9 +1146,9 @@ function copyHash(text, btn) {
     } else {
         navigator.clipboard.writeText(text);
     }
-    const orig = btn.innerText;
+    const orig = btn.innerHTML;
     btn.innerText = 'Tersalin!';
-    setTimeout(() => { btn.innerText = orig; }, 2000);
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1190,7 +1198,7 @@ function copyHash(text, btn) {
             const targetEl = document.getElementById(pendingHighlightId);
             pendingHighlightId = null;
             if (targetEl && !targetEl.classList.contains('d-none')) {
-                targetEl.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.55), 0 6px 16px rgba(0, 0, 0, 0.2)';
+                targetEl.style.boxShadow = '0 0 0 4px rgba(120, 98, 158, 0.55), 0 6px 16px rgba(45, 43, 75, 0.2)';
                 setTimeout(function () {
                     targetEl.style.boxShadow = '';
                 }, 2200);
@@ -1213,12 +1221,11 @@ function copyHash(text, btn) {
                 fallbackWatermark.classList.add('d-flex');
             }
         }
-        // Jika dokumen completed namun fallback aktif, tampilkan isi 2 kolom pada slot tertanda
         document.querySelectorAll('.completed-fallback-inner').forEach(function (el) {
             el.classList.remove('d-none');
             el.classList.add('d-flex');
             if (el.parentElement) {
-                el.parentElement.classList.add('bg-white', 'shadow-xs');
+                el.parentElement.classList.add('bg-white', 'shadow-sm');
             }
         });
 
@@ -1372,8 +1379,7 @@ function copyHash(text, btn) {
     };
 })();
 
-// Muat ulang jika halaman dipulihkan dari BFCache (tombol Back browser)
-// agar status pengajuan yang sudah ditarik atau dihapus tidak menampilkan cache lama.
+// Muat ulang jika halaman dipulihkan dari BFCache
 window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
         window.location.reload();
@@ -1382,4 +1388,3 @@ window.addEventListener('pageshow', function (event) {
 </script>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>
-

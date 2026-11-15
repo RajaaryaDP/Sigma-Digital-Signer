@@ -1,56 +1,104 @@
+/* ==========================================================================
+   SIGMA Design System — Token Kanonik & Komponen Reusable
+   Mengacu pada Figma Design System (Navy #2d2b4b, Purple #78629e, Lavender #b4a4ca)
+   ========================================================================== */
+
 :root {
-    /* PNJ Institutional Color Palette */
-    --pnj-green-900: #043e2e;
-    --pnj-green-800: #064e3b;
-    --pnj-green-700: #0a5c47;
-    --pnj-green-600: #0d7359;
-    --pnj-green-100: #d1fae5;
-    --pnj-green-50: #ecfdf5;
-    --sigma-navy: #1d2748;
+    color-scheme: light;
+
+    /* Palet Utama Brand & Shell SIGMA */
+    --sigma-navy: #2d2b4b;
+    --sigma-navy-dark: #1d2748;
     --sigma-navy-deep: #151d39;
-    --sigma-lavender: #c3b5d9;
+    --sigma-navy-cta: #2a2a4a;
+    --sigma-topbar-dark: #302347;
+    --sigma-purple-600: #78629e;
+    --sigma-purple-700: #78539b;
+    --sigma-purple-badge: #77638f;
+    --sigma-violet-600: #6246d0;
+    --sigma-violet-500: #7c5cfc;
+    --sigma-lavender: #b4a4ca;
+    --sigma-lavender-light: #c3b5d9;
     --sigma-lavender-hover: #d3c7e6;
-    --sigma-lavender-active: #b3a2cc;
+    --sigma-lavender-active: #a392bd;
     --sigma-header-muted: #e3e1ee;
 
-    /* Neutrals & Surfaces */
-    --bg-page: #f1f5f9;
+    /* Latar & Permukaan Netral */
+    --sigma-bg-page: #f8f8fc;
+    --sigma-tint-50: #f8f5fc;
+    --sigma-tint-100: #f0ebf6;
+    --sigma-tint-pill: #f0ecf5;
+    --bg-page: var(--sigma-bg-page);
     --surface: #ffffff;
-    --surface-hover: #f8fafc;
-    --border-subtle: #e2e8f0;
-    --border-strong: #cbd5e1;
+    --surface-hover: #faf9fd;
+    --border-subtle: #e6e2f0;
+    --border-strong: #cfc9df;
 
-    /* Typography Colors */
-    --text-heading: #0f172a;
-    --text-body: #334155;
-    --text-muted: #64748b;
-    --text-light: #94a3b8;
+    /* Warna & Keluarga Tipografi */
+    --text-heading: #1e1b33;
+    --text-body: #36334a;
+    --text-muted: #69647d;
+    --text-light: #9691aa;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-wordmark: 'Irish Grover', Georgia, serif;
+    --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-    /* Functional Accents */
-    --status-amber-bg: #fef3c7;
-    --status-amber-text: #92400e;
-    --status-green-bg: #dcfce7;
-    --status-green-text: #166534;
-    --status-red-bg: #fee2e2;
-    --status-red-text: #991b1b;
-    --status-blue-bg: #e0f2fe;
-    --status-blue-text: #0369a1;
+    /* Warna Status Semantik (Hijau khusus Valid/Tertanda, BUKAN tombol utama) */
+    --sigma-success-bg: #e8f5ee;
+    --sigma-success-bg-alt: #dcfce7;
+    --sigma-success-text: #1d6b46;
+    --sigma-success-text-alt: #166534;
+    --sigma-warning-bg: #fef3c7;
+    --sigma-warning-text: #92400e;
+    --sigma-danger-bg: #fee2e2;
+    --sigma-danger-text: #b22929;
+    --sigma-danger-text-dark: #991b1b;
+    --sigma-info-bg: #f0ecf5;
+    --sigma-info-text: #5b3fb5;
+    --sigma-neutral-200: #d9d9d9;
 
-    /* Dimensions & Radii */
-    --navbar-h: 68px;
+    /* Alias Status & Transisi Legacy (dipetakan ke palet baru) */
+    --status-amber-bg: var(--sigma-warning-bg);
+    --status-amber-text: var(--sigma-warning-text);
+    --status-green-bg: var(--sigma-success-bg-alt);
+    --status-green-text: var(--sigma-success-text-alt);
+    --status-red-bg: var(--sigma-danger-bg);
+    --status-red-text: var(--sigma-danger-text-dark);
+    --status-blue-bg: var(--sigma-tint-100);
+    --status-blue-text: var(--sigma-purple-700);
+    --pnj-green-900: var(--sigma-navy-dark);
+    --pnj-green-800: var(--sigma-navy);
+    --pnj-green-700: var(--sigma-purple-600);
+    --pnj-green-600: var(--sigma-purple-600);
+    --pnj-green-100: var(--sigma-tint-100);
+    --pnj-green-50: var(--sigma-tint-50);
+
+    /* Radius, Shadow, & Dimensi Shell Figma */
     --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
+    --radius-stat: 9px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-pill: 999px;
+    --shadow-card: 0 2px 10px rgba(45, 43, 75, 0.05);
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-strong: 0 4px 12px rgba(0, 0, 0, 0.25);
+
+    --sidebar-w: 204px;
+    --topbar-h: 76px;
+    --navbar-h: 68px;
 }
 
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
 body {
-    background-color: var(--bg-page);
+    background-color: var(--sigma-bg-page);
     color: var(--text-body);
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     margin: 0;
     min-height: 100vh;
@@ -58,18 +106,42 @@ body {
     flex-direction: column;
 }
 
+/* Utilitas Tipografi Figma */
+.font-mono-hash {
+    font-family: var(--font-mono);
+    letter-spacing: -0.02em;
+}
+
+.brand-wordmark {
+    font-family: var(--font-wordmark);
+    letter-spacing: 0.04em;
+    font-weight: 400;
+}
+
+.text-sigma-purple {
+    color: var(--sigma-purple-600) !important;
+}
+
+.text-sigma-navy {
+    color: var(--sigma-navy) !important;
+}
+
+.bg-sigma-tint {
+    background-color: var(--sigma-tint-50) !important;
+}
+
 /* ==========================================================================
-   Top Navigation Bar (PNJ Institutional Style)
+   Top Navigation Bar (Mode Publik / Guest & Review Fokus)
    ========================================================================== */
 .pnj-navbar {
     background:
         radial-gradient(ellipse at 18% 20%, rgba(96, 114, 166, 0.28), transparent 45%),
         radial-gradient(ellipse at 52% 85%, rgba(82, 99, 148, 0.24), transparent 50%),
         radial-gradient(ellipse at 85% 30%, rgba(102, 118, 168, 0.22), transparent 42%),
-        linear-gradient(180deg, var(--sigma-navy) 0%, var(--sigma-navy-deep) 100%);
+        linear-gradient(180deg, var(--sigma-navy-dark) 0%, var(--sigma-navy-deep) 100%);
     color: #ffffff;
     padding: 0 1.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 6px rgba(21, 29, 57, 0.14);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     position: sticky;
     top: 0;
@@ -98,20 +170,6 @@ body {
     width: 38px;
     height: 38px;
     object-fit: contain;
-    flex-shrink: 0;
-}
-
-.pnj-brand-icon {
-    width: 38px;
-    height: 38px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    color: var(--sigma-lavender);
 }
 
 .pnj-brand-text {
@@ -120,9 +178,9 @@ body {
 }
 
 .pnj-brand-title {
-    font-weight: 800;
-    font-size: 1.1rem;
-    letter-spacing: 0.5px;
+    font-family: var(--font-wordmark);
+    font-size: 1.25rem;
+    letter-spacing: 0.6px;
     color: #ffffff;
     line-height: 1.1;
 }
@@ -134,7 +192,6 @@ body {
     letter-spacing: 0.2px;
 }
 
-/* Horizontal Nav Tabs */
 .pnj-nav-menu {
     display: flex;
     align-items: center;
@@ -154,11 +211,8 @@ body {
     text-decoration: none;
     font-size: 0.88rem;
     font-weight: 500;
+    white-space: nowrap;
     transition: all 0.15s ease;
-}
-
-.pnj-nav-link i {
-    font-size: 0.95rem;
 }
 
 .pnj-nav-link:hover {
@@ -167,13 +221,11 @@ body {
 }
 
 .pnj-nav-link.active {
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
+    background: var(--sigma-lavender);
+    color: var(--sigma-navy-deep);
     font-weight: 600;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* User Profile Widget */
 .pnj-user-widget {
     display: flex;
     align-items: center;
@@ -181,57 +233,6 @@ body {
     flex-shrink: 0;
 }
 
-.pnj-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.35);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.88rem;
-}
-
-.pnj-user-info {
-    text-align: right;
-    line-height: 1.2;
-}
-
-.pnj-user-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #ffffff;
-}
-
-.pnj-user-badge {
-    font-size: 0.7rem;
-    color: var(--sigma-header-muted);
-}
-
-.btn-pnj-logout {
-    color: var(--sigma-navy-deep);
-    background: var(--sigma-lavender);
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    padding: 0.35rem 0.7rem;
-    font-size: 0.8rem;
-    border-radius: var(--radius-sm);
-    text-decoration: none;
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-
-.btn-pnj-logout:hover {
-    background: var(--sigma-lavender-hover);
-    color: var(--sigma-navy-deep);
-    border-color: var(--sigma-lavender-hover);
-}
-
-/* Taskbar Login Button */
 .btn-pnj-login-taskbar {
     display: inline-flex;
     align-items: center;
@@ -240,12 +241,12 @@ body {
     color: var(--sigma-navy-deep);
     font-weight: 700;
     font-size: 0.875rem;
-    padding: 0.45rem 1.15rem;
-    border-radius: var(--radius-md);
+    padding: 0.45rem 1.25rem;
+    border-radius: var(--radius-pill);
     text-decoration: none;
     border: 1px solid rgba(255, 255, 255, 0.28);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s ease;
     white-space: nowrap;
 }
 
@@ -253,18 +254,289 @@ body {
     background: var(--sigma-lavender-hover);
     color: var(--sigma-navy-deep);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
-    border-color: var(--sigma-lavender-hover);
-}
-
-.btn-pnj-login-taskbar i {
-    font-size: 1rem;
-    color: var(--sigma-navy-deep);
 }
 
 /* ==========================================================================
-   Page Content & Layout
+   Shell Workspace Terautentikasi (Left Sidebar 204px + Header 76px)
    ========================================================================== */
+.sigma-app-shell {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    background: var(--sigma-bg-page);
+}
+
+.sigma-sidebar {
+    width: var(--sidebar-w);
+    background: var(--sigma-navy);
+    color: #ffffff;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1040;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    transition: width 0.2s ease, transform 0.25s ease;
+}
+
+.sigma-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 1.15rem 1rem 1rem;
+    color: #ffffff;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sigma-sidebar-brand-title {
+    font-family: var(--font-wordmark);
+    font-size: 1.35rem;
+    line-height: 1;
+    color: #ffffff;
+}
+
+.sigma-sidebar-brand-sub {
+    font-size: 0.65rem;
+    color: var(--sigma-lavender-light);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+.sigma-sidebar-section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(227, 225, 238, 0.55);
+    padding: 1rem 1rem 0.4rem;
+}
+
+.sigma-sidebar-nav {
+    list-style: none;
+    margin: 0;
+    padding: 0.35rem 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sigma-sidebar-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    color: #e3e1ee;
+    text-decoration: none;
+    font-size: 0.83rem;
+    font-weight: 500;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sigma-sidebar-link-main {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.sigma-sidebar-link-main i {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.sigma-sidebar-link-main span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sigma-sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.sigma-sidebar-link.active {
+    background: var(--sigma-lavender);
+    color: var(--sigma-navy-deep);
+    font-weight: 700;
+}
+
+.sigma-nav-count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-pill);
+    background: var(--sigma-purple-600);
+    color: #ffffff;
+    flex-shrink: 0;
+    line-height: 1.1;
+}
+
+.sigma-sidebar-link.active .sigma-nav-count {
+    background: var(--sigma-navy);
+    color: #ffffff;
+}
+
+.sigma-sidebar-footer {
+    margin-top: auto;
+    padding: 0.85rem 0.85rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.sigma-sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.sigma-avatar-sm {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--sigma-lavender);
+    color: var(--sigma-navy-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+}
+
+.sigma-main-shell {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--sigma-bg-page);
+}
+
+.sigma-workspace-header {
+    min-height: var(--topbar-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.sigma-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    min-width: 0;
+}
+
+.sigma-breadcrumb strong {
+    color: var(--text-heading);
+    font-weight: 600;
+}
+
+.sigma-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.sigma-bell-pill {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--sigma-tint-50);
+    border: 1px solid var(--border-subtle);
+    color: var(--sigma-navy);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.sigma-bell-pill:hover {
+    background: var(--sigma-tint-100);
+    color: var(--sigma-purple-700);
+}
+
+.sigma-bell-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--radius-pill);
+    background: var(--sigma-purple-700);
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ffffff;
+}
+
+.sigma-workspace-content {
+    flex: 1;
+    width: 100%;
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 1.5rem 1.75rem 2.5rem;
+}
+
+.sigma-workspace-footer {
+    border-top: 1px solid var(--border-subtle);
+    background: var(--surface);
+    padding: 0.9rem 1.75rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* Mode Fokus Kanvas PDF (/arrange dan /sign): sidebar otomatis ciut di desktop & bisa di-toggle */
+body.sigma-focus-mode .sigma-sidebar {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    border-right: none;
+}
+
+body.sigma-focus-mode.sigma-sidebar-expanded .sigma-sidebar {
+    width: var(--sidebar-w);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.sigma-focus-mode .sigma-workspace-content {
+    max-width: 100%;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+
+.sigma-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(21, 29, 57, 0.45);
+    z-index: 1035;
+}
+
+/* Container publik fallback */
 .main-container {
     max-width: 1360px;
     width: 100%;
@@ -273,107 +545,136 @@ body {
     flex: 1;
 }
 
-/* Minimalist Clean Cards */
-.card-clean {
-    background: var(--surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.card-clean-header {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border-subtle);
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.card-clean-body {
-    padding: 1.25rem;
-}
-
-/* Stat Widget Cards */
-.stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: border-color 0.15s ease;
-}
-
-.stat-card:hover {
-    border-color: var(--border-strong);
-}
-
-.stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-md);
-    display: flex;
+/* ==========================================================================
+   Komponen Tombol SIGMA (Button System)
+   ========================================================================== */
+.btn-sigma-navy,
+.btn-pnj-primary {
+    background-color: var(--sigma-navy-cta);
+    border: 1px solid var(--sigma-navy-cta);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1.15rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.35rem;
-    flex-shrink: 0;
+    gap: 0.45rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
 }
 
-.stat-val {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-heading);
-    line-height: 1;
-    margin-bottom: 0.25rem;
+.btn-sigma-navy:hover,
+.btn-pnj-primary:hover {
+    background-color: var(--sigma-navy-dark);
+    border-color: var(--sigma-navy-dark);
+    color: #ffffff;
 }
 
-.stat-label {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-/* Clean Tables */
-.table-minimal {
-    width: 100%;
-    margin-bottom: 0;
-}
-
-.table-minimal th {
-    background-color: #f8fafc;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
+.btn-sigma-purple {
+    background-color: var(--sigma-purple-700);
+    border: 1px solid var(--sigma-purple-700);
+    color: #ffffff;
     font-weight: 600;
-    letter-spacing: 0.5px;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border-subtle);
-    border-top: none;
+    padding: 0.5rem 1.15rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
 }
 
-.table-minimal td {
-    padding: 0.85rem 1rem;
-    vertical-align: middle;
-    color: var(--text-body);
+.btn-sigma-purple:hover {
+    background-color: var(--sigma-purple-600);
+    border-color: var(--sigma-purple-600);
+    color: #ffffff;
+}
+
+.btn-sigma-violet {
+    background-color: var(--sigma-violet-500);
+    border: 1px solid var(--sigma-violet-500);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.55rem 1.25rem;
+    border-radius: var(--radius-md);
     font-size: 0.88rem;
-    border-bottom: 1px solid var(--border-subtle);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
 }
 
-.table-minimal tr:last-child td {
-    border-bottom: none;
+.btn-sigma-violet:hover {
+    background-color: var(--sigma-violet-600);
+    border-color: var(--sigma-violet-600);
+    color: #ffffff;
 }
 
-.table-minimal tr:hover td {
-    background-color: var(--surface-hover);
+.btn-sigma-outline {
+    background-color: #ffffff;
+    border: 1px solid var(--border-strong);
+    color: var(--sigma-navy);
+    font-weight: 600;
+    padding: 0.48rem 1.05rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
 }
 
-/* Soft Action Buttons */
+.btn-sigma-outline:hover {
+    background-color: var(--sigma-tint-50);
+    border-color: var(--sigma-purple-600);
+    color: var(--sigma-purple-700);
+}
+
+.btn-sigma-danger {
+    background-color: var(--sigma-danger-text);
+    border: 1px solid var(--sigma-danger-text);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1.15rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.btn-sigma-danger:hover {
+    background-color: #931f1f;
+    border-color: #931f1f;
+    color: #ffffff;
+}
+
+.btn-sigma-pill {
+    border-radius: var(--radius-pill) !important;
+}
+
+.btn-sigma-sm {
+    min-height: 34px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+}
+
 .btn-subtle {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
+    background: var(--sigma-tint-50);
+    color: var(--sigma-navy);
+    border: 1px solid var(--border-subtle);
     padding: 0.35rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 500;
@@ -386,55 +687,460 @@ body {
 }
 
 .btn-subtle:hover {
-    background: #e2e8f0;
-    color: #1e293b;
-    border-color: #94a3b8;
-}
-
-.btn-pnj-primary {
-    background-color: var(--pnj-green-800);
-    border-color: var(--pnj-green-800);
-    color: #ffffff;
-    font-weight: 600;
-    padding: 0.5rem 1.15rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.88rem;
-    transition: all 0.15s ease;
-}
-
-.btn-pnj-primary:hover {
-    background-color: var(--pnj-green-900);
-    border-color: var(--pnj-green-900);
-    color: #ffffff;
-}
-
-/* Responsive */
-@media (max-width: 991.98px) {
-    .pnj-navbar-inner {
-        flex-wrap: wrap;
-        height: auto;
-        padding: 0.75rem 0;
-        gap: 0.75rem;
-    }
-
-    .pnj-nav-menu {
-        overflow-x: auto;
-        width: 100%;
-        padding-bottom: 0.35rem;
-    }
-
-    .pnj-user-widget {
-        order: 2;
-    }
+    background: var(--sigma-tint-100);
+    color: var(--sigma-navy-deep);
+    border-color: var(--sigma-lavender);
 }
 
 /* ==========================================================================
-   Signature Canvas & Template Styling
+   Badge & Status Chips
+   ========================================================================== */
+.badge-sigma {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.badge-sigma-success {
+    background: var(--sigma-success-bg);
+    color: var(--sigma-success-text);
+}
+
+.badge-sigma-warning {
+    background: var(--sigma-warning-bg);
+    color: var(--sigma-warning-text);
+}
+
+.badge-sigma-danger {
+    background: var(--sigma-danger-bg);
+    color: var(--sigma-danger-text);
+}
+
+.badge-sigma-purple {
+    background: var(--sigma-tint-pill);
+    color: var(--sigma-purple-badge);
+}
+
+.badge-sigma-violet {
+    background: #ede9fe;
+    color: var(--sigma-info-text);
+}
+
+.badge-sigma-neutral {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* ==========================================================================
+   Form Controls & Search
+   ========================================================================== */
+.sigma-form-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 0.35rem;
+}
+
+.sigma-input,
+.form-control.sigma-input,
+.form-select.sigma-input {
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    padding: 0.55rem 0.85rem;
+    font-size: 0.88rem;
+    color: var(--text-heading);
+    background-color: #ffffff;
+}
+
+.sigma-input:focus,
+.form-control.sigma-input:focus,
+.form-select.sigma-input:focus {
+    border-color: var(--sigma-purple-600);
+    box-shadow: 0 0 0 3px rgba(120, 98, 158, 0.16);
+}
+
+.sigma-search-box {
+    position: relative;
+}
+
+.sigma-search-box i.sigma-search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.sigma-search-box .form-control {
+    padding-left: 2.35rem;
+}
+
+/* ==========================================================================
+   Kartu & Stat Cards (Card System Figma)
+   ========================================================================== */
+.card-clean,
+.card-sigma {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+}
+
+.card-clean-header,
+.card-sigma-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.card-clean-body,
+.card-sigma-body {
+    padding: 1.25rem;
+}
+
+.stat-card,
+.stat-card-sigma {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-stat);
+    min-height: 114px;
+    padding: 1.15rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: var(--shadow-card);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.stat-card:hover,
+.stat-card-sigma:hover {
+    border-color: var(--sigma-lavender);
+    transform: translateY(-1px);
+}
+
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.stat-val {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.sigma-guide-banner {
+    background: var(--sigma-tint-100);
+    border: 1px solid #dfd7ee;
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.35rem;
+}
+
+.template-card-sigma {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.template-card-sigma:hover {
+    border-color: var(--sigma-purple-600);
+    box-shadow: 0 6px 18px rgba(45, 43, 75, 0.08);
+    transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   Tabel, Tabs Underline 2px, Filter Chips, & Pagination
+   ========================================================================== */
+.table-minimal,
+.table-sigma {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.table-minimal th,
+.table-sigma th {
+    background-color: var(--sigma-tint-50);
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    border-top: none;
+    white-space: nowrap;
+}
+
+.table-minimal td,
+.table-sigma td {
+    padding: 0.9rem 1rem;
+    vertical-align: middle;
+    color: var(--text-body);
+    font-size: 0.87rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.table-minimal tr:last-child td,
+.table-sigma tr:last-child td {
+    border-bottom: none;
+}
+
+.table-minimal tr:hover td,
+.table-sigma tr:hover td {
+    background-color: var(--surface-hover);
+}
+
+/* Tab Underline 2px #78629e (Figma 200:104 / 125:352) */
+.nav-tabs-sigma {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.nav-tabs-sigma .nav-tab-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.7rem 0.2rem;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+    background: transparent;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+.nav-tabs-sigma .nav-tab-item:hover {
+    color: var(--sigma-navy);
+}
+
+.nav-tabs-sigma .nav-tab-item.active {
+    color: var(--sigma-purple-700);
+    font-weight: 700;
+    border-bottom-color: var(--sigma-purple-600);
+}
+
+/* Filter Chips (Katalog 336:720 & Kontak 125:860) */
+.filter-chips-sigma {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.filter-chip-sigma {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.38rem 0.9rem;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.filter-chip-sigma:hover {
+    border-color: var(--sigma-purple-600);
+    color: var(--sigma-purple-700);
+    background: var(--sigma-tint-50);
+}
+
+.filter-chip-sigma.active {
+    background: var(--sigma-navy);
+    border-color: var(--sigma-navy);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.pagination-sigma .page-link {
+    color: var(--sigma-navy);
+    border-color: var(--border-subtle);
+    font-size: 0.82rem;
+    padding: 0.38rem 0.72rem;
+}
+
+.pagination-sigma .page-item.active .page-link {
+    background-color: var(--sigma-navy);
+    border-color: var(--sigma-navy);
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   Modal, Alert, Stepper 4-Langkah, Kotak Hash, & Jejak Audit (`230:286`)
+   ========================================================================== */
+.alert-sigma {
+    border-radius: var(--radius-md);
+    border-width: 1px;
+}
+
+.modal-sigma .modal-content {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-strong);
+}
+
+.sigma-stepper-bar {
+    background: var(--sigma-tint-50);
+    border: 1px solid #dfd7ee;
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+}
+
+.sigma-stepper-track {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.sigma-step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.sigma-step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: #e5e2ee;
+    color: var(--text-muted);
+}
+
+.sigma-step-item.done .sigma-step-num {
+    background: var(--sigma-success-bg);
+    color: var(--sigma-success-text);
+    border: 1px solid #a7dfc0;
+}
+
+.sigma-step-item.active .sigma-step-num {
+    background: var(--sigma-purple-700);
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(120, 83, 155, 0.16);
+}
+
+.sigma-step-item.danger .sigma-step-num {
+    background: var(--sigma-danger-bg);
+    color: var(--sigma-danger-text);
+}
+
+.sigma-hash-box {
+    background: var(--sigma-tint-50);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--sigma-navy);
+    word-break: break-all;
+}
+
+.sigma-audit-timeline {
+    position: relative;
+    padding-left: 1.35rem;
+}
+
+.sigma-audit-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--border-subtle);
+}
+
+.sigma-audit-item {
+    position: relative;
+    padding-bottom: 0.95rem;
+}
+
+.sigma-audit-item:last-child {
+    padding-bottom: 0;
+}
+
+.sigma-audit-dot {
+    position: absolute;
+    left: -1.35rem;
+    top: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--sigma-purple-600);
+    border: 3px solid #ffffff;
+    box-shadow: 0 0 0 1px var(--sigma-lavender);
+}
+
+/* Highlight Slot PDF (Figma 230:286 & 283:1130) */
+.sigma-slot-active {
+    background: rgba(248, 245, 252, 0.9) !important;
+    border: 2px dashed var(--sigma-purple-600) !important;
+    color: var(--sigma-navy) !important;
+}
+
+.sigma-slot-signed {
+    background: rgba(220, 252, 231, 0.9) !important;
+    border: 2px solid var(--sigma-success-text-alt) !important;
+    color: var(--sigma-success-text-alt) !important;
+}
+
+/* ==========================================================================
+   Kanvas Tanda Tangan & Checkerboard Transparansi (Jaga BUG-04 & BUG-05)
    ========================================================================== */
 .sig-canvas-wrapper {
     position: relative;
     background: #ffffff;
-    border: 2px dashed #cbd5e1;
+    border: 2px dashed var(--border-strong);
     border-radius: var(--radius-md);
     overflow: hidden;
     touch-action: none;
@@ -443,14 +1149,14 @@ body {
 
 .sig-canvas-wrapper:hover,
 .sig-canvas-wrapper.active {
-    border-color: var(--pnj-green-700);
+    border-color: var(--sigma-purple-600);
+    box-shadow: 0 0 0 3px rgba(120, 98, 158, 0.12);
 }
 
 .sig-canvas {
     display: block;
     width: 100%;
     height: 220px;
-    /* Kursor crosshair hitam kontras agar jelas terlihat di atas latar kanvas putih */
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v18M3 12h18' stroke='%23ffffff' stroke-width='3.5' stroke-linecap='round'/%3E%3Cpath d='M12 3v18M3 12h18' stroke='%23000000' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='1.5' fill='%23000000'/%3E%3C/svg%3E") 12 12, crosshair;
     background-color: transparent;
 }
@@ -472,14 +1178,13 @@ body {
     user-select: none;
 }
 
-/* Checkerboard background for transparent image preview */
 .checkerboard-bg {
     background-color: #ffffff;
     background-image:
-        linear-gradient(45deg, #f1f5f9 25%, transparent 25%),
-        linear-gradient(-45deg, #f1f5f9 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #f1f5f9 75%),
-        linear-gradient(-45deg, transparent 75%, #f1f5f9 75%);
+        linear-gradient(45deg, #f1f0f7 25%, transparent 25%),
+        linear-gradient(-45deg, #f1f0f7 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f1f0f7 75%),
+        linear-gradient(-45deg, transparent 75%, #f1f0f7 75%);
     background-size: 16px 16px;
     background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
 }
@@ -504,337 +1209,71 @@ body {
 }
 
 .sig-upload-box {
-    border: 2px dashed #cbd5e1;
+    border: 2px dashed var(--border-strong);
     border-radius: var(--radius-md);
     padding: 2.5rem 1.5rem;
     text-align: center;
-    background: #f8fafc;
+    background: var(--sigma-tint-50);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .sig-upload-box:hover,
 .sig-upload-box.dragover {
-    border-color: var(--pnj-green-700);
-    background: var(--pnj-green-50);
+    border-color: var(--sigma-purple-600);
+    background: var(--sigma-tint-100);
 }
 
 /* ==========================================================================
-   Landing & Introduction Page (SIGMA PNJ)
+   Responsivitas Tablet & Mobile
    ========================================================================== */
-.landing-hero {
-    background: linear-gradient(135deg, #032b20 0%, #064e3b 55%, #0a5c47 100%);
-    border-radius: var(--radius-lg);
-    color: #ffffff;
-    padding: 3rem 2.25rem;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(4, 62, 46, 0.25);
-    border: 1px solid rgba(167, 243, 208, 0.2);
-    margin-bottom: 2.25rem;
+@media (max-width: 991.98px) {
+    .pnj-navbar-inner {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0.75rem 0;
+        gap: 0.75rem;
+    }
+
+    .pnj-nav-menu {
+        overflow-x: auto;
+        width: 100%;
+        padding-bottom: 0.35rem;
+    }
+
+    .sigma-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        width: var(--sidebar-w) !important;
+        min-width: var(--sidebar-w) !important;
+    }
+
+    .sigma-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sigma-sidebar-backdrop.show {
+        display: block;
+    }
+
+    .sigma-workspace-header {
+        padding: 0.7rem 1rem;
+    }
+
+    .sigma-workspace-content {
+        padding: 1.15rem 1rem 2rem;
+    }
+
+    .sigma-stepper-track {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
-.landing-hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(167, 243, 208, 0.12) 0%, rgba(6, 78, 59, 0) 70%);
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.landing-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(167, 243, 208, 0.15);
-    border: 1px solid rgba(167, 243, 208, 0.35);
-    color: #a7f3d0;
-    padding: 0.4rem 0.9rem;
-    border-radius: 9999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    margin-bottom: 1.25rem;
-}
-
-.landing-title {
-    font-size: 2.35rem;
-    font-weight: 800;
-    line-height: 1.22;
-    letter-spacing: -0.5px;
-    margin-bottom: 1rem;
-    color: #ffffff;
-}
-
-.landing-title span {
-    color: #6ee7b7;
-}
-
-.landing-desc {
-    font-size: 1.05rem;
-    line-height: 1.6;
-    color: #d1fae5;
-    margin-bottom: 1.75rem;
-    max-width: 640px;
-}
-
-.btn-landing-primary {
-    background-color: #10b981;
-    border-color: #10b981;
-    color: #022c22;
-    font-weight: 700;
-    padding: 0.75rem 1.6rem;
-    border-radius: var(--radius-md);
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    text-decoration: none;
-    font-size: 0.98rem;
-}
-
-.btn-landing-primary:hover {
-    background-color: #34d399;
-    border-color: #34d399;
-    color: #022c22;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
-}
-
-.btn-landing-secondary {
-    background-color: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    color: #ffffff;
-    font-weight: 600;
-    padding: 0.75rem 1.4rem;
-    border-radius: var(--radius-md);
-    backdrop-filter: blur(4px);
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    text-decoration: none;
-    font-size: 0.98rem;
-}
-
-.btn-landing-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.22);
-    border-color: #ffffff;
-    color: #ffffff;
-    transform: translateY(-2px);
-}
-
-/* Certificate Mockup Preview Card */
-.doc-mockup-card {
-    background: #ffffff;
-    color: var(--text-body);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    position: relative;
-}
-
-.doc-mockup-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 2px solid var(--border-subtle);
-    padding-bottom: 0.85rem;
-    margin-bottom: 1rem;
-}
-
-.doc-stamp-valid {
-    border: 2px dashed #059669;
-    color: #059669;
-    padding: 0.35rem 0.65rem;
-    border-radius: 6px;
-    font-weight: 800;
-    font-size: 0.72rem;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    transform: rotate(-3deg);
-    background: #ecfdf5;
-}
-
-.doc-flow-step {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.65rem;
-    border-radius: 6px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    margin-bottom: 0.5rem;
-    font-size: 0.8rem;
-}
-
-.doc-flow-step.completed {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
-}
-
-.doc-flow-icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    flex-shrink: 0;
-}
-
-/* Landing Section Titles */
-.section-tag {
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: var(--pnj-green-700);
-    margin-bottom: 0.35rem;
-    display: inline-block;
-}
-
-.section-title {
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: var(--text-heading);
-    letter-spacing: -0.3px;
-    margin-bottom: 0.75rem;
-}
-
-.section-subtitle {
-    font-size: 0.95rem;
-    color: var(--text-muted);
-    max-width: 680px;
-    margin: 0 auto 2.5rem;
-}
-
-/* Feature Cards */
-.feature-card {
-    background: var(--surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 1.6rem 1.4rem;
-    height: 100%;
-    transition: all 0.25s ease;
-    position: relative;
-}
-
-.feature-card:hover {
-    border-color: var(--pnj-green-600);
-    box-shadow: 0 8px 22px rgba(6, 78, 59, 0.08);
-    transform: translateY(-3px);
-}
-
-.feature-icon-box {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    background: var(--pnj-green-50);
-    color: var(--pnj-green-700);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    margin-bottom: 1.15rem;
-    border: 1px solid var(--pnj-green-100);
-    transition: all 0.2s ease;
-}
-
-.feature-card:hover .feature-icon-box {
-    background: var(--pnj-green-700);
-    color: #ffffff;
-    border-color: var(--pnj-green-700);
-}
-
-.feature-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-heading);
-    margin-bottom: 0.5rem;
-}
-
-.feature-desc {
-    font-size: 0.88rem;
-    color: var(--text-body);
-    line-height: 1.55;
-    margin-bottom: 0;
-}
-
-/* Step Workflow Cards */
-.workflow-card {
-    background: #ffffff;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    position: relative;
-    height: 100%;
-    transition: all 0.2s ease;
-}
-
-.workflow-card:hover {
-    border-color: var(--pnj-green-600);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-}
-
-.workflow-number {
-    position: absolute;
-    top: 1rem;
-    right: 1.25rem;
-    font-size: 1.8rem;
-    font-weight: 900;
-    color: #cbd5e1;
-    line-height: 1;
-}
-
-.workflow-card:hover .workflow-number {
-    color: var(--pnj-green-600);
-}
-
-/* Role Cards */
-.role-badge-card {
-    background: var(--surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 1.5rem 1.25rem;
-    text-align: center;
-    transition: all 0.2s ease;
-    height: 100%;
-}
-
-.role-badge-card:hover {
-    border-color: var(--pnj-green-600);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-    transform: translateY(-2px);
-}
-
-/* Quick Verify Box */
-.quick-verify-banner {
-    background: linear-gradient(135deg, #f8fafc 0%, #ecfdf5 100%);
-    border: 1px solid #a7f3d0;
-    border-radius: var(--radius-lg);
-    padding: 2.25rem 2rem;
-    margin: 2.5rem 0;
-}
-
-/* CTA Bottom Card */
-.landing-cta {
-    background: linear-gradient(135deg, #043e2e 0%, #064e3b 100%);
-    border-radius: var(--radius-lg);
-    color: #ffffff;
-    padding: 3rem 2rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    margin-top: 3rem;
+@media (max-width: 575.98px) {
+    .sigma-stepper-track {
+        grid-template-columns: 1fr;
+    }
 }
