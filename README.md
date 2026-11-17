@@ -1,23 +1,5 @@
 # SIGMA — Aplikasi Web MVC Native PHP (PBL)
 
-Repositori ini memuat seluruh kode sumber aplikasi web **SIGMA (Sistem Tanda Tangan Digital)** untuk Politeknik Negeri Jakarta (PNJ).
-
----
-
-## ⚠️ PERHATIAN PENGEMBANG & AGENT AI (OpenCode / DeepSeek)
-1. **Status Implementasi:** Task 1 s.d. Task 7 sudah **SELESAI (DONE)**. Tugas saat ini adalah **Task 8: Halaman Verifikasi Publik Scan QR (`/verify?token=...`)**.
-2. **Modul Warisan UTS (Legacy Archive):**
-   - Modul `controllers/Accounts.php`, `controllers/AccountTypes.php`, `controllers/Actions.php` beserta model dan view terkait adalah **modul arsip latihan UTS**.
-   - **JANGAN DIUBAH, JANGAN DIHAPUS, DAN JANGAN DIJADIKAN ACUAN** untuk fitur SIGMA.
-3. **Modul Aktif Resmi SIGMA:**
-   - **Autentikasi & Sesi:** `controllers/Auth.php`, `models/UsersModel.php`, `views/auth/`
-   - **Master Data Civitas (CRUD Admin):** `controllers/Civitas.php`, `models/CivitasModel.php`, `views/civitas/`
-   - **Template Tanda Tangan Pribadi:** `controllers/UserSignatures.php`, `models/UserSignaturesModel.php`, `views/user-signatures/`
-   - **Manajemen & Alur Dokumen:** `controllers/Documents.php`, `models/DocumentsModel.php`, `views/documents/`
-   - **Verifikasi Publik (Scan QR):** `controllers/Verify.php`, `views/verify/`
-   - **Log Audit Terpusat:** `models/AuditLogModel.php`
-
----
 
 ## 🛠️ Persyaratan Lingkungan
 - PHP 8.1+ (dengan ekstensi `pdo_pgsql`, `gd`, `fileinfo`)
