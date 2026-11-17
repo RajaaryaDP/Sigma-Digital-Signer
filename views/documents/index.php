@@ -66,7 +66,7 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
             <?php if ($isAdmin): ?>
                 Pantau pengajuan masuk, verifikasi kelengkapan slot, dan awasi jejak penandatanganan kampus.
             <?php else: ?>
-                Halo, <strong style="color: var(--text-heading);"><?= htmlspecialchars($user['name'] ?? 'Pengguna', ENT_QUOTES, 'UTF-8') ?></strong> — kelola pengajuan PDF dan giliran tanda tangan berjenjang Anda.
+                Halo, <strong style="color: var(--text-heading);"><?= htmlspecialchars($user['name'] ?? 'Pengguna', ENT_QUOTES, 'UTF-8') ?></strong> — <?= $focusQueue ? 'pantau dan tanda tangani dokumen yang ditugaskan kepada Anda.' : 'kelola pengajuan PDF dan giliran tanda tangan berjenjang Anda.' ?>
             <?php endif; ?>
         </p>
     </div>
@@ -169,53 +169,55 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
     $waitingCountVal = count($waitingSignDocs ?? []);
     $ongoingMyDocsCount = (int)($docCounts['draft'] ?? 0) + (int)($docCounts['pending_review'] ?? 0) + (int)($docCounts['signing'] ?? 0);
     ?>
-    <!-- Stat Cards User / Civitas -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma" <?= $pendingSignCountVal > 0 ? 'style="border-color: #f59e0b;"' : '' ?>>
-                <div>
-                    <div class="stat-val"><?= $pendingSignCountVal ?></div>
-                    <div class="stat-label">Perlu TTD Saya</div>
+    <?php if (!$focusQueue): ?>
+        <!-- Stat Cards User / Civitas -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3">
+                <div class="stat-card-sigma" <?= $pendingSignCountVal > 0 ? 'style="border-color: #f59e0b;"' : '' ?>>
+                    <div>
+                        <div class="stat-val"><?= $pendingSignCountVal ?></div>
+                        <div class="stat-label">Perlu TTD Saya</div>
+                    </div>
+                    <div class="stat-icon" style="background: var(--sigma-warning-bg); color: var(--sigma-warning-text);">
+                        <i class="bi bi-pen-fill"></i>
+                    </div>
                 </div>
-                <div class="stat-icon" style="background: var(--sigma-warning-bg); color: var(--sigma-warning-text);">
-                    <i class="bi bi-pen-fill"></i>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card-sigma">
+                    <div>
+                        <div class="stat-val"><?= $waitingCountVal ?></div>
+                        <div class="stat-label">Menunggu Giliran</div>
+                    </div>
+                    <div class="stat-icon" style="background: var(--sigma-tint-pill); color: var(--sigma-purple-700);">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card-sigma">
+                    <div>
+                        <div class="stat-val"><?= $ongoingMyDocsCount ?></div>
+                        <div class="stat-label">Pengajuan Berjalan</div>
+                    </div>
+                    <div class="stat-icon" style="background: #ede9fe; color: var(--sigma-info-text);">
+                        <i class="bi bi-send-check"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card-sigma">
+                    <div>
+                        <div class="stat-val"><?= (int)($docCounts['completed'] ?? 0) ?></div>
+                        <div class="stat-label">Dokumen Selesai</div>
+                    </div>
+                    <div class="stat-icon" style="background: var(--sigma-success-bg); color: var(--sigma-success-text);">
+                        <i class="bi bi-patch-check-fill"></i>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma">
-                <div>
-                    <div class="stat-val"><?= $waitingCountVal ?></div>
-                    <div class="stat-label">Menunggu Giliran</div>
-                </div>
-                <div class="stat-icon" style="background: var(--sigma-tint-pill); color: var(--sigma-purple-700);">
-                    <i class="bi bi-clock-history"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma">
-                <div>
-                    <div class="stat-val"><?= $ongoingMyDocsCount ?></div>
-                    <div class="stat-label">Pengajuan Berjalan</div>
-                </div>
-                <div class="stat-icon" style="background: #ede9fe; color: var(--sigma-info-text);">
-                    <i class="bi bi-send-check"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma">
-                <div>
-                    <div class="stat-val"><?= (int)($docCounts['completed'] ?? 0) ?></div>
-                    <div class="stat-label">Dokumen Selesai</div>
-                </div>
-                <div class="stat-icon" style="background: var(--sigma-success-bg); color: var(--sigma-success-text);">
-                    <i class="bi bi-patch-check-fill"></i>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php endif; ?>
 
     <?php if (!empty($pendingSignDocs)): ?>
         <div class="card-sigma mb-4" style="border-color: #d8cceb; background: var(--sigma-tint-50);">
@@ -227,9 +229,11 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
                             <?= count($pendingSignDocs) ?> dokumen menunggu tanda tangan Anda sekarang
                         </span>
                     </div>
-                    <a href="<?= BASE_URL ?>/documents?view=queue" class="small fw-semibold text-decoration-none" style="color: var(--sigma-purple-700);">
-                        Lihat semua antrean <i class="bi bi-chevron-right"></i>
-                    </a>
+                    <?php if (!$focusQueue): ?>
+                        <a href="<?= BASE_URL ?>/documents?view=queue" class="small fw-semibold text-decoration-none" style="color: var(--sigma-purple-700);">
+                            Lihat semua antrean <i class="bi bi-chevron-right"></i>
+                        </a>
+                    <?php endif; ?>
                 </div>
                 <div class="d-flex flex-wrap gap-2 mt-2">
                     <?php foreach (array_slice($pendingSignDocs, 0, 4) as $pDoc): ?>
@@ -248,24 +252,22 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
         </div>
     <?php endif; ?>
 
-    <!-- Mode Switcher Ringkas User (Pengajuan vs Antrean TTD) -->
-    <div class="filter-chips-sigma mb-3">
-        <a href="<?= BASE_URL ?>/documents" class="filter-chip-sigma <?= !$focusQueue ? 'active' : '' ?>">
-            <i class="bi bi-folder2-open"></i> Dokumen Pengajuan Saya (<?= (int)($docCounts['total'] ?? 0) ?>)
-        </a>
-        <a href="<?= BASE_URL ?>/documents?view=queue" class="filter-chip-sigma <?= $focusQueue ? 'active' : '' ?>">
-            <i class="bi bi-pen"></i> Antrean & Tugas Tanda Tangan (<?= count($assignedDocs ?? []) ?>)
-            <?php if ($pendingSignCountVal > 0): ?>
-                <span class="badge-sigma badge-sigma-warning ms-1 py-0 px-2" style="font-size: 0.68rem;"><?= $pendingSignCountVal ?> aktif</span>
-            <?php endif; ?>
-        </a>
-    </div>
+    <?php if (!$focusQueue): ?>
+        <!-- Mode Switcher Ringkas User (Pengajuan vs Antrean TTD) -->
+        <div class="filter-chips-sigma mb-3">
+            <a href="<?= BASE_URL ?>/documents" class="filter-chip-sigma <?= !$focusQueue ? 'active' : '' ?>">
+                <i class="bi bi-folder2-open"></i> Dokumen Pengajuan Saya (<?= (int)($docCounts['total'] ?? 0) ?>)
+            </a>
+        </div>
+    <?php endif; ?>
 <?php endif; ?>
 
 <?php
 // Fungsi render blok Penugasan & Antrean TTD (untuk User Non-Admin)
-$renderAssignedQueueBlock = function () use ($assignedDocs, $renderDocStatusBadge, $renderSignerBadge): void {
-    $assignedList = $assignedDocs ?? [];
+$assignedDocs = $assignedDocs ?? [];
+$renderAssignedQueueBlock = function () use ($user, $assignedDocs, $renderDocStatusBadge, $renderSignerBadge): void {
+    $assignedList = $assignedDocs;
+    $currentUserId = (string)($user['id'] ?? '');
     ?>
     <div class="card-sigma mb-4" id="assignedQueueSection">
         <div class="card-sigma-header flex-wrap">
@@ -274,7 +276,7 @@ $renderAssignedQueueBlock = function () use ($assignedDocs, $renderDocStatusBadg
                     <i class="bi bi-vector-pen me-1 text-sigma-purple"></i> Antrean & Penugasan Tanda Tangan Saya
                 </h2>
                 <div class="small" style="color: var(--text-muted);">
-                    Daftar dokumen dari sivitas lain yang menugaskan Anda sebagai penandatangan.
+                    Daftar dokumen mandiri maupun penugasan dari sivitas lain yang ditandatangani oleh Anda.
                 </div>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
@@ -324,6 +326,8 @@ $renderAssignedQueueBlock = function () use ($assignedDocs, $renderDocStatusBadg
                                 $rowCat = 'turn';
                             } elseif ($mySigStat === 'signed') {
                                 $rowCat = 'signed';
+                            } elseif ($docStat === 'rejected' || $mySigStat === 'declined') {
+                                $rowCat = 'rejected';
                             }
                             ?>
                             <tr data-queue-cat="<?= htmlspecialchars($rowCat, ENT_QUOTES, 'UTF-8') ?>">
@@ -338,13 +342,20 @@ $renderAssignedQueueBlock = function () use ($assignedDocs, $renderDocStatusBadg
                                 </td>
                                 <td>
                                     <div class="fw-medium"><?= htmlspecialchars($aDoc['uploader_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+                                    <?php if (($aDoc['uploader_id'] ?? '') === $currentUserId && ($aDoc['signature_type'] ?? '') === 'single'): ?>
+                                        <span class="badge-sigma badge-sigma-neutral mt-1" style="font-size: 0.68rem;">Dokumen Mandiri</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="small fw-semibold" style="color: var(--text-heading);">
                                         <?= htmlspecialchars($aDoc['role_title'] ?? 'Penandatangan', ENT_QUOTES, 'UTF-8') ?>
                                     </div>
                                     <div class="small" style="color: var(--text-muted);">
-                                        Tahap #<?= $stepOrd ?> dari alur aktif (Tahap <?= $curStep ?>)
+                                        <?php if (($aDoc['signature_type'] ?? '') === 'single'): ?>
+                                            Tanda tangan mandiri
+                                        <?php else: ?>
+                                            Tahap #<?= $stepOrd ?> dari alur aktif (Tahap <?= $curStep ?>)
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                                 <td>
@@ -524,6 +535,11 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $documents, $docCounts, $
                                                     </button>
                                                 </form>
                                             <?php else: ?>
+                                                <?php if ($sigType === 'single' && $docStatus === 'signing'): ?>
+                                                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-navy btn-sigma-sm">
+                                                        <i class="bi bi-pen"></i> Tanda Tangani
+                                                    </a>
+                                                <?php endif; ?>
                                                 <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>" class="btn-sigma-outline btn-sigma-sm">
                                                     Detail
                                                 </a>
@@ -561,37 +577,6 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $documents, $docCounts, $
 <?php else: ?>
     <?php if ($focusQueue): ?>
         <?php $renderAssignedQueueBlock(); ?>
-
-        <!-- Panduan Singkat 3 Langkah (Figma 204:435) -->
-        <div class="sigma-guide-banner mb-4">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                <div class="fw-bold small" style="color: var(--sigma-navy);">
-                    <i class="bi bi-lightbulb-fill me-1 text-sigma-purple"></i> Cara Menandatangani Dokumen Secara Berjenjang
-                </div>
-                <span class="badge-sigma badge-sigma-purple">Alur Sequential SIGMA</span>
-            </div>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="bg-white rounded-3 p-3 h-100 border" style="border-color: var(--border-subtle) !important;">
-                        <div class="fw-bold small mb-1" style="color: var(--sigma-purple-700);">1. Buka Antrean Giliran</div>
-                        <div class="small" style="color: var(--text-muted);">Pilih dokumen berstatus <strong>Giliran Anda</strong> untuk membuka pratinjau PDF ber-slot.</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="bg-white rounded-3 p-3 h-100 border" style="border-color: var(--border-subtle) !important;">
-                        <div class="fw-bold small mb-1" style="color: var(--sigma-purple-700);">2. Pilih Template atau Gambar</div>
-                        <div class="small" style="color: var(--text-muted);">Gunakan template PNG transparan default Anda, gambar di kanvas, atau unggah PNG baru.</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="bg-white rounded-3 p-3 h-100 border" style="border-color: var(--border-subtle) !important;">
-                        <div class="fw-bold small mb-1" style="color: var(--sigma-purple-700);">3. Bubuhkan & Sahkan</div>
-                        <div class="small" style="color: var(--text-muted);">Sistem otomatis memajukan tahap ke penandatangan berikutnya atau menerbitkan PDF Final.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <?php $renderMainDocumentsBlock(); ?>
     <?php else: ?>
         <?php $renderMainDocumentsBlock(); ?>

@@ -195,10 +195,10 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                     <tr class="signer-row">
                                         <td class="text-center">
                                             <span class="badge-sigma badge-sigma-purple step-number-badge"><?= $idx + 1 ?></span>
-                                            <input type="hidden" name="signer_step_order[]" class="step-order-input" value="<?= $idx + 1 ?>">
+                                            <input type="hidden" name="signer_step_order[]" class="step-order-input" value="<?= $idx + 1 ?>" <?= $curType === 'single' ? 'disabled' : '' ?>>
                                         </td>
                                         <td>
-                                            <select name="signer_user_id[]" class="form-select form-select-sm sigma-input signer-user-select" required>
+                                            <select name="signer_user_id[]" class="form-select form-select-sm sigma-input signer-user-select" <?= $curType === 'single' ? 'disabled' : 'required' ?>>
                                                 <option value="">-- Pilih Civitas Kampus --</option>
                                                 <?php foreach ($availableSigners as $as): ?>
                                                     <?php
@@ -222,7 +222,8 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                             <input type="text" name="signer_role_title[]"
                                                    class="form-control form-control-sm sigma-input signer-role-input"
                                                    placeholder="Contoh: Dosen Pembimbing I / Ketua Jurusan"
-                                                   value="<?= htmlspecialchars($s['role_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                                   value="<?= htmlspecialchars($s['role_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                   <?= $curType === 'single' ? 'disabled' : '' ?>>
                                         </td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-outline-danger btn-sm border-0 btn-remove-signer" title="Hapus baris">
@@ -463,6 +464,37 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function resetSequentialSigners() {
+        if (filterDepartment) filterDepartment.value = '';
+        syncProdiFilterOptions();
+        if (filterStudyProgram) filterStudyProgram.value = '';
+        if (filterCivitasType) filterCivitasType.value = '';
+        if (filterSignerSearch) filterSignerSearch.value = '';
+
+        const rows = Array.from(tableBody.querySelectorAll('.signer-row'));
+        rows.forEach((row, idx) => {
+            if (idx > 0) {
+                row.remove();
+            }
+        });
+
+        const firstRow = tableBody.querySelector('.signer-row');
+        if (firstRow) {
+            const sel = firstRow.querySelector('.signer-user-select');
+            const roleInput = firstRow.querySelector('.signer-role-input');
+            if (sel) {
+                sel.value = '';
+                sel.selectedIndex = 0;
+            }
+            if (roleInput) {
+                roleInput.value = '';
+            }
+        }
+
+        refreshAllSignerSelects();
+        reindexSigners();
+    }
+
     // Toggle tipe alur tanda tangan
     function updateSigTypeUI() {
         const isSingle = (sigTypeSelect.value === 'single');
@@ -470,23 +502,34 @@ document.addEventListener('DOMContentLoaded', function () {
             seqSection.style.display = 'none';
             seqSection.classList.add('d-none');
             sigTypeHelp.textContent = 'Mandiri: Anda menandatangani sendiri berkas ini tanpa review Admin dan langsung selesai.';
-            submitBtnText.textContent = 'Unggah & Selesaikan Dokumen';
-            // Disable required pada select signer jika single
-            tableBody.querySelectorAll('.signer-user-select').forEach(el => el.removeAttribute('required'));
+            submitBtnText.textContent = 'Unggah & Atur Slot Mandiri';
+            // Reset pilihan civitas/baris penandatangan dan nonaktifkan input sequential
+            // agar tidak ikut terkirim maupun memicu validasi saat mode mandiri dipilih
+            resetSequentialSigners();
+            seqSection.querySelectorAll('input, select, button').forEach(el => {
+                el.removeAttribute('required');
+                el.disabled = true;
+            });
         } else {
             seqSection.style.display = 'block';
             seqSection.classList.remove('d-none');
             sigTypeHelp.textContent = 'Berjenjang: melalui verifikasi Admin lalu ditandatangani sesuai urutan jenjang jabatan.';
             submitBtnText.textContent = 'Unggah & Atur Slot Tanda Tangan';
+            seqSection.querySelectorAll('input, select, button').forEach(el => {
+                el.disabled = false;
+            });
             tableBody.querySelectorAll('.signer-user-select').forEach(el => el.setAttribute('required', 'required'));
+            reindexSigners();
         }
     }
 
     function syncFormUIState() {
         updateSigTypeUI();
-        syncProdiFilterOptions();
-        refreshAllSignerSelects();
-        reindexSigners();
+        if (sigTypeSelect.value !== 'single') {
+            syncProdiFilterOptions();
+            refreshAllSignerSelects();
+            reindexSigners();
+        }
     }
 
     sigTypeSelect.addEventListener('change', updateSigTypeUI);
@@ -600,8 +643,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Validasi form submit: duplikasi penandatangan
+    // Validasi form submit: pastikan data sequential bersih pada mode single & cek duplikasi pada mode sequential
     docForm.addEventListener('submit', function (e) {
+        if (sigTypeSelect.value === 'single') {
+            updateSigTypeUI();
+            return;
+        }
         if (sigTypeSelect.value === 'sequential') {
             const selects = tableBody.querySelectorAll('.signer-user-select');
             const userIds = [];

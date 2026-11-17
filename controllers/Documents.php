@@ -239,14 +239,14 @@ class Documents
             }
         }
 
-        // Validasi penandatangan (sequential wajib ≥ 1 penandatangan)
+        // Validasi penandatangan (sequential wajib ≥ 1 penandatangan; single mengabaikan input penandatangan)
         $signerUserIds  = $_POST['signer_user_id'] ?? [];
         $signerRoles    = $_POST['signer_role_title'] ?? [];
         $signerSteps    = $_POST['signer_step_order'] ?? [];
+        $validSigners   = [];
 
         if ($signatureType === 'sequential') {
             // Filter baris kosong
-            $validSigners = [];
             if (is_array($signerUserIds)) {
                 foreach ($signerUserIds as $idx => $uid) {
                     if (!is_string($uid)) {
