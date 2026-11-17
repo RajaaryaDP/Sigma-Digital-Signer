@@ -219,7 +219,7 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
         </div>
     <?php endif; ?>
 
-    <?php if (!empty($pendingSignDocs)): ?>
+    <?php if (!$focusQueue && !empty($pendingSignDocs)): ?>
         <div class="card-sigma mb-4" style="border-color: #d8cceb; background: var(--sigma-tint-50);">
             <div class="card-sigma-body py-3">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
