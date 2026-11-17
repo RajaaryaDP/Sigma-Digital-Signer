@@ -4,4 +4,8 @@
 /storage/signatures/documents/*.png
 /storage/signatures/templates/*.png
 !/storage/**/.gitkeep
-
+.agents/
+.claude/
+.opencode/
+AGENTS.md
+CLAUDE.md
