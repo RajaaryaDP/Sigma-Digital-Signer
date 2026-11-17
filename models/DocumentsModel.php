@@ -250,10 +250,11 @@ class DocumentsModel
     }
 
     /**
-     * Ambil seluruh dokumen di mana user ditugaskan sebagai penandatangan (bukan pengaju),
-     * baik yang sedang giliran aktif (pending), menunggu giliran (waiting),
+     * Ambil seluruh dokumen di mana user terdaftar sebagai penandatangan
+     * (baik penugasan dari sivitas lain maupun dokumen mandiri/single milik sendiri),
+     * mencakup giliran aktif (pending), menunggu giliran (waiting),
      * sudah ditandatangani (signed), maupun ditolak (declined).
-     * Memungkinkan Dosen/Penandatangan tetap melihat pratinjau dokumen setelah tanda tangan.
+     * Memungkinkan penandatangan tetap melihat pratinjau dokumen setelah tanda tangan.
      */
     public function getAssignedSignForUser(string $userId, ?string $status = null): array
     {
@@ -263,7 +264,8 @@ class DocumentsModel
                 FROM document_signers ds
                 JOIN documents d ON ds.document_id = d.id
                 JOIN users u ON d.uploader_id = u.id
-                WHERE ds.user_id = ? AND d.uploader_id != ?
+                WHERE ds.user_id = ?
+                  AND (d.uploader_id != ? OR d.signature_type = 'single')
                   AND d.status != 'draft'
                   AND d.deleted_at IS NULL AND ds.deleted_at IS NULL";
         $params = [$userId, $userId];
