@@ -22,6 +22,18 @@ class Home
         $this->load->view('views/home/index.php', [
             'title'       => 'SIGMA | Sistem Tanda Tangan Digital Politeknik Negeri Jakarta',
             'currentUser' => $currentUser,
+            'activeTab'   => 'beranda',
+        ]);
+    }
+
+    public function guide()
+    {
+        $currentUser = $_SESSION['user'] ?? null;
+
+        $this->load->view('views/home/index.php', [
+            'title'       => 'Panduan Penggunaan | SIGMA Tanda Tangan Digital PNJ',
+            'currentUser' => $currentUser,
+            'activeTab'   => 'guide',
         ]);
     }
 }

@@ -1,6 +1,13 @@
 <?php
 $isLoggedIn = isset($_SESSION['user']);
 $user = $_SESSION['user'] ?? null;
+$activeTab = $activeTab ?? 'beranda';
+if ($activeTab === 'panduan') {
+    $activeTab = 'guide';
+}
+if (!in_array($activeTab, ['beranda', 'fitur', 'tentang', 'guide'], true)) {
+    $activeTab = 'beranda';
+}
 $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
 ?>
 <!DOCTYPE html>
@@ -527,6 +534,313 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             line-height: 1.48;
         }
 
+        /* Guide / Panduan section matching Figma layout in media_1795073220502_1f2c7842.png */
+        .guide-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .guide-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 14px;
+            border-radius: 999px;
+            background: #ece7f8;
+            color: #553bb8;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .guide-hero-title {
+            margin: 0 0 14px;
+            color: var(--ink);
+            font-size: clamp(1.95rem, 3.2vw, 2.75rem);
+            font-weight: 800;
+            line-height: 1.18;
+            letter-spacing: -0.02em;
+        }
+
+        .guide-hero-subtitle {
+            margin: 0 0 38px;
+            color: #555268;
+            font-size: clamp(0.92rem, 1.15vw, 1.02rem);
+            line-height: 1.55;
+            max-width: 680px;
+        }
+
+        .guide-steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .guide-step-card {
+            background: var(--surface-white);
+            border: 1px solid rgba(29, 39, 72, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 4px 18px rgba(29, 39, 72, 0.04);
+            padding: clamp(24px, 3.2vw, 34px);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+            gap: clamp(24px, 3.5vw, 38px);
+            align-items: center;
+            transition: border-color 160ms ease, box-shadow 160ms ease;
+        }
+
+        .guide-step-card:hover {
+            border-color: rgba(98, 70, 208, 0.28);
+            box-shadow: 0 8px 24px rgba(29, 39, 72, 0.07);
+        }
+
+        .guide-step-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .guide-step-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: #eeebf8;
+            color: #5236b8;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .guide-step-title {
+            margin: 0 0 8px;
+            color: var(--ink);
+            font-size: clamp(1.22rem, 1.6vw, 1.4rem);
+            font-weight: 800;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+
+        .guide-step-desc {
+            margin: 0 0 14px;
+            color: #555268;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .guide-step-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .guide-step-list li {
+            color: #2b283d;
+            font-size: 0.86rem;
+            line-height: 1.52;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .guide-step-list li .bullet-dot {
+            color: #5236b8;
+            font-size: 1.15rem;
+            line-height: 1;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .guide-step-list li .bullet-num {
+            color: #5236b8;
+            font-weight: 700;
+            flex-shrink: 0;
+            font-size: 0.86rem;
+            min-width: 16px;
+        }
+
+        .guide-step-note {
+            margin: 16px 0 0;
+            padding-top: 12px;
+            border-top: 1px dashed #e6e2f0;
+            color: #553bb8;
+            font-size: 0.8rem;
+            font-weight: 500;
+            line-height: 1.5;
+            width: 100%;
+        }
+
+        .guide-step-note a {
+            color: #553bb8;
+            font-weight: 700;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .guide-step-note a:hover {
+            color: var(--focus);
+        }
+
+        .guide-step-visual {
+            background: #f8f7fc;
+            border: 1px solid rgba(29, 39, 72, 0.09);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 250px;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+        }
+
+        .guide-step-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+            display: block;
+            transition: transform 220ms ease;
+        }
+
+        .guide-step-visual.is-contain .guide-step-img {
+            object-fit: contain;
+            background: #f7f6fb;
+        }
+
+        .guide-step-visual:hover .guide-step-img {
+            transform: scale(1.025);
+        }
+
+        .guide-zoom-hint {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(29, 39, 72, 0.8);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 160ms ease, transform 160ms ease;
+            pointer-events: none;
+        }
+
+        .guide-step-visual:hover .guide-zoom-hint {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Lightbox modal */
+        .guide-lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .guide-lightbox[hidden] {
+            display: none !important;
+        }
+
+        .guide-lightbox-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 20, 38, 0.84);
+            backdrop-filter: blur(6px);
+        }
+
+        .guide-lightbox-content {
+            position: relative;
+            z-index: 2;
+            max-width: 1080px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: guideZoomIn 180ms ease;
+        }
+
+        @keyframes guideZoomIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .guide-lightbox-close {
+            position: absolute;
+            top: -44px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: 0;
+            color: #ffffff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 140ms ease;
+        }
+
+        .guide-lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .guide-lightbox-img-wrap {
+            max-width: 100%;
+            max-height: calc(85vh - 50px);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            background: #ffffff;
+        }
+
+        .guide-lightbox-img {
+            display: block;
+            max-width: 100%;
+            max-height: calc(85vh - 50px);
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .guide-lightbox-caption {
+            color: #e3e1ee;
+            font-size: 0.88rem;
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        @media (max-width: 920px) {
+            .guide-step-card {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 20px;
+            }
+            .guide-step-visual {
+                height: 220px;
+            }
+        }
+
         /* White spacer band mirrors the clean break above the curved footer wave in all three Figma frames. */
         .pre-footer-band {
             height: clamp(32px, 5vw, 64px);
@@ -656,27 +970,37 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                     role="tab"
                     id="tab-beranda"
                     class="sigma-tab"
-                    aria-selected="true"
+                    aria-selected="<?= $activeTab === 'beranda' ? 'true' : 'false' ?>"
                     aria-controls="panel-beranda"
+                    tabindex="<?= $activeTab === 'beranda' ? '0' : '-1' ?>"
                     data-tab="beranda">Beranda</button>
                 <button
                     type="button"
                     role="tab"
                     id="tab-fitur"
                     class="sigma-tab"
-                    aria-selected="false"
+                    aria-selected="<?= $activeTab === 'fitur' ? 'true' : 'false' ?>"
                     aria-controls="panel-fitur"
-                    tabindex="-1"
+                    tabindex="<?= $activeTab === 'fitur' ? '0' : '-1' ?>"
                     data-tab="fitur">Fitur</button>
                 <button
                     type="button"
                     role="tab"
                     id="tab-tentang"
                     class="sigma-tab"
-                    aria-selected="false"
+                    aria-selected="<?= $activeTab === 'tentang' ? 'true' : 'false' ?>"
                     aria-controls="panel-tentang"
-                    tabindex="-1"
+                    tabindex="<?= $activeTab === 'tentang' ? '0' : '-1' ?>"
                     data-tab="tentang">Tentang</button>
+                <button
+                    type="button"
+                    role="tab"
+                    id="tab-guide"
+                    class="sigma-tab"
+                    aria-selected="<?= $activeTab === 'guide' ? 'true' : 'false' ?>"
+                    aria-controls="panel-guide"
+                    tabindex="<?= $activeTab === 'guide' ? '0' : '-1' ?>"
+                    data-tab="guide">Guide</button>
             </nav>
 
             <div class="sigma-header-actions">
@@ -694,7 +1018,8 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             id="panel-beranda"
             class="tab-panel"
             role="tabpanel"
-            aria-labelledby="tab-beranda">
+            aria-labelledby="tab-beranda"
+            <?= $activeTab === 'beranda' ? '' : 'hidden' ?>>
             <div class="hero-grid">
                 <div class="hero-copy">
                     <h1 class="hero-title">Tanda Tangan Digital, Lebih Mudah Menggunakan SIGMA</h1>
@@ -772,7 +1097,7 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             class="tab-panel"
             role="tabpanel"
             aria-labelledby="tab-fitur"
-            hidden>
+            <?= $activeTab === 'fitur' ? '' : 'hidden' ?>>
             <div class="section-header">
                 <h2 class="section-heading">Fitur SIGMA</h2>
                 <p class="section-lead">
@@ -883,7 +1208,7 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             class="tab-panel"
             role="tabpanel"
             aria-labelledby="tab-tentang"
-            hidden>
+            <?= $activeTab === 'tentang' ? '' : 'hidden' ?>>
             <div class="about-wrap">
                 <div class="about-block">
                     <h2 class="section-heading">Tentang SIGMA</h2>
@@ -927,17 +1252,213 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             </div>
         </section>
 
+        <!-- Panel Panduan / GUIDE -->
+        <section
+            id="panel-guide"
+            class="tab-panel"
+            role="tabpanel"
+            aria-labelledby="tab-guide"
+            <?= $activeTab === 'guide' ? '' : 'hidden' ?>>
+            <div class="guide-container">
+                <div class="guide-hero">
+                    <span class="guide-badge-pill">Panduan Penggunaan Website</span>
+                    <h1 class="guide-hero-title">Dari unggah dokumen<br>hingga tanda tangan digital.</h1>
+                    <p class="guide-hero-subtitle">
+                        Ikuti 5 langkah berikut untuk dapat mendisposisikan PDF, dan menandatangani serta memvalidasi dokumen yang panjang di SIGMA.
+                    </p>
+                </div>
+
+                <div class="guide-steps-list">
+                    <!-- Langkah 01 -->
+                    <article class="guide-step-card" id="panduan-langkah-01">
+                        <div class="guide-step-content">
+                            <span class="guide-step-tag">Langkah 01</span>
+                            <h2 class="guide-step-title">Masuk ke akun SIGMA</h2>
+                            <p class="guide-step-desc">Masuk akun Anda sebelum mulai mengelola dokumen.</p>
+                            <ol class="guide-step-list">
+                                <li>
+                                    <span class="bullet-num">1.</span>
+                                    <span>Masukkan email dan password akun.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-num">2.</span>
+                                    <span>Masukkan 5 karakter captcha yang ditampilkan.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-num">3.</span>
+                                    <span>Klik &quot;Masuk&quot; untuk menuju ke Dashboard.</span>
+                                </li>
+                            </ol>
+                            <div class="guide-step-note">
+                                Belum memiliki akun? Gunakan tautan <a href="<?= BASE_URL ?>/register">&quot;Registrasi Akun Civitas&quot;</a>.
+                            </div>
+                        </div>
+                        <div class="guide-step-visual" data-lightbox="<?= BASE_URL ?>/assets/img/guide/step1-login.jpg" data-caption="Langkah 01: Masuk ke Akun SIGMA">
+                            <img src="<?= BASE_URL ?>/assets/img/guide/step1-login.jpg" alt="Tampilan Halaman Masuk ke SIGMA" class="guide-step-img" loading="lazy">
+                            <span class="guide-zoom-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                                Perbesar
+                            </span>
+                        </div>
+                    </article>
+
+                    <!-- Langkah 02 -->
+                    <article class="guide-step-card" id="panduan-langkah-02">
+                        <div class="guide-step-content">
+                            <span class="guide-step-tag">Langkah 02</span>
+                            <h2 class="guide-step-title">Kenali dashboard Anda</h2>
+                            <p class="guide-step-desc">Semua aktivitas dokumen Anda ada di satu ringkasan.</p>
+                            <ul class="guide-step-list">
+                                <li>
+                                    <span class="bullet-dot">&bull;</span>
+                                    <span>Ketahui peran yang perlu ditandatangani, menunggu giliran, masih antrean, atau sudah selesai.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-dot">&bull;</span>
+                                    <span>Klik &quot;Ajukan dokumen baru&quot; untuk memulai pengajuan.</span>
+                                </li>
+                            </ul>
+                            <div class="guide-step-note">
+                                Pantau antrean dan berkas terbaru melalui menu Dokumen Saya.
+                            </div>
+                        </div>
+                        <div class="guide-step-visual" data-lightbox="<?= BASE_URL ?>/assets/img/guide/step2-dashboard.png" data-caption="Langkah 02: Kenali Dashboard Anda">
+                            <img src="<?= BASE_URL ?>/assets/img/guide/step2-dashboard.png" alt="Tampilan Dashboard Dokumen SIGMA" class="guide-step-img" loading="lazy">
+                            <span class="guide-zoom-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                                Perbesar
+                            </span>
+                        </div>
+                    </article>
+
+                    <!-- Langkah 03 -->
+                    <article class="guide-step-card" id="panduan-langkah-03">
+                        <div class="guide-step-content">
+                            <span class="guide-step-tag">Langkah 03</span>
+                            <h2 class="guide-step-title">Ajukan dokumen baru</h2>
+                            <p class="guide-step-desc">Isi data dokumen PDF dan tentukan penandatangan.</p>
+                            <ol class="guide-step-list">
+                                <li>
+                                    <span class="bullet-num">1.</span>
+                                    <span>Isi formulir nama dan informasi.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-num">2.</span>
+                                    <span>Pilih tipe alur tanda tangan, lalu unggah berkas dokumen PDF.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-num">3.</span>
+                                    <span>Tambahkan penandatangan dan peran responsibilitas yang dibutuhkan.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-num">4.</span>
+                                    <span>Klik &quot;Unggah &amp; Atur Slot Tanda Tangan&quot;.</span>
+                                </li>
+                            </ol>
+                            <div class="guide-step-note">
+                                Dokumen berjenjang memerlukan persetujuan Admin terlebih dahulu.
+                            </div>
+                        </div>
+                        <div class="guide-step-visual is-contain" data-lightbox="<?= BASE_URL ?>/assets/img/guide/step3-ajukan.png" data-caption="Langkah 03: Ajukan Dokumen Baru">
+                            <img src="<?= BASE_URL ?>/assets/img/guide/step3-ajukan.png" alt="Formulir Ajukan Dokumen Baru SIGMA" class="guide-step-img" loading="lazy">
+                            <span class="guide-zoom-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                                Perbesar
+                            </span>
+                        </div>
+                    </article>
+
+                    <!-- Langkah 04 -->
+                    <article class="guide-step-card" id="panduan-langkah-04">
+                        <div class="guide-step-content">
+                            <span class="guide-step-tag">Langkah 04</span>
+                            <h2 class="guide-step-title">Atur posisi tanda tangan</h2>
+                            <p class="guide-step-desc">Tentukan titik pada halaman dokumen yang tepat.</p>
+                            <ul class="guide-step-list">
+                                <li>
+                                    <span class="bullet-dot">&bull;</span>
+                                    <span>Tentukan posisi slot tanda tangan ke halaman yang tepat dan geser kotak slot sesuai posisi tanda tangan.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-dot">&bull;</span>
+                                    <span>Klik &quot;Simpan &amp; Ajukan ke Administrator&quot; setelah posisi sudah sesuai.</span>
+                                </li>
+                            </ul>
+                            <div class="guide-step-note">
+                                <strong>Penting:</strong> posisi slot tidak dapat diubah lagi setelah dokumen diajukan ke admin.
+                            </div>
+                        </div>
+                        <div class="guide-step-visual" data-lightbox="<?= BASE_URL ?>/assets/img/guide/step4-slot.png" data-caption="Langkah 04: Atur Posisi Tanda Tangan">
+                            <img src="<?= BASE_URL ?>/assets/img/guide/step4-slot.png" alt="Tata Letak Slot Tanda Tangan SIGMA" class="guide-step-img" loading="lazy">
+                            <span class="guide-zoom-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                                Perbesar
+                            </span>
+                        </div>
+                    </article>
+
+                    <!-- Langkah 05 -->
+                    <article class="guide-step-card" id="panduan-langkah-05">
+                        <div class="guide-step-content">
+                            <span class="guide-step-tag">Langkah 05</span>
+                            <h2 class="guide-step-title">Pantau proses pengajuan</h2>
+                            <p class="guide-step-desc">Verifikasi dokumen serta tanda tangan akan berjalan berurutan.</p>
+                            <ul class="guide-step-list">
+                                <li>
+                                    <span class="bullet-dot">&bull;</span>
+                                    <span>Periksa status pada tahapan alur berkas dokumen yang diajukan.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-dot">&bull;</span>
+                                    <span>Lakukan penandatanganan sesuai giliran Anda.</span>
+                                </li>
+                                <li>
+                                    <span class="bullet-dot">&bull;</span>
+                                    <span>Dokumen yang telah selesai dapat langsung diunduh dan dipastikan keasliannya.</span>
+                                </li>
+                            </ul>
+                            <div class="guide-step-note">
+                                Status &quot;Menunggu Review Admin&quot; berarti dokumen Anda sedang ditinjau kelayakannya.
+                            </div>
+                        </div>
+                        <div class="guide-step-visual" data-lightbox="<?= BASE_URL ?>/assets/img/guide/step5-pantau.png" data-caption="Langkah 05: Pantau Proses Pengajuan">
+                            <img src="<?= BASE_URL ?>/assets/img/guide/step5-pantau.png" alt="Detail dan Pratinjau Dokumen SIGMA" class="guide-step-img" loading="lazy">
+                            <span class="guide-zoom-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                                Perbesar
+                            </span>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
         <div class="pre-footer-band" aria-hidden="true"></div>
     </main>
+
+    <!-- Lightbox Modal untuk Memperbesar Gambar Panduan -->
+    <div id="guide-lightbox" class="guide-lightbox" hidden aria-modal="true" role="dialog" aria-label="Pratinjau Screenshot Panduan">
+        <div class="guide-lightbox-backdrop" id="guide-lightbox-backdrop"></div>
+        <div class="guide-lightbox-content">
+            <button type="button" class="guide-lightbox-close" id="guide-lightbox-close" aria-label="Tutup pratinjau">&times;</button>
+            <div class="guide-lightbox-img-wrap">
+                <img src="" alt="" id="guide-lightbox-img" class="guide-lightbox-img">
+            </div>
+            <div id="guide-lightbox-caption" class="guide-lightbox-caption"></div>
+        </div>
+    </div>
 
     <?php require __DIR__ . '/../layout/sigma-footer.php'; ?>
 
     <script>
         (function () {
             const tabs = Array.from(document.querySelectorAll('.sigma-tab[role="tab"]'));
-            const validTabs = ['beranda', 'fitur', 'tentang'];
+            const validTabs = ['beranda', 'fitur', 'tentang', 'guide'];
 
             function activateTab(tabName, updateHash, focusTab) {
+                if (tabName === 'panduan') {
+                    tabName = 'guide';
+                }
                 const target = validTabs.includes(tabName) ? tabName : 'beranda';
 
                 tabs.forEach(function (tab) {
@@ -987,7 +1508,8 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             });
 
             function syncFromLocation() {
-                const hash = window.location.hash.replace('#', '').toLowerCase();
+                let hash = window.location.hash.replace('#', '').toLowerCase();
+                if (hash === 'panduan') hash = 'guide';
                 if (validTabs.includes(hash)) {
                     activateTab(hash, false, false);
                 }
@@ -995,6 +1517,47 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
 
             window.addEventListener('hashchange', syncFromLocation);
             syncFromLocation();
+
+            // Lightbox functionality
+            const lightbox = document.getElementById('guide-lightbox');
+            const lightboxImg = document.getElementById('guide-lightbox-img');
+            const lightboxCaption = document.getElementById('guide-lightbox-caption');
+            const lightboxClose = document.getElementById('guide-lightbox-close');
+            const lightboxBackdrop = document.getElementById('guide-lightbox-backdrop');
+
+            function openLightbox(src, caption) {
+                if (!lightbox || !lightboxImg) return;
+                lightboxImg.src = src;
+                lightboxImg.alt = caption || 'Pratinjau Screenshot';
+                if (lightboxCaption) {
+                    lightboxCaption.textContent = caption || '';
+                }
+                lightbox.hidden = false;
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeLightbox() {
+                if (!lightbox) return;
+                lightbox.hidden = true;
+                if (lightboxImg) lightboxImg.src = '';
+                document.body.style.overflow = '';
+            }
+
+            document.querySelectorAll('.guide-step-visual[data-lightbox]').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    const src = this.getAttribute('data-lightbox');
+                    const caption = this.getAttribute('data-caption');
+                    if (src) openLightbox(src, caption);
+                });
+            });
+
+            if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+            if (lightboxBackdrop) lightboxBackdrop.addEventListener('click', closeLightbox);
+            window.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && lightbox && !lightbox.hidden) {
+                    closeLightbox();
+                }
+            });
         })();
     </script>
 </body>
