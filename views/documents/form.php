@@ -222,6 +222,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                             <input type="text" name="signer_role_title[]"
                                                    class="form-control form-control-sm sigma-input signer-role-input"
                                                    placeholder="Contoh: Dosen Pembimbing I / Ketua Jurusan"
+                                                   maxlength="150"
                                                    value="<?= htmlspecialchars($s['role_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                    <?= $curType === 'single' ? 'disabled' : '' ?>>
                                         </td>
@@ -550,6 +551,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 removeBtn.disabled = (rows.length <= 1);
             }
         });
+        if (btnAddSigner && sigTypeSelect.value !== 'single') {
+            btnAddSigner.disabled = (rows.length >= 20);
+        }
     }
 
     // Auto-fill peran/jabatan dari data-position
@@ -599,6 +603,7 @@ document.addEventListener('DOMContentLoaded', function () {
         roleInput.name = 'signer_role_title[]';
         roleInput.className = 'form-control form-control-sm sigma-input signer-role-input';
         roleInput.placeholder = 'Contoh: Dosen Pembimbing I / Ketua Jurusan';
+        roleInput.maxLength = 150;
         tdRole.appendChild(roleInput);
 
         const tdAct = document.createElement('td');

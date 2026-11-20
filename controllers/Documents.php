@@ -46,6 +46,9 @@ class Documents
     /** Batas ukuran upload PDF: 10 MB */
     private const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+    /** Batas wajar jumlah penandatangan berjenjang per dokumen (mencegah amplifikasi DOM/memori) */
+    private const MAX_SEQUENTIAL_SIGNERS = 20;
+
     public function __construct()
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -240,49 +243,83 @@ class Documents
         }
 
         // Validasi penandatangan (sequential wajib ≥ 1 penandatangan; single mengabaikan input penandatangan)
-        $signerUserIds  = $_POST['signer_user_id'] ?? [];
-        $signerRoles    = $_POST['signer_role_title'] ?? [];
-        $signerSteps    = $_POST['signer_step_order'] ?? [];
-        $validSigners   = [];
+        $signerUserIds    = $_POST['signer_user_id'] ?? [];
+        $signerRoles      = $_POST['signer_role_title'] ?? [];
+        $validSigners     = [];
+        $availableSigners = ($signatureType === 'sequential')
+            ? $this->model->getAvailableSigners(null, $this->userId)
+            : [];
 
         if ($signatureType === 'sequential') {
-            // Filter baris kosong
+            $allowedSignerMap  = array_fill_keys(array_column($availableSigners, 'id'), true);
+            $hasSelfSigner     = false;
+            $hasInvalidSigner  = false;
+            $hasTooManySigners = false;
+            $hasRoleTooLong    = false;
+            $rawScanned        = 0;
+
+            // Filter baris kosong & paksa penomoran step_order rapat 1..N di sisi server (Anti Step-Skip / VULN-01)
             if (is_array($signerUserIds)) {
                 foreach ($signerUserIds as $idx => $uid) {
+                    $rawScanned++;
+                    if ($rawScanned > 200) {
+                        $hasTooManySigners = true;
+                        break;
+                    }
                     if (!is_string($uid)) {
                         continue;
                     }
                     $uid = trim($uid);
                     if ($uid !== '') {
+                        if (count($validSigners) >= self::MAX_SEQUENTIAL_SIGNERS) {
+                            $hasTooManySigners = true;
+                            break;
+                        }
+
                         $rawRole = (isset($signerRoles[$idx]) && is_string($signerRoles[$idx])) ? trim($signerRoles[$idx]) : '';
                         if (mb_strlen($rawRole) > 150) {
-                            $errors['signers'] = 'Jabatan / peran penandatangan maksimal 150 karakter.';
+                            $hasRoleTooLong = true;
                         }
-                        $rawStep = (isset($signerSteps[$idx]) && is_scalar($signerSteps[$idx])) ? (int) $signerSteps[$idx] : ($idx + 1);
+
+                        if ($uid === $this->userId) {
+                            $hasSelfSigner = true;
+                        } elseif (!isset($allowedSignerMap[$uid])) {
+                            $hasInvalidSigner = true;
+                        }
+
                         $validSigners[] = [
                             'user_id'    => $uid,
-                            'role_title' => $rawRole !== '' ? mb_substr($rawRole, 0, 150) : null,
-                            'step_order' => max(1, min(1000, $rawStep)),
+                            'role_title' => $rawRole !== '' ? mb_substr($rawRole, 0, 200) : null,
+                            'step_order' => count($validSigners) + 1,
                         ];
                     }
                 }
             }
 
+            $signerUids   = array_column($validSigners, 'user_id');
+            $hasDuplicate = count($signerUids) !== count(array_unique($signerUids));
+
             if (empty($validSigners)) {
                 $errors['signers'] = 'Tanda tangan berjenjang memerlukan minimal 1 penandatangan.';
-            }
-
-            // Cek duplikat user_id
-            $signerUids = array_column($validSigners, 'user_id');
-            if (count($signerUids) !== count(array_unique($signerUids))) {
+            } elseif ($hasTooManySigners) {
+                $errors['signers'] = 'Jumlah penandatangan berjenjang maksimal ' . self::MAX_SEQUENTIAL_SIGNERS . ' orang dalam satu dokumen.';
+            } elseif ($hasSelfSigner) {
+                $errors['signers'] = 'Pengaju dokumen tidak dapat memilih dirinya sendiri pada alur berjenjang. Gunakan tipe Tanda Tangan Mandiri (Single-Sign) untuk menandatangani dokumen sendiri.';
+            } elseif ($hasInvalidSigner) {
+                $errors['signers'] = 'Terdapat penandatangan yang tidak valid, tidak aktif, atau tidak berwenang menandatangani dokumen.';
+            } elseif ($hasDuplicate) {
                 $errors['signers'] = 'Setiap penandatangan hanya boleh dipilih satu kali.';
+            } elseif ($hasRoleTooLong) {
+                $errors['signers'] = 'Jabatan / peran penandatangan maksimal 150 karakter.';
             }
         }
 
         // Jika ada error, render ulang form
         if (!empty($errors)) {
-            $availableSigners = $this->model->getAvailableSigners(null, $this->userId);
-            $deptModel        = new DepartmentsModel();
+            if ($signatureType !== 'sequential') {
+                $availableSigners = $this->model->getAvailableSigners(null, $this->userId);
+            }
+            $deptModel = new DepartmentsModel();
             $this->load->view('views/documents/form.php', [
                 'title'            => 'Ajukan Dokumen Baru',
                 'availableSigners' => $availableSigners,
@@ -897,6 +934,17 @@ class Documents
             exit;
         }
 
+        // Pastikan akun & biodata civitas penandatangan masih aktif sebelum memproses berkas (anti TOCTOU)
+        $userProfile = $this->usersModel->getById($this->userId);
+        if (!$userProfile || empty($userProfile['civitas_id']) || empty($userProfile['civitas_name'])) {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Akun atau data civitas Anda sudah tidak aktif sehingga tidak berwenang menandatangani dokumen.'
+            ];
+            header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
+            exit;
+        }
+
         $signatureFormat = isset($_POST['signature_format']) && is_string($_POST['signature_format']) ? trim($_POST['signature_format']) : 'qr_and_signature';
         if (!in_array($signatureFormat, ['qr_and_signature', 'qr_only'], true)) {
             $signatureFormat = 'qr_and_signature';
@@ -1036,9 +1084,6 @@ class Documents
             return;
         }
 
-        // Snapshot biodata resmi civitas penandatangan (ADR-03 — immutable)
-        $userProfile = $this->usersModel->getById($this->userId);
-
         // Posisi halaman dan koordinat slot tanda tangan dikunci sesuai pengaturan Pengaju saat Draft (ADR-08)
         $effectivePage   = max(1, min(10000, (int) ($signer['page_number'] ?: 1)));
         $effectiveX      = (float) $signer['x_percent'];
@@ -1102,7 +1147,10 @@ class Documents
                     'message' => 'Tanda tangan Anda berhasil dibubuhkan. Seluruh pihak telah menandatangani — dokumen kini berstatus Selesai.'
                 ];
             } else {
-                $nextStep = (int) $doc['current_step'] + 1;
+                $updatedDoc = $this->model->getById($doc['id']);
+                $nextStep   = isset($updatedDoc['current_step'])
+                    ? (int) $updatedDoc['current_step']
+                    : ((int) $doc['current_step'] + 1);
                 $this->auditModel->log($this->userId, 'document.step_advanced', [
                     'document_id' => $doc['id'],
                     'title'       => $doc['title'],

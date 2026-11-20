@@ -155,6 +155,20 @@ class SignaturesModel
                 ? $data['signature_format']
                 : 'qr_and_signature';
 
+            // 0. Kunci baris dokumen aktif lebih dulu tanpa memblokir FK FOR KEY SHARE (anti deadlock SE-01 & anti step-skip VULN-01)
+            $stmtDoc = $this->db->prepare(
+                "SELECT current_step FROM documents
+                 WHERE id = ? AND status = 'signing' AND deleted_at IS NULL
+                 FOR NO KEY UPDATE"
+            );
+            $stmtDoc->execute([$data['document_id']]);
+            $currentStep = $stmtDoc->fetchColumn();
+
+            if ($currentStep === false) {
+                throw new \Exception('Dokumen tidak dalam status Proses Penandatanganan.');
+            }
+            $currentStepInt = (int) $currentStep;
+
             // 1. Rekam tanda tangan (immutable record, ADR-03)
             $stmt = $this->db->prepare(
                 "INSERT INTO signatures
@@ -189,43 +203,31 @@ class SignaturesModel
                 !empty($data['ip_address']) ? mb_substr(str_replace("\0", '', mb_scrub((string) $data['ip_address'], 'UTF-8')), 0, 45) : null,
             ]);
 
-            // 2. Tandai tiket penandatangan sebagai selesai (guard: hanya dari 'pending')
+            // 2. Tandai tiket penandatangan sebagai selesai (guard ketat: status 'pending' DAN step_order == current_step)
             $stmtSigner = $this->db->prepare(
                 "UPDATE document_signers
                  SET status = 'signed', signed_at = NOW()
-                 WHERE id = ? AND document_id = ? AND status = 'pending' AND deleted_at IS NULL"
+                 WHERE id = ? AND document_id = ? AND step_order = ? AND status = 'pending' AND deleted_at IS NULL"
             );
-            $stmtSigner->execute([$data['document_signer_id'], $data['document_id']]);
+            $stmtSigner->execute([$data['document_signer_id'], $data['document_id'], $currentStepInt]);
 
-            if ($stmtSigner->rowCount() === 0) {
-                throw new \Exception('Tiket penandatangan tidak dalam status giliran aktif (pending).');
+            if ($stmtSigner->rowCount() !== 1) {
+                throw new \Exception('Tiket penandatangan tidak dalam status giliran aktif (pending) atau urutan jenjang tidak sesuai.');
             }
 
-            // 3a. Dokumen harus masih dalam status 'signing'
-            $stmtDoc = $this->db->prepare(
-                "SELECT current_step FROM documents
-                 WHERE id = ? AND status = 'signing' AND deleted_at IS NULL
-                 LIMIT 1"
-            );
-            $stmtDoc->execute([$data['document_id']]);
-            $currentStep = $stmtDoc->fetchColumn();
-
-            if ($currentStep === false) {
-                throw new \Exception('Dokumen tidak dalam status Proses Penandatanganan.');
-            }
-
-            $nextStep = (int) $currentStep + 1;
-
-            // 3b. Cek apakah masih ada penandatangan pada urutan berikutnya
+            // 3b. Cari penandatangan giliran berikutnya secara terurut (mencegah lompatan step melewati signer aktif)
             $stmtNext = $this->db->prepare(
-                "SELECT id FROM document_signers
-                 WHERE document_id = ? AND step_order = ? AND status = 'waiting' AND deleted_at IS NULL
+                "SELECT step_order FROM document_signers
+                 WHERE document_id = ? AND step_order > ? AND status = 'waiting' AND deleted_at IS NULL
+                 ORDER BY step_order ASC
                  LIMIT 1"
             );
-            $stmtNext->execute([$data['document_id'], $nextStep]);
-            $nextSignerId = $stmtNext->fetchColumn();
+            $stmtNext->execute([$data['document_id'], $currentStepInt]);
+            $nextStepVal = $stmtNext->fetchColumn();
 
-            if ($nextSignerId) {
+            if ($nextStepVal !== false) {
+                $nextStep = (int) $nextStepVal;
+
                 // Advance step: naikkan current_step & aktifkan signer berikutnya
                 $stmtAdvance = $this->db->prepare(
                     "UPDATE documents
@@ -234,6 +236,10 @@ class SignaturesModel
                 );
                 $stmtAdvance->execute([$nextStep, $data['document_id']]);
 
+                if ($stmtAdvance->rowCount() === 0) {
+                    throw new \Exception('Gagal memperbarui giliran jenjang dokumen.');
+                }
+
                 $stmtActivate = $this->db->prepare(
                     "UPDATE document_signers
                      SET status = 'pending'
@@ -241,11 +247,25 @@ class SignaturesModel
                 );
                 $stmtActivate->execute([$data['document_id'], $nextStep]);
 
+                if ($stmtActivate->rowCount() !== 1) {
+                    throw new \Exception('Gagal mengaktifkan penandatangan pada jenjang berikutnya.');
+                }
+
                 $this->db->commit();
                 return 'advanced';
             }
 
-            // 3c. Tidak ada penandatangan berikutnya → selesaikan dokumen
+            // 3c. Pastikan 100% penandatangan aktif benar-benar sudah berstatus 'signed' sebelum completed
+            $stmtRemaining = $this->db->prepare(
+                "SELECT COUNT(*) FROM document_signers
+                 WHERE document_id = ? AND status <> 'signed' AND deleted_at IS NULL"
+            );
+            $stmtRemaining->execute([$data['document_id']]);
+            if ((int) $stmtRemaining->fetchColumn() > 0) {
+                throw new \Exception('Dokumen belum dapat diselesaikan karena masih ada penandatangan yang belum menandatangani.');
+            }
+
+            // Tidak ada penandatangan tersisa → selesaikan dokumen
             $stmtComplete = $this->db->prepare(
                 "UPDATE documents
                  SET status = 'completed', completed_at = NOW()
@@ -289,15 +309,29 @@ class SignaturesModel
     {
         $this->db->beginTransaction();
         try {
+            // Kunci baris dokumen lebih dulu (urutan kunci identik dengan signDocument: documents -> document_signers, anti deadlock SE-01)
+            $stmtLockDoc = $this->db->prepare(
+                "SELECT current_step FROM documents
+                 WHERE id = ? AND status = 'signing' AND deleted_at IS NULL
+                 FOR NO KEY UPDATE"
+            );
+            $stmtLockDoc->execute([$documentId]);
+            $currentStep = $stmtLockDoc->fetchColumn();
+
+            if ($currentStep === false) {
+                throw new \Exception('Dokumen tidak dalam status Proses Penandatanganan.');
+            }
+            $currentStepInt = (int) $currentStep;
+
             $stmtSigner = $this->db->prepare(
                 "UPDATE document_signers
                  SET status = 'declined', decline_reason = ?
-                 WHERE id = ? AND document_id = ? AND status = 'pending' AND deleted_at IS NULL"
+                 WHERE id = ? AND document_id = ? AND step_order = ? AND status = 'pending' AND deleted_at IS NULL"
             );
-            $stmtSigner->execute([$reason, $documentSignerId, $documentId]);
+            $stmtSigner->execute([$reason, $documentSignerId, $documentId, $currentStepInt]);
 
-            if ($stmtSigner->rowCount() === 0) {
-                throw new \Exception('Tiket penandatangan tidak dalam status giliran aktif (pending).');
+            if ($stmtSigner->rowCount() !== 1) {
+                throw new \Exception('Tiket penandatangan tidak dalam status giliran aktif (pending) atau urutan jenjang tidak sesuai.');
             }
 
             $stmtDoc = $this->db->prepare(

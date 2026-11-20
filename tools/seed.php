@@ -1,5 +1,13 @@
 <?php
 
+if (PHP_SAPI !== 'cli') {
+    if (!headers_sent()) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=UTF-8');
+    }
+    exit('Forbidden: CLI only.');
+}
+
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/database.php';
 

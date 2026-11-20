@@ -541,11 +541,10 @@ class DocumentsModel
         $this->db->beginTransaction();
         try {
             if ($signatureType === 'single') {
-                // Single: tanpa review admin — langsung aktifkan giliran
-                // tanda tangan mandiri pengaju (ADR-08, Task 7)
+                // Single: kunci baris dokumen lebih dulu (urutan kunci konsisten documents -> document_signers)
                 $stmt = $this->db->prepare(
                     "UPDATE documents SET status = 'signing', current_step = 1
-                     WHERE id = ? AND status = 'draft' AND deleted_at IS NULL"
+                     WHERE id = ? AND status = 'draft' AND signature_type = 'single' AND deleted_at IS NULL"
                 );
                 $stmt->execute([$documentId]);
 
@@ -553,27 +552,108 @@ class DocumentsModel
                     throw new \Exception('Dokumen tidak ditemukan atau tidak berstatus Draft.');
                 }
 
+                // Pastikan tepat 1 penandatangan (pengaju sendiri) yang aktif dengan civitas aktif
+                $stmtSingleCheck = $this->db->prepare(
+                    "SELECT COUNT(*) AS total_signers,
+                            SUM(CASE WHEN ds.status = 'waiting' AND ds.step_order = 1 AND ds.user_id = d.uploader_id AND u.id IS NOT NULL AND c.id IS NOT NULL THEN 1 ELSE 0 END) AS valid_single
+                     FROM document_signers ds
+                     INNER JOIN documents d ON ds.document_id = d.id
+                     LEFT JOIN users u ON ds.user_id = u.id AND u.role = 'user' AND u.deleted_at IS NULL
+                     LEFT JOIN civitas c ON u.civitas_id = c.id AND c.deleted_at IS NULL
+                     WHERE ds.document_id = ? AND ds.deleted_at IS NULL"
+                );
+                $stmtSingleCheck->execute([$documentId]);
+                $singleMeta = $stmtSingleCheck->fetch();
+                if ((int) ($singleMeta['total_signers'] ?? 0) !== 1 || (int) ($singleMeta['valid_single'] ?? 0) !== 1) {
+                    throw new \Exception('Konfigurasi atau status civitas penandatangan dokumen mandiri tidak valid.');
+                }
+
                 // Aktifkan penandatangan tunggal (pengaju) sebagai giliran aktif
                 $stmtSigner = $this->db->prepare(
                     "UPDATE document_signers
                      SET status = 'pending'
-                     WHERE document_id = ? AND step_order = 1 AND deleted_at IS NULL"
+                     WHERE document_id = ? AND step_order = 1 AND status = 'waiting' AND deleted_at IS NULL"
                 );
                 $stmtSigner->execute([$documentId]);
+
+                if ($stmtSigner->rowCount() !== 1) {
+                    throw new \Exception('Penandatangan dokumen mandiri pada Step 1 tidak ditemukan.');
+                }
             } else {
-                // Sequential: pindah ke pending_review untuk admin review
+                // Sequential: kunci baris dokumen lebih dulu lalu validasi keutuhan jenjang & keaktifan civitas
                 $stmt = $this->db->prepare(
                     "UPDATE documents SET status = 'pending_review'
-                     WHERE id = ? AND status = 'draft' AND deleted_at IS NULL"
+                     WHERE id = ? AND status = 'draft' AND signature_type = 'sequential' AND deleted_at IS NULL"
                 );
                 $stmt->execute([$documentId]);
+
+                if ($stmt->rowCount() === 0) {
+                    throw new \Exception('Dokumen tidak ditemukan atau tidak berstatus Draft.');
+                }
+
+                $this->assertValidSequentialSigners($documentId);
             }
 
             $this->db->commit();
             return true;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             throw $e;
+        }
+    }
+
+    /**
+     * Memverifikasi integritas daftar penandatangan dokumen berjenjang sebelum masuk
+     * ke `pending_review` maupun `signing` (VULN-01, SE-03, SE-04):
+     * - Minimal 1 penandatangan dan maksimal 20 penandatangan
+     * - Seluruh baris aktif berstatus 'waiting' (tidak ada status anomali)
+     * - Tidak ada self-signer (pengaju == penandatangan) pada alur sequential
+     * - Seluruh penandatangan merujuk pada akun `users` aktif (role='user') & `civitas` aktif
+     * - `step_order` rapat tanpa celah dan tanpa duplikat mulai dari 1..N
+     */
+    private function assertValidSequentialSigners(string $documentId): void
+    {
+        $stmtCheck = $this->db->prepare(
+            "SELECT COUNT(*) AS total_signers,
+                    SUM(CASE WHEN ds.status = 'waiting' THEN 1 ELSE 0 END) AS waiting_signers,
+                    SUM(CASE WHEN u.id IS NOT NULL AND c.id IS NOT NULL THEN 1 ELSE 0 END) AS active_valid_users,
+                    SUM(CASE WHEN ds.user_id = d.uploader_id THEN 1 ELSE 0 END) AS self_signers,
+                    COUNT(DISTINCT ds.step_order) AS distinct_steps,
+                    MIN(ds.step_order) AS min_step,
+                    MAX(ds.step_order) AS max_step
+             FROM document_signers ds
+             INNER JOIN documents d ON ds.document_id = d.id
+             LEFT JOIN users u ON ds.user_id = u.id AND u.role = 'user' AND u.deleted_at IS NULL
+             LEFT JOIN civitas c ON u.civitas_id = c.id AND c.deleted_at IS NULL
+             WHERE ds.document_id = ? AND ds.deleted_at IS NULL"
+        );
+        $stmtCheck->execute([$documentId]);
+        $meta = $stmtCheck->fetch();
+
+        $totalSigners     = (int) ($meta['total_signers'] ?? 0);
+        $waitingSigners   = (int) ($meta['waiting_signers'] ?? 0);
+        $activeValidUsers = (int) ($meta['active_valid_users'] ?? 0);
+        $selfSigners      = (int) ($meta['self_signers'] ?? 0);
+        $distinctSteps    = (int) ($meta['distinct_steps'] ?? 0);
+        $minStep          = isset($meta['min_step']) ? (int) $meta['min_step'] : 0;
+        $maxStep          = isset($meta['max_step']) ? (int) $meta['max_step'] : 0;
+
+        if ($totalSigners < 1 || $totalSigners > 20) {
+            throw new \Exception('Jumlah penandatangan dokumen berjenjang tidak valid.');
+        }
+        if ($waitingSigners !== $totalSigners) {
+            throw new \Exception('Status awal penandatangan dokumen tidak valid.');
+        }
+        if ($selfSigners > 0) {
+            throw new \Exception('Pengaju dokumen tidak diizinkan menjadi penandatangan pada alur berjenjang.');
+        }
+        if ($activeValidUsers !== $totalSigners) {
+            throw new \Exception('Terdapat penandatangan yang akun atau data civitasnya sudah tidak aktif.');
+        }
+        if ($distinctSteps !== $totalSigners || $minStep !== 1 || $maxStep !== $totalSigners) {
+            throw new \Exception('Urutan jenjang penandatangan dokumen tidak berurutan atau duplikat.');
         }
     }
 
@@ -590,7 +670,7 @@ class DocumentsModel
                        d.name AS department_ref_name,
                        d.code AS department_ref_code
                 FROM users u
-                LEFT JOIN civitas c ON u.civitas_id = c.id AND c.deleted_at IS NULL
+                INNER JOIN civitas c ON u.civitas_id = c.id AND c.deleted_at IS NULL
                 LEFT JOIN departments d ON c.department_id = d.id AND d.deleted_at IS NULL
                 WHERE u.role = 'user' AND u.deleted_at IS NULL";
         $params = [];
@@ -704,14 +784,14 @@ class DocumentsModel
     {
         $this->db->beginTransaction();
         try {
-            // Update status dokumen menjadi signing dan catat reviewer
+            // Update status dokumen menjadi signing dan catat reviewer (kunci documents lebih dulu)
             $stmt = $this->db->prepare(
                 "UPDATE documents
                  SET status = 'signing',
                      current_step = 1,
                      reviewed_by = ?,
                      reviewed_at = NOW()
-                 WHERE id = ? AND status = 'pending_review' AND deleted_at IS NULL"
+                 WHERE id = ? AND status = 'pending_review' AND signature_type = 'sequential' AND deleted_at IS NULL"
             );
             $stmt->execute([$adminId, $documentId]);
 
@@ -719,18 +799,27 @@ class DocumentsModel
                 throw new \Exception('Dokumen tidak ditemukan atau sudah tidak berstatus Menunggu Review.');
             }
 
-            // Aktifkan signer giliran pertama (step_order = 1) menjadi status 'pending'
+            // Validasi ulang keutuhan jenjang 1..N & keaktifan civitas seluruh penandatangan (SE-03 & SE-04)
+            $this->assertValidSequentialSigners($documentId);
+
+            // Aktifkan tepat 1 signer giliran pertama (step_order = 1) menjadi status 'pending'
             $stmtSigner = $this->db->prepare(
                 "UPDATE document_signers
                  SET status = 'pending'
-                 WHERE document_id = ? AND step_order = 1 AND deleted_at IS NULL"
+                 WHERE document_id = ? AND step_order = 1 AND status = 'waiting' AND deleted_at IS NULL"
             );
             $stmtSigner->execute([$documentId]);
+
+            if ($stmtSigner->rowCount() !== 1) {
+                throw new \Exception('Gagal mengaktifkan penandatangan urutan pertama (Step 1 tidak valid).');
+            }
 
             $this->db->commit();
             return true;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             throw $e;
         }
     }

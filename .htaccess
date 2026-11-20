@@ -1,4 +1,37 @@
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+# Blokir akses langsung ke berkas tersembunyi (dotfiles) dan berkas metadata sensitif
+<FilesMatch "(?i)(^\.|^composer\.(json|lock)$|^(README|DOKUMENTASI_UTS|AGENTS|CLAUDE)\.md$|\.(sql|md|log|bak|env)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Blokir akses langsung HTTP ke berkas/direktori tersembunyi (.git, .htaccess, .agents, dll.)
+    RewriteRule (^|/)\. - [F,L]
+
+    # Blokir akses langsung HTTP ke seluruh direktori internal aplikasi (VULN-02)
+    RewriteRule ^(tools|core|database|docs|config|controllers|models|views|storage|vendor|scratch)(/|$) - [F,L,NC]
+
+    # Blokir berkas metadata, dokumentasi, dan ekstensi sensitif
+    RewriteRule ^(composer\.(json|lock)|README\.md|DOKUMENTASI_UTS\.md|AGENTS\.md|CLAUDE\.md)$ - [F,L,NC]
+    RewriteRule \.(sql|md|log|bak|env)$ - [F,L,NC]
+
+    # Cegah eksekusi skrip PHP di dalam direktori aset publik
+    RewriteRule ^assets/.*\.ph(p[0-9]?|tml|ar)$ - [F,L,NC]
+
+    # Izinkan hanya berkas statis non-PHP di dalam /assets/ disajikan langsung
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^assets/.+ - [L,NC]
+
+    # Hindari loop rewrite pada Front Controller index.php sendiri
+    RewriteRule ^index\.php$ - [L,NC]
+
+    # Arahkan seluruh permintaan rute aplikasi lain ke Front Controller index.php
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
