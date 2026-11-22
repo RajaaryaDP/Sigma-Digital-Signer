@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrasi Akun Civitas | SIGMA Politeknik Negeri Jakarta</title>
     <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/img/logo.png">
-    <link href="<?= BASE_URL ?>/assets/css/sigma-footer.css" rel="stylesheet">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
@@ -86,10 +85,13 @@
 
         .brand-panel {
             isolation: isolate;
-            background:
-                radial-gradient(ellipse at 18% 82%, rgba(84, 105, 151, 0.18), transparent 38%),
-                radial-gradient(ellipse at 76% 18%, rgba(97, 112, 153, 0.13), transparent 34%),
-                var(--navy);
+            background-color: var(--navy);
+            background-image:
+                linear-gradient(rgba(29, 39, 72, 0.8), rgba(29, 39, 72, 0.8)),
+                url("<?= BASE_URL ?>/assets/img/login-background.png");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
             color: var(--white);
         }
 
@@ -147,7 +149,9 @@
 
         .login-main {
             isolation: isolate;
-            padding: clamp(24px, 4vw, 56px) clamp(20px, 4vw, 48px) 76px;
+            flex-direction: column;
+            gap: 18px;
+            padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 48px);
             background: var(--lavender);
         }
 
@@ -350,30 +354,33 @@
         }
 
         .login-footer {
-            position: absolute;
-            right: 20px;
-            bottom: 14px;
-            left: 20px;
+            position: relative;
             z-index: 1;
+            width: min(100%, 440px);
         }
 
         .public-links {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 8px 22px;
+            gap: 10px 24px;
         }
 
         .public-links a {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 40px;
+            min-height: 44px;
             color: #342d43;
             font-size: 0.82rem;
             font-weight: 600;
             text-decoration-thickness: 1px;
             text-underline-offset: 3px;
+        }
+
+        .public-links a:hover {
+            color: #241a45;
+            text-decoration-thickness: 2px;
         }
 
         @media (max-width: 760px) {
@@ -409,12 +416,21 @@
 
             .login-main {
                 min-height: auto;
-                padding: 24px 16px 76px;
+                padding: 24px 16px 32px;
             }
 
             .login-card {
                 width: min(100%, 440px);
                 padding: 24px 20px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
@@ -565,16 +581,14 @@
                 </p>
             </section>
 
-            <footer class="login-footer">
-                <nav class="public-links" aria-label="Navigasi publik">
+            <nav class="login-footer" aria-label="Navigasi kembali">
+                <div class="public-links">
                     <a href="<?= BASE_URL ?>/">Kembali ke Beranda</a>
-                    <a href="<?= BASE_URL ?>/verify">Verifikasi Keaslian Dokumen</a>
-                </nav>
-            </footer>
+                    <a href="<?= BASE_URL ?>/auth">Kembali ke Halaman Login</a>
+                </div>
+            </nav>
         </main>
     </div>
-
-    <?php require __DIR__ . '/../layout/sigma-footer.php'; ?>
 
     <script>
         function bindPasswordToggle(btnId, inputId) {

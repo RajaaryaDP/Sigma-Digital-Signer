@@ -9,7 +9,7 @@ require_once __DIR__ . '/../models/AuditLogModel.php';
 use setasign\Fpdi\Fpdi;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
-use chillerlan\QRCode\Output\QRGdImagePNG;
+use chillerlan\QRCode\Output\QROutputInterface;
 use PdfDecompressor\Normalizer;
 
 /**
@@ -134,10 +134,12 @@ class PdfStamper
                 $signaturesByPage[$pageNum][] = $sig;
             }
 
-            // Opsi generator QR Code
+            // Opsi generator QR Code (Gunakan format raster PNG murni + quietzone agar kompatibel dengan FPDF dan bebas masalah is_writable Windows)
             $qrOptions = new QROptions([
-                'outputInterface' => QRGdImagePNG::class,
-                'scale'           => 4,
+                'outputType'   => QROutputInterface::GDIMAGE_PNG,
+                'outputBase64' => false,
+                'scale'        => 4,
+                'addQuietzone' => true,
             ]);
             $qrGen = new QRCode($qrOptions);
 
@@ -328,7 +330,8 @@ class PdfStamper
                             $verifyUrl  = $verifyBaseUrl . $token;
 
                             try {
-                                $qrGen->render($verifyUrl, $qrTempFile);
+                                $qrPngData = $qrGen->render($verifyUrl);
+                                file_put_contents($qrTempFile, $qrPngData);
 
                                 if (file_exists($qrTempFile)) {
                                     $pdf->Image($qrTempFile, $qrX, $qrY, $qrDim, $qrDim);

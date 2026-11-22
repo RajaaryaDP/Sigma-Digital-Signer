@@ -147,35 +147,32 @@ $roleDisplay = $isAdmin
 
             <main class="sigma-workspace-content">
 <?php else: ?>
-    <!-- Mode Publik / Tamu (mis. /verify tanpa login) -->
+    <!-- Mode Publik / Tamu (mis. hasil /verify?token=... tanpa login) -->
     <header class="pnj-navbar">
         <div class="pnj-navbar-inner">
             <a href="<?= BASE_URL ?>/" class="pnj-brand" title="Halaman Utama SIGMA PNJ">
                 <img src="<?= BASE_URL ?>/assets/img/logo.png" alt="SIGMA" class="pnj-brand-logo" width="38" height="38">
                 <div class="pnj-brand-text">
                     <span class="pnj-brand-title">SIGMA</span>
-                    <span class="pnj-brand-sub">Politeknik Negeri Jakarta (PNJ)</span>
+                    <span class="pnj-brand-sub">Tanda Tangan Digital</span>
                 </div>
             </a>
 
-            <nav>
+            <nav aria-label="Navigasi halaman utama">
                 <ul class="pnj-nav-menu">
                     <li>
-                        <a href="<?= BASE_URL ?>/#fitur" class="pnj-nav-link">
-                            <i class="bi bi-grid"></i>
-                            <span>Fitur</span>
+                        <a href="<?= BASE_URL ?>/#beranda" class="pnj-nav-link">
+                            <span>Beranda</span>
                         </a>
                     </li>
                     <li>
-                        <a href="<?= BASE_URL ?>/#tentang" class="pnj-nav-link">
-                            <i class="bi bi-info-circle"></i>
-                            <span>Tentang</span>
+                        <a href="<?= BASE_URL ?>/#verifikasi" class="pnj-nav-link <?= ($page === 'verify') ? 'active' : '' ?>">
+                            <span>Verifikasi</span>
                         </a>
                     </li>
                     <li>
-                        <a href="<?= BASE_URL ?>/verify" class="pnj-nav-link <?= ($page === 'verify') ? 'active' : '' ?>">
-                            <i class="bi bi-qr-code-scan"></i>
-                            <span>Verifikasi Publik</span>
+                        <a href="<?= BASE_URL ?>/#guide" class="pnj-nav-link">
+                            <span>Guide</span>
                         </a>
                     </li>
                 </ul>
@@ -183,8 +180,7 @@ $roleDisplay = $isAdmin
 
             <div class="pnj-user-widget">
                 <a href="<?= BASE_URL ?>/auth" class="btn-pnj-login-taskbar" title="Masuk ke Akun Civitas SIGMA PNJ">
-                    <i class="bi bi-box-arrow-in-right"></i>
-                    <span>Login Civitas</span>
+                    <span>Login</span>
                 </a>
             </div>
         </div>

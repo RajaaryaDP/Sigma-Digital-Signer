@@ -40,12 +40,21 @@ class Verify
         $rawInput = $_GET['token'] ?? '';
         $rawToken = is_string($rawInput) ? trim($rawInput) : '';
 
-        // State 1: Buka tanpa parameter token → Tampilkan form pencarian manual (ADR-08)
+        // State 1: Buka tanpa parameter token → Tampilkan tab Verifikasi pada halaman utama untuk pengunjung publik, atau form verifikasi di ruang kerja jika sudah login (ADR-08)
         if ($rawToken === '') {
+            if (empty($_SESSION['user'])) {
+                $this->load->view('views/home/index.php', [
+                    'title'       => 'Verifikasi Keaslian Dokumen | SIGMA Politeknik Negeri Jakarta',
+                    'currentUser' => null,
+                    'activeTab'   => 'verifikasi',
+                ]);
+                return;
+            }
+
             $this->load->view('views/verify/index.php', [
                 'status' => 'empty',
                 'token'  => '',
-                'title'  => 'Verifikasi Keaslian Dokumen — SIGMA Politeknik Negeri Jakarta',
+                'title'  => 'Verifikasi Keaslian Dokumen | SIGMA Politeknik Negeri Jakarta',
             ]);
             return;
         }

@@ -28,7 +28,7 @@ class Auth
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email    = isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '';
             $password = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
-            $captcha  = isset($_POST['captcha']) && is_string($_POST['captcha']) ? strtoupper(trim($_POST['captcha'])) : '';
+            $captcha = isset($_POST['captcha']) && is_string($_POST['captcha']) ? trim($_POST['captcha']) : '';
             $errors   = [];
 
             if (empty($email)) {

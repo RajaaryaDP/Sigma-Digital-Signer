@@ -106,14 +106,16 @@ $segments = explode('/', $path);
 
 define('BASE_URL', $base === '' ? '' : '/' . $base);
 
-$noIdActions = ['create', 'store', 'login', 'logout', 'register', 'import', 'template', 'captcha', 'guide'];
+$noIdActions = ['create', 'store', 'login', 'logout', 'register', 'import', 'template', 'captcha', 'guide', 'verifikasi'];
 
 // Routing alias & default controller
 $rawPage = strtolower($segments[0] ?? '');
-if ($rawPage === '' || $rawPage === 'home' || $rawPage === 'landing' || $rawPage === 'guide' || $rawPage === 'panduan') {
+if ($rawPage === '' || $rawPage === 'home' || $rawPage === 'landing' || $rawPage === 'guide' || $rawPage === 'panduan' || $rawPage === 'verifikasi') {
     $page = 'home';
     if ($rawPage === 'guide' || $rawPage === 'panduan') {
         $segments[1] = 'guide';
+    } elseif ($rawPage === 'verifikasi') {
+        $segments[1] = 'verifikasi';
     }
 } elseif ($rawPage === 'login') {
     $page = 'auth';

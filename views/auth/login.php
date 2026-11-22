@@ -720,7 +720,6 @@
             <footer class="login-footer">
                 <nav class="public-links" aria-label="Navigasi publik">
                     <a href="<?= BASE_URL ?>/">Kembali ke Beranda</a>
-                    <a href="<?= BASE_URL ?>/verify">Verifikasi Keaslian Dokumen</a>
                 </nav>
             </footer>
         </main>
