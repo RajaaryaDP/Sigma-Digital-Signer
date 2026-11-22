@@ -105,6 +105,7 @@ require_once __DIR__ . '/../layout/header.php';
                                 </span>
                             <?php else: ?>
                                 <form action="<?= BASE_URL ?>/user-signatures/<?= htmlspecialchars($sig['id']) ?>/update" method="POST" class="m-0">
+                                    <?= Csrf::field() ?>
                                     <input type="hidden" name="action_type" value="set_default">
                                     <button type="submit" class="btn-sigma-outline btn-sigma-sm">
                                         <i class="bi bi-star"></i> Jadikan Utama
@@ -132,6 +133,7 @@ require_once __DIR__ . '/../layout/header.php';
                 <div class="modal-dialog modal-dialog-centered modal-sm">
                     <div class="modal-content">
                         <form action="<?= BASE_URL ?>/user-signatures/<?= htmlspecialchars($sig['id']) ?>/update" method="POST">
+                            <?= Csrf::field() ?>
                             <input type="hidden" name="action_type" value="update_label">
                             <div class="modal-header py-2 px-3">
                                 <h6 class="modal-title fw-bold mb-0" style="color: var(--text-heading);">Ubah Label Template</h6>
@@ -173,6 +175,7 @@ require_once __DIR__ . '/../layout/header.php';
                         <div class="modal-footer py-2 px-4">
                             <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
                             <form action="<?= BASE_URL ?>/user-signatures/<?= htmlspecialchars($sig['id']) ?>/delete" method="POST" class="m-0">
+                                <?= Csrf::field() ?>
                                 <button type="submit" class="btn-sigma-danger btn-sigma-sm px-3">
                                     <i class="bi bi-trash3"></i> Ya, Hapus
                                 </button>

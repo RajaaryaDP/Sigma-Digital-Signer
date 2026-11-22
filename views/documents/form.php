@@ -35,6 +35,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
 
             <div class="card-sigma-body p-4">
                 <form id="docForm" action="<?= BASE_URL ?>/documents/store" method="POST" enctype="multipart/form-data">
+                    <?= Csrf::field() ?>
 
                     <!-- Section 1: Informasi Dokumen -->
                     <div class="mb-4">

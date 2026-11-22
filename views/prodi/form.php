@@ -37,6 +37,7 @@
             <div class="card-sigma-body p-4">
                 <form action="<?= $isEdit ? BASE_URL . '/prodi/' . htmlspecialchars($prodi['id']) . '/update' : BASE_URL . '/prodi/store' ?>"
                       method="POST">
+                    <?= Csrf::field() ?>
 
                     <div class="mb-3">
                         <label for="department_id" class="sigma-form-label">

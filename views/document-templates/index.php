@@ -352,6 +352,7 @@ $formatBytes = static function (int $bytes): string {
                 <div class="modal-footer py-2 px-4">
                     <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
                     <form id="deleteTemplateForm" action="" method="POST" class="m-0">
+                        <?= Csrf::field() ?>
                         <button type="submit" id="btnConfirmHardDelete" class="btn-sigma-danger btn-sigma-sm px-3">
                             <i class="bi bi-trash3"></i>
                             <span>Ya, Hapus Permanen</span>

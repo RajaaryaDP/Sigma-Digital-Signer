@@ -8,7 +8,104 @@ if (PHP_SAPI !== 'cli') {
     exit('Forbidden: CLI only.');
 }
 
+// Baca konfigurasi aplikasi (host, port, db_name, user, pass) tanpa memicu koneksi web runtime
+define('SIGMA_DB_CONFIG_ONLY', true);
 require_once __DIR__ . '/../config/database.php';
+
+// Kredensial bootstrap superuser PostgreSQL hanya digunakan pada CLI migrasi (VULN-05)
+$admin_user = getenv('PG_ADMIN_USER') ?: 'postgres';
+$admin_pass = getenv('PG_ADMIN_PASS') !== false ? (string) getenv('PG_ADMIN_PASS') : '';
+
+/**
+ * Memastikan database target, role non-superuser (sigma_app), default privileges,
+ * serta kepemilikan tabel/fungsi di skema public telah terkonfigurasi dengan benar (khusus CLI).
+ */
+function sigma_provision_postgres_role_and_db(
+    string $host,
+    int $port,
+    string $dbName,
+    string $appUser,
+    string $appPass,
+    string $adminUser,
+    string $adminPass
+): string {
+    $safeDbName   = preg_replace('/[^a-zA-Z0-9_]/', '_', $dbName);
+    $quotedDbName = '"' . str_replace('"', '""', $safeDbName) . '"';
+    $safeAppUser  = preg_replace('/[^a-zA-Z0-9_]/', '_', $appUser);
+    $quotedUser   = '"' . str_replace('"', '""', $safeAppUser) . '"';
+
+    $adminConn = new PDO("pgsql:host={$host};port={$port};dbname=postgres", $adminUser, $adminPass);
+    $adminConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // 1. Pastikan role non-superuser sigma_app tersedia
+    $stmtRole = $adminConn->prepare("SELECT 1 FROM pg_roles WHERE rolname = ?");
+    $stmtRole->execute([$safeAppUser]);
+    if (!$stmtRole->fetchColumn()) {
+        $quotedPass = $adminConn->quote($appPass);
+        $adminConn->exec("CREATE ROLE {$quotedUser} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD {$quotedPass}");
+    }
+
+    // 2. Pastikan database target tersedia (tanpa fallback ke database lain seperti tik_pbl)
+    $stmtDb = $adminConn->prepare("SELECT 1 FROM pg_database WHERE datname = ?");
+    $stmtDb->execute([$safeDbName]);
+    if (!$stmtDb->fetchColumn()) {
+        $adminConn->exec("CREATE DATABASE {$quotedDbName} OWNER {$quotedUser} ENCODING 'UTF8'");
+    } else {
+        $adminConn->exec("GRANT ALL PRIVILEGES ON DATABASE {$quotedDbName} TO {$quotedUser}");
+    }
+    $adminConn = null;
+
+    // 3. Pastikan hak akses skema public, default privileges, & kepemilikan objek diberikan ke sigma_app
+    $dbAdminConn = new PDO("pgsql:host={$host};port={$port};dbname={$safeDbName}", $adminUser, $adminPass);
+    $dbAdminConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $dbAdminConn->exec("GRANT ALL ON SCHEMA public TO {$quotedUser}");
+    $dbAdminConn->exec("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {$quotedUser}");
+    $dbAdminConn->exec("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {$quotedUser}");
+    $dbAdminConn->exec("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO {$quotedUser}");
+    $dbAdminConn->exec("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO {$quotedUser}");
+
+    $stmtTables = $dbAdminConn->prepare("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner != ?");
+    $stmtTables->execute([$safeAppUser]);
+    $tables = $stmtTables->fetchAll(PDO::FETCH_COLUMN);
+    foreach ($tables as $tbl) {
+        $qTbl = '"' . str_replace('"', '""', $tbl) . '"';
+        $dbAdminConn->exec("ALTER TABLE public.{$qTbl} OWNER TO {$quotedUser}");
+    }
+
+    $dbAdminConn->exec("
+        DO \$\$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM pg_proc p
+                JOIN pg_namespace n ON p.pronamespace = n.oid
+                WHERE n.nspname = 'public' AND p.proname = 'update_timestamp_trigger'
+            ) THEN
+                ALTER FUNCTION public.update_timestamp_trigger() OWNER TO {$quotedUser};
+            END IF;
+        END
+        \$\$;
+    ");
+    $dbAdminConn = null;
+
+    return $safeDbName;
+}
+
+// Provisi role, database, dan sinkronisasi kepemilikan objek bila diperlukan (khusus CLI)
+try {
+    sigma_provision_postgres_role_and_db($host, (int) $port, $db_name, $user, $pass, $admin_user, $admin_pass);
+} catch (PDOException $provEx) {
+    // Lanjutkan mencoba koneksi langsung sebagai role aplikasi jika role/DB sudah terprovisi
+}
+
+try {
+    $conn = new PDO("pgsql:host={$host};port={$port};dbname={$db_name}", $user, $pass);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $conn->exec("SET TIME ZONE 'Asia/Jakarta'");
+} catch (PDOException $e) {
+    fwrite(STDERR, "Gagal terhubung ke PostgreSQL ({$db_name}) sebagai '{$user}': " . $e->getMessage() . "\n");
+    exit(1);
+}
 
 $schemaFile = __DIR__ . '/../database/schema.sql';
 
@@ -17,8 +114,8 @@ if (!file_exists($schemaFile)) {
     exit(1);
 }
 
-$isFresh  = in_array('--fresh', $argv ?? [], true);
-$activeDb = (string) $conn->query("SELECT current_database()")->fetchColumn();
+$isFresh    = in_array('--fresh', $argv ?? [], true);
+$activeDb   = (string) $conn->query("SELECT current_database()")->fetchColumn();
 $activeRole = (string) $conn->query("SELECT current_user")->fetchColumn();
 
 echo "Target PostgreSQL database: {$activeDb} (connected as role: {$activeRole})\n";
@@ -26,15 +123,6 @@ echo "Target PostgreSQL database: {$activeDb} (connected as role: {$activeRole})
 if (isset($db_name) && strtolower($activeDb) !== strtolower($db_name)) {
     fwrite(STDERR, "Error: Active database '{$activeDb}' does not match configured database '{$db_name}'. Aborting migration.\n");
     exit(1);
-}
-
-// Sinkronisasi kepemilikan tabel/fungsi jika sebelumnya ada objek yang diimpor manual via akun postgres
-if (function_exists('sigma_provision_postgres_role_and_db') && isset($host, $port, $db_name, $user, $pass, $admin_user, $admin_pass)) {
-    try {
-        sigma_provision_postgres_role_and_db($host, (int) $port, $db_name, $user, $pass, $admin_user, $admin_pass);
-    } catch (PDOException $provEx) {
-        // Lanjutkan jika akun aplikasi sudah memegang kepemilikan objek
-    }
 }
 
 if ($isFresh) {

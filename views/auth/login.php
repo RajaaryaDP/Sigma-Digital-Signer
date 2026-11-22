@@ -614,6 +614,7 @@
                 <?php endif; ?>
 
                 <form id="loginForm" action="<?= BASE_URL ?>/auth/login" method="POST">
+                    <?= Csrf::field() ?>
                     <div class="field">
                         <label for="inputEmail">Email</label>
                         <div class="field-control <?= isset($errors['email']) ? 'has-error' : '' ?>">

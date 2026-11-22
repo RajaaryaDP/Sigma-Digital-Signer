@@ -134,6 +134,7 @@
                               method="POST"
                               class="d-inline"
                               onsubmit="return confirm('Yakin ingin menghapus Jurusan ' + <?= htmlspecialchars(json_encode($dept['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?> + '?');">
+                            <?= Csrf::field() ?>
                             <button type="submit" class="btn-sigma-outline btn-sigma-sm text-danger" style="border-color: #fecaca;">
                                 <i class="bi bi-trash3"></i> Hapus
                             </button>
@@ -208,6 +209,7 @@
                                                           method="POST"
                                                           class="d-inline"
                                                           onsubmit="return confirm('Yakin ingin menghapus Program Studi ' + <?= htmlspecialchars(json_encode($pr['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?> + '?');">
+                                                        <?= Csrf::field() ?>
                                                         <button type="submit" class="btn-sigma-outline btn-sigma-sm text-danger" style="border-color: #fecaca;" title="Hapus Prodi">
                                                             <i class="bi bi-trash3"></i>
                                                         </button>
