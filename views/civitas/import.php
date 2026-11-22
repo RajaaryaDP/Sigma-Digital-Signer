@@ -56,6 +56,7 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
             <div class="card-sigma-body p-4">
                 <form method="POST" action="<?= BASE_URL ?>/civitas/import" enctype="multipart/form-data" id="csvUploadForm">
+                    <?= Csrf::field() ?>
                     <input type="hidden" name="stage" value="preview">
                     <div class="mb-3">
                         <label for="csv_file" class="sigma-form-label">
@@ -263,6 +264,7 @@ require_once __DIR__ . '/../layout/header.php';
             <!-- Tombol Konfirmasi Simpan Atomik atau Batal -->
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 pt-3 border-top" style="border-color: var(--border-subtle) !important;">
                 <form method="POST" action="<?= BASE_URL ?>/civitas/import">
+                    <?= Csrf::field() ?>
                     <input type="hidden" name="stage" value="cancel">
                     <button type="submit" class="btn-sigma-outline text-danger" style="border-color: #fecaca;">
                         <i class="bi bi-x-circle"></i>
@@ -271,6 +273,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </form>
 
                 <form method="POST" action="<?= BASE_URL ?>/civitas/import" id="csvCommitForm">
+                    <?= Csrf::field() ?>
                     <input type="hidden" name="stage" value="commit">
                     <button type="submit"
                             class="btn-sigma-navy px-4 py-2"

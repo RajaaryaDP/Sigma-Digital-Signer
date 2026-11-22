@@ -95,6 +95,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 </div>
 
 <form id="signForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" method="POST" enctype="multipart/form-data">
+    <?= Csrf::field() ?>
     <input type="hidden" name="input_method" id="inputMethod" value="<?= htmlspecialchars($restoreTab === 'canvas' || $restoreTab === 'upload' ? $restoreTab : 'template', ENT_QUOTES, 'UTF-8') ?>">
     <input type="hidden" name="signature_canvas" id="signatureCanvasInput">
 
@@ -731,6 +732,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/decline" method="POST" id="declineForm">
+                    <?= Csrf::field() ?>
                     <div class="modal-body p-4">
                         <div class="alert alert-danger alert-sigma py-2 px-3 small mb-3 d-flex align-items-start gap-2"
                              style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">

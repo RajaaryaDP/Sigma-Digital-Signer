@@ -59,6 +59,7 @@ $actionUrl = $isEdit
 
             <div class="card-sigma-body p-4">
                 <form id="templateForm" action="<?= $actionUrl ?>" method="POST" enctype="multipart/form-data">
+                    <?= Csrf::field() ?>
 
                     <div class="mb-3">
                         <label for="templateName" class="sigma-form-label">

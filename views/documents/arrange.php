@@ -44,6 +44,7 @@ require_once __DIR__ . '/../layout/header.php';
 </div>
 
 <form id="arrangeForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/update" method="POST">
+    <?= Csrf::field() ?>
     <input type="hidden" name="action_type" id="actionTypeInput" value="save_slots">
 
     <div class="row g-4">
@@ -352,6 +353,7 @@ require_once __DIR__ . '/../layout/header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/delete" method="POST">
+                <?= Csrf::field() ?>
                 <div class="modal-body p-4">
                     <p class="mb-2" style="color: var(--text-heading);">
                         Anda akan membatalkan dan menghapus draft dokumen

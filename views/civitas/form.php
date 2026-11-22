@@ -47,6 +47,7 @@ require_once __DIR__ . '/../layout/header.php';
 
             <div class="card-sigma-body p-4">
                 <form action="<?= $isEdit ? BASE_URL . '/civitas/' . htmlspecialchars($id) . '/update' : BASE_URL . '/civitas/store' ?>" method="POST">
+                    <?= Csrf::field() ?>
 
                     <!-- Section 1: Kategori & Identitas Utama -->
                     <div class="mb-4">

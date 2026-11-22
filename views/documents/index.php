@@ -529,6 +529,7 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $documents, $docCounts, $
                                                 </a>
                                                 <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/delete" method="POST" class="d-inline"
                                                       onsubmit="return confirm('Batalkan dan hapus draft dokumen ini?');">
+                                                    <?= Csrf::field() ?>
                                                     <input type="hidden" name="status_filter" value="<?= htmlspecialchars((string)($statusFilter ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                                     <button type="submit" class="btn-sigma-outline btn-sigma-sm text-danger" title="Hapus Draft">
                                                         <i class="bi bi-trash"></i>
@@ -546,6 +547,7 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $documents, $docCounts, $
                                                 <?php if ($docStatus === 'pending_review'): ?>
                                                     <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/withdraw" method="POST" class="d-inline"
                                                           onsubmit="return confirm('Tarik kembali dokumen ini ke status Draft agar slot dapat diubah?');">
+                                                        <?= Csrf::field() ?>
                                                         <button type="submit" class="btn-sigma-outline btn-sigma-sm" title="Tarik ke Draft">
                                                             <i class="bi bi-arrow-counterclockwise"></i> Tarik
                                                         </button>

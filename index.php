@@ -1,5 +1,23 @@
 <?php
 
+// Hardening cookie sesi (HttpOnly, SameSite=Lax, Strict Mode, Cookies-Only — VULN-04)
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+
+$sigmaIsHttps = (
+    (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+    || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443)
+);
+
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'domain'   => '',
+    'secure'   => $sigmaIsHttps,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
+
 session_start();
 
 /**
@@ -69,27 +87,85 @@ set_exception_handler(function (Throwable $exception) {
     }
 });
 
-// Built-in CLI server static file handler
+// Built-in CLI server static file handler (Allowlist ketat: hanya berkas statis non-PHP di /assets/ — ADR-04, VULN-03)
 if (PHP_SAPI === 'cli-server') {
-    $uriPath    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    $normalized = '/' . trim(str_replace('\\', '/', $uriPath), '/');
-
-    // Proteksi direktori privat saat memakai built-in server (php -S):
-    // berkas di /storage dkk. tidak boleh disajikan statis karena
-    // .htaccess "Require all denied" tidak berlaku pada CLI server (ADR-04).
-    $blockedPrefixes = ['/storage', '/config', '/controllers', '/models', '/views', '/core', '/tools'];
-    $isBlocked = false;
-    foreach ($blockedPrefixes as $prefix) {
-        if ($normalized === $prefix || strpos($normalized, $prefix . '/') === 0) {
-            $isBlocked = true;
-            break;
+    $rawReqUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+    if ($rawReqUri === '' || $rawReqUri[0] !== '/') {
+        $parsedPath = parse_url($rawReqUri, PHP_URL_PATH);
+        if (!is_string($parsedPath)) {
+            http_response_code(400);
+            header('Content-Type: text/plain; charset=UTF-8');
+            exit('400 Bad Request');
         }
+    } else {
+        $qPos       = strpos($rawReqUri, '?');
+        $parsedPath = ($qPos === false) ? $rawReqUri : substr($rawReqUri, 0, $qPos);
     }
 
-    if (!$isBlocked) {
-        $requestedFile = __DIR__ . $uriPath;
-        if (is_file($requestedFile)) {
-            return false;
+    $decodedPath    = rawurldecode($parsedPath);
+    $normalizedPath = '/' . ltrim(str_replace('\\', '/', $decodedPath), '/');
+
+    // 1. Tolak langsung (403) jalur traversal, dotfile, direktori internal, dan berkas sensitif
+    //    (case-insensitive agar aman pada NTFS Windows sekaligus selaras dengan aturan .htaccess Apache)
+    $hasTraversalOrHidden = (
+        strpos($decodedPath, "\0") !== false
+        || strpos($parsedPath, '..') !== false
+        || strpos($normalizedPath, '..') !== false
+        || strpos($decodedPath, ':') !== false
+        || preg_match('#(^|/)\.#', $normalizedPath) === 1
+    );
+
+    $isBlockedTarget = (
+        preg_match('#^/(tools|core|database|docs|config|controllers|models|views|storage|vendor|scratch)(/|$)#i', $normalizedPath) === 1
+        || preg_match('#^/(composer\.(json|lock)|readme\.md|dokumentasi_uts\.md|agents\.md|claude\.md)$#i', $normalizedPath) === 1
+        || preg_match('#\.(sql|md|log|bak|env|ini|htaccess|htpasswd)$#i', $normalizedPath) === 1
+    );
+
+    if ($hasTraversalOrHidden || $isBlockedTarget) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=UTF-8');
+        exit('403 Forbidden');
+    }
+
+    // 2. Allowlist berkas statis publik: HANYA berkas non-PHP dengan ekstensi aman di dalam /assets/ (khusus GET/HEAD)
+    if (
+        in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)
+        && preg_match('#^/assets/.+#i', $normalizedPath) === 1
+    ) {
+        if (preg_match('#\.ph(p[0-9]?|tml|ar)$#i', $normalizedPath) === 1) {
+            http_response_code(403);
+            header('Content-Type: text/plain; charset=UTF-8');
+            exit('403 Forbidden');
+        }
+
+        $assetsRoot      = realpath(__DIR__ . DIRECTORY_SEPARATOR . 'assets');
+        $isCleanAssetUri = (
+            strpos($parsedPath, '\\') === false
+            && strpos($decodedPath, '\\') === false
+            && strpos($parsedPath, '//') === false
+            && !preg_match('#[\s.]$#', $normalizedPath)
+        );
+
+        if ($assetsRoot !== false && $isCleanAssetUri) {
+            $candidate     = __DIR__ . str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath);
+            $realCandidate = realpath($candidate);
+
+            if ($realCandidate !== false && is_file($realCandidate)) {
+                $assetsPrefix = rtrim($assetsRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                $cmpRoot      = (DIRECTORY_SEPARATOR === '\\') ? strtolower($assetsPrefix) : $assetsPrefix;
+                $cmpFile      = (DIRECTORY_SEPARATOR === '\\') ? strtolower($realCandidate) : $realCandidate;
+
+                $ext = strtolower(pathinfo($realCandidate, PATHINFO_EXTENSION));
+                $allowedAssetExts = [
+                    'css', 'js', 'mjs', 'map',
+                    'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico',
+                    'woff', 'woff2', 'ttf', 'otf', 'eot',
+                ];
+
+                if (strpos($cmpFile, $cmpRoot) === 0 && in_array($ext, $allowedAssetExts, true)) {
+                    return false;
+                }
+            }
         }
     }
 }
@@ -97,12 +173,16 @@ if (PHP_SAPI === 'cli-server') {
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/core/Loader.php';
+require_once __DIR__ . '/core/Csrf.php';
 
 // URL Parser
-$uri      = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$base     = trim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
-$path     = trim(substr($uri, strlen($base)), '/');
-$segments = explode('/', $path);
+$parsedUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$uri       = is_string($parsedUri) ? $parsedUri : '/';
+$base      = (PHP_SAPI === 'cli-server')
+    ? ''
+    : trim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+$path      = trim(substr($uri, strlen($base)), '/');
+$segments  = explode('/', $path);
 
 define('BASE_URL', $base === '' ? '' : '/' . $base);
 
@@ -194,6 +274,27 @@ function sigma_render_404(string $subtitle): void
     exit;
 }
 
+function sigma_render_403(
+    string $subtitle,
+    int $statusCode = 403,
+    string $heading = '403 - Permintaan Ditolak'
+): void {
+    if (!headers_sent()) {
+        http_response_code($statusCode);
+    }
+    $backHref  = isset($_SESSION['user']) ? BASE_URL . '/documents' : BASE_URL . '/auth';
+    $backLabel = isset($_SESSION['user']) ? 'Kembali ke Dashboard' : 'Kembali ke Halaman Masuk';
+    echo '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . htmlspecialchars($heading, ENT_QUOTES, 'UTF-8') . ' — SIGMA</title></head>';
+    echo '<body style="margin:0;font-family:Inter,Segoe UI,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8f8fc;padding:1.5rem;">';
+    echo '<div style="background:#fff;border:1px solid #fecaca;border-radius:16px;padding:2rem 2.25rem;max-width:480px;width:100%;text-align:center;box-shadow:0 4px 14px rgba(45,43,75,0.08);">';
+    echo '<div style="display:inline-flex;align-items:center;justify-content:center;padding:0.25rem 0.75rem;border-radius:999px;background:#fef2f2;color:#b91c1c;font-size:0.75rem;font-weight:700;margin-bottom:0.75rem;">HTTP ' . (int) $statusCode . '</div>';
+    echo '<h2 style="margin:0 0 0.5rem;color:#2d2b4b;">' . htmlspecialchars($heading, ENT_QUOTES, 'UTF-8') . '</h2>';
+    echo '<p style="color:#69647d;font-size:0.9rem;margin-bottom:1.25rem;">' . htmlspecialchars($subtitle, ENT_QUOTES, 'UTF-8') . '</p>';
+    echo '<a href="' . htmlspecialchars($backHref, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:0.55rem 1.25rem;background:#2d2b4b;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:0.88rem;">' . $backLabel . '</a>';
+    echo '</div></body></html>';
+    exit;
+}
+
 if (!file_exists($controllerFile)) {
     sigma_render_404('Halaman atau modul <code>' . htmlspecialchars($page, ENT_QUOTES, 'UTF-8') . '</code> belum tersedia.');
 }
@@ -213,9 +314,31 @@ $isAuthAction    = ($controllerName === 'Auth' && in_array($action, ['login', 'r
 $isCivitasImport = ($controllerName === 'Civitas' && $action === 'import');
 $isDocSign       = ($controllerName === 'Documents' && $action === 'sign');
 
-if (!$isAuthAction && !$isCivitasImport && !$isDocSign) {
+if ($isAuthAction || $isCivitasImport || $isDocSign) {
+    if (!in_array($method, ['GET', 'POST'], true)) {
+        sigma_render_404('Metode permintaan HTTP tidak diizinkan untuk aksi ini.');
+    }
+} else {
     if (($expectsPost && $method !== 'POST') || (!$expectsPost && $method !== 'GET')) {
         sigma_render_404('Metode permintaan HTTP tidak diizinkan untuk aksi ini.');
+    }
+}
+
+// Guard CSRF Terpusat: seluruh permintaan POST wajib membawa token CSRF sesi yang valid (VULN-04)
+if ($method === 'POST') {
+    $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if (empty($_POST) && empty($_FILES) && $contentLength > 0) {
+        sigma_render_403(
+            'Ukuran data atau berkas yang dikirim melebihi batas maksimal server. Silakan unggah berkas dengan ukuran lebih kecil dan coba kembali.',
+            413,
+            '413 - Ukuran Permintaan Terlalu Besar'
+        );
+    }
+
+    if (!Csrf::verify()) {
+        sigma_render_403(
+            'Token keamanan formulir (CSRF) tidak valid atau sesi Anda telah kedaluwarsa. Silakan kembali, muat ulang halaman, lalu coba kembali.'
+        );
     }
 }
 

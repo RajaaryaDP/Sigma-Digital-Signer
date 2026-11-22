@@ -810,6 +810,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                     </a>
                     <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/delete" method="POST"
                           onsubmit="return confirm('Apakah Anda yakin ingin menghapus draft dokumen ini? Berkas PDF akan dihapus secara permanen.');">
+                        <?= Csrf::field() ?>
                         <button type="submit" class="btn-sigma-outline w-100 text-danger">
                             <i class="bi bi-trash"></i> Hapus Draft
                         </button>
@@ -1038,6 +1039,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/approve" method="POST">
+                <?= Csrf::field() ?>
                 <div class="modal-body p-4">
                     <p class="mb-3" style="color: var(--text-heading);">
                         Apakah Anda yakin ingin menyetujui dokumen <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong>?
@@ -1072,6 +1074,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/reject" method="POST">
+                <?= Csrf::field() ?>
                 <div class="modal-body p-4">
                     <div class="alert alert-sigma py-2 px-3 small mb-3 d-flex align-items-start gap-2"
                          style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">
@@ -1112,6 +1115,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/withdraw" method="POST">
+                <?= Csrf::field() ?>
                 <div class="modal-body p-4">
                     <p class="mb-3" style="color: var(--text-heading);">
                         Anda akan menarik pengajuan dokumen <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong> dari antrean peninjauan Administrator kembali ke status <strong>Draft</strong>.

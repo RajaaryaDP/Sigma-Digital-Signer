@@ -447,6 +447,7 @@
                 <?php endif; ?>
 
                 <form id="registerForm" action="<?= BASE_URL ?>/auth/register" method="POST">
+                    <?= Csrf::field() ?>
                     <div class="field">
                         <label for="inputIdentifier">NIM / NIP Resmi</label>
                         <div class="field-control <?= isset($errors['identifier']) ? 'has-error' : '' ?>">

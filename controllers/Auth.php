@@ -4,6 +4,7 @@ require_once __DIR__ . '/../models/UsersModel.php';
 require_once __DIR__ . '/../models/CivitasModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
 require_once __DIR__ . '/../core/Loader.php';
+require_once __DIR__ . '/../core/Csrf.php';
 
 class Auth
 {
@@ -73,6 +74,15 @@ class Auth
                 ]);
                 return;
             }
+
+            // Anti Session Fixation (VULN-05): regenerasi ID sesi & bersihkan state pra-login
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_regenerate_id(true);
+            }
+            $_SESSION = [];
+
+            // Rotasi token CSRF pada transisi autentikasi login (VULN-04)
+            Csrf::rotate();
 
             // Simpan data kredensial dan profil civitas ke dalam sesi
             $_SESSION['user'] = [
@@ -286,11 +296,15 @@ class Auth
             $userId = $_SESSION['user']['id'];
             $this->auditModel->log($userId, 'user.logout');
 
-            unset($_SESSION['user']);
+            $_SESSION = [];
             session_destroy();
         }
 
-        session_start();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        session_regenerate_id(true);
+        Csrf::rotate();
         $_SESSION['flash'] = [
             'type'    => 'info',
             'message' => 'Anda telah berhasil keluar dari sistem.'

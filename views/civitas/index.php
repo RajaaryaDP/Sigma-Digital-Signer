@@ -260,6 +260,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </p>
 
                 <form id="deleteForm" method="POST" action="">
+                    <?= Csrf::field() ?>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn-sigma-outline w-50 justify-content-center" data-bs-dismiss="modal">
                             Batal

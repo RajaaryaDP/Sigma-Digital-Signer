@@ -51,6 +51,7 @@ require_once __DIR__ . '/../layout/header.php';
                 <?php endif; ?>
 
                 <form id="sigForm" action="<?= BASE_URL ?>/user-signatures/store" method="POST" enctype="multipart/form-data">
+                    <?= Csrf::field() ?>
                     <input type="hidden" name="input_method" id="inputMethod" value="<?= htmlspecialchars($values['input_method'] ?? 'canvas') ?>">
                     <input type="hidden" name="signature_canvas" id="signatureCanvasInput">
 
