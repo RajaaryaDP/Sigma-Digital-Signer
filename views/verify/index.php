@@ -680,7 +680,7 @@ require_once __DIR__ . '/../layout/header.php';
         <!-- ================================================================= -->
         <div class="verify-hero-badge verify-hero-empty mb-4 text-center">
             <div class="badge px-3 py-2 mb-3" style="background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22); color: #ffffff; font-size: 0.78rem;">
-                <i class="bi bi-mortarboard-fill me-1"></i> POLITEKNIK NEGERI JAKARTA
+                <i class="bi bi-mortarboard-fill me-1"></i> SIGMA - Tanda Tangan Digital
             </div>
             <h2 class="fw-bold mb-2 text-white">Verifikasi Keaslian Dokumen Resmi</h2>
             <p class="mb-0 small" style="max-width: 620px; margin: 0 auto; line-height: 1.55; color: rgba(255,255,255,0.82);">
@@ -726,13 +726,13 @@ require_once __DIR__ . '/../layout/header.php';
                 <!-- Petunjuk Alur Verifikasi -->
                 <div class="verify-card p-3 p-md-4">
                     <h6 class="fw-bold mb-3" style="color: var(--text-heading);">
-                        <i class="bi bi-lightbulb text-sigma-purple me-2"></i>Bagaimana Cara Kerja Verifikasi SIGMA?
+                        Bagaimana Cara Kerja Verifikasi SIGMA?
                     </h6>
                     <div class="row g-3 small">
                         <div class="col-md-4">
                             <div class="p-3 rounded-3 h-100 border" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                                 <div class="fw-bold text-sigma-navy mb-1">
-                                    <i class="bi bi-camera-fill text-sigma-purple me-1"></i>1. Scan QR Code
+                                    1. Scan QR Code
                                 </div>
                                 <div class="text-muted" style="font-size: 0.78rem;">
                                     Arahkan kamera smartphone ke stempel QR Code untuk membuka tautan verifikasi otomatis.
@@ -742,7 +742,7 @@ require_once __DIR__ . '/../layout/header.php';
                         <div class="col-md-4">
                             <div class="p-3 rounded-3 h-100 border" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                                 <div class="fw-bold text-sigma-navy mb-1">
-                                    <i class="bi bi-cpu-fill text-sigma-purple me-1"></i>2. Hash SHA-256
+                                    2. Hash SHA-256
                                 </div>
                                 <div class="text-muted" style="font-size: 0.78rem;">
                                     Sistem mencocokkan integritas berkas PDF lewat hash SHA-256 dan token UUID unik penerbitan.
@@ -752,7 +752,7 @@ require_once __DIR__ . '/../layout/header.php';
                         <div class="col-md-4">
                             <div class="p-3 rounded-3 h-100 border" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                                 <div class="fw-bold text-sigma-navy mb-1">
-                                    <i class="bi bi-patch-check-fill text-sigma-purple me-1"></i>3. Bukti Otentik
+                                    3. Bukti Otentik
                                 </div>
                                 <div class="text-muted" style="font-size: 0.78rem;">
                                     Muncul snapshot identitas civitas, stempel tanda tangan, dan rantai pengesahan berjenjang.
