@@ -13,7 +13,7 @@ require_once __DIR__ . '/../layout/header.php';
             <i class="bi bi-pen me-2 text-sigma-purple"></i>Template Tanda Tangan Digital
         </h4>
         <p class="small mb-0" style="color: var(--text-muted);">
-            Kelola template tanda tangan pribadi Anda untuk menandatangani dokumen akademik secara cepat, resmi, dan terverifikasi.
+            Template yang ditandai Default otomatis terpilih saat menandatangani.
         </p>
     </div>
     <div>
@@ -21,19 +21,6 @@ require_once __DIR__ . '/../layout/header.php';
             <i class="bi bi-plus-circle"></i>
             <span>Buat Template Baru</span>
         </a>
-    </div>
-</div>
-
-<!-- Info Alert Callout -->
-<div class="sigma-guide-banner mb-4 d-flex align-items-start gap-3">
-    <div class="flex-shrink-0 mt-1" style="width: 36px; height: 36px; border-radius: 10px; background: var(--sigma-tint-100); color: var(--sigma-purple-700); display: inline-flex; align-items: center; justify-content: center;">
-        <i class="bi bi-shield-check fs-5"></i>
-    </div>
-    <div>
-        <div class="fw-semibold small mb-1" style="color: var(--text-heading);">Tanda Tangan Tersimpan &amp; Keabsahan Digital</div>
-        <div class="small" style="color: var(--text-body); line-height: 1.55;">
-            Template yang ditandai sebagai <strong>Utama / Default</strong> akan otomatis terpilih di panel penandatanganan dokumen. Seluruh tanda tangan yang dibubuhkan pada dokumen final akan dipadukan dengan QR Code verifikasi biodata resmi civitas Anda.
-        </div>
     </div>
 </div>
 
@@ -47,7 +34,7 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
         <h5 class="fw-bold mb-2" style="color: var(--text-heading);">Belum Ada Template Tanda Tangan</h5>
         <p class="small mx-auto mb-4" style="max-width: 520px; color: var(--text-muted);">
-            Anda belum memiliki template tanda tangan tersimpan. Buat sekarang dengan menggambar langsung di atas kanvas digital atau mengunggah gambar PNG transparan untuk mempermudah penandatanganan berkas.
+            Gambar tanda tangan atau unggah PNG transparan.
         </p>
         <div>
             <a href="<?= BASE_URL ?>/user-signatures/create" class="btn-sigma-navy px-4 py-2 text-decoration-none">
@@ -143,7 +130,7 @@ require_once __DIR__ . '/../layout/header.php';
                                 <label class="sigma-form-label">Nama / Label Template</label>
                                 <input type="text" name="label" class="form-control form-control-sm sigma-input"
                                        value="<?= htmlspecialchars($sig['label'] ?: 'Tanda Tangan Pribadi') ?>" required maxlength="100">
-                                <small class="d-block mt-1" style="font-size: 0.72rem; color: var(--text-muted);">Beri nama pengenal seperti "Tanda Tangan Utama" atau "Paraf Singkat".</small>
+                                
                             </div>
                             <div class="modal-footer py-2 px-3">
                                 <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
@@ -166,10 +153,10 @@ require_once __DIR__ . '/../layout/header.php';
                         </div>
                         <div class="modal-body p-4">
                             <p class="mb-2" style="color: var(--text-heading);">
-                                Apakah Anda yakin ingin menghapus template tanda tangan <strong>"<?= htmlspecialchars($sig['label'] ?: 'Tanda Tangan Pribadi') ?>"</strong>?
+                                Hapus template <strong>"<?= htmlspecialchars($sig['label'] ?: 'Tanda Tangan Pribadi') ?>"</strong>?
                             </p>
                             <p class="small mb-0" style="color: var(--text-muted);">
-                                Template tanda tangan ini tidak akan dapat dipilih kembali untuk dokumen baru. Dokumen lama yang sudah ditandatangani tidak akan terpengaruh.
+                                Dokumen yang sudah ditandatangani tidak terpengaruh.
                             </p>
                         </div>
                         <div class="modal-footer py-2 px-4">

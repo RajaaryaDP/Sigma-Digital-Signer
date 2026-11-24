@@ -7,7 +7,7 @@
         </div>
         <h4 class="fw-bold mb-1" style="color: var(--text-heading);">Master Jurusan &amp; Program Studi</h4>
         <p class="small mb-0" style="color: var(--text-muted);">
-            Kelola daftar Jurusan dan Program Studi (Prodi) sebagai dasar penugasan Dosen (multi-prodi) &amp; filter penandatangan dokumen.
+            Kelola Jurusan dan Program Studi.
         </p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
@@ -85,8 +85,8 @@
             </h6>
             <p class="small mb-3" style="color: var(--text-muted);">
                 <?= $search !== ''
-                    ? 'Coba ubah kata kunci pencarian atau reset filter untuk melihat seluruh data.'
-                    : 'Tambahkan Jurusan dan Program Studi terlebih dahulu agar dapat dikaitkan dengan data Dosen & Mahasiswa.' ?>
+                    ? 'Coba kata kunci lain.'
+                    : 'Tambahkan Jurusan terlebih dahulu.' ?>
             </p>
             <?php if ($search !== ''): ?>
                 <a href="<?= BASE_URL ?>/departments" class="btn-sigma-outline btn-sigma-sm text-decoration-none">Tampilkan Semua</a>

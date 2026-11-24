@@ -234,7 +234,7 @@ class UserSignatures
 
             error_log('[UserSignatures::store] ' . $e->getMessage());
             $safeMsg = ($e instanceof \PDOException)
-                ? 'Gagal menyimpan template tanda tangan karena kendala pada basis data. Silakan coba kembali.'
+                ? 'Gagal menyimpan template tanda tangan. Silakan coba kembali.'
                 : 'Gagal menyimpan template tanda tangan: ' . $e->getMessage();
 
             $_SESSION['flash'] = [
@@ -297,7 +297,7 @@ class UserSignatures
             error_log('[UserSignatures::update] ' . $e->getMessage());
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal memperbarui template tanda tangan karena kendala pada basis data.'
+                'message' => 'Gagal memperbarui template tanda tangan.'
             ];
         }
 
@@ -333,7 +333,7 @@ class UserSignatures
             error_log('[UserSignatures::delete] ' . $e->getMessage());
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal menghapus template tanda tangan karena kendala pada basis data.'
+                'message' => 'Gagal menghapus template tanda tangan.'
             ];
         }
 

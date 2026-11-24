@@ -29,7 +29,7 @@
                     </div>
                     <div>
                         <h5 class="fw-bold mb-0" style="color: var(--text-heading);"><?= $isEdit ? 'Ubah Data Jurusan' : 'Tambah Jurusan Baru' ?></h5>
-                        <small style="color: var(--text-muted);">Jurusan menjadi unit induk Program Studi serta acuan filter penandatangan</small>
+                        
                     </div>
                 </div>
             </div>
@@ -50,7 +50,7 @@
                                maxlength="30"
                                placeholder="Contoh: TIK, TE, TM"
                                value="<?= htmlspecialchars($old['code'] ?? '') ?>">
-                        <div class="form-text small" style="color: var(--text-muted);">Huruf kapital, angka, strip (-), atau underscore (_). Maksimal 30 karakter.</div>
+                        <div class="form-text small" style="color: var(--text-muted);">Huruf kapital, angka, - atau _ (maks. 30).</div>
                     </div>
 
                     <div class="mb-4">
@@ -68,7 +68,7 @@
                         <?php if ($isEdit): ?>
                             <div class="form-text small" style="color: var(--sigma-info-text);">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Mengubah nama jurusan juga memperbarui nama jurusan pada data civitas yang terhubung.
+                                Nama jurusan di data civitas ikut diperbarui.
                             </div>
                         <?php endif; ?>
                     </div>

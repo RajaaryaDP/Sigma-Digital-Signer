@@ -57,28 +57,22 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
     <div>
         <h1 class="h4 fw-bold mb-1" style="color: var(--text-heading);">
             <?php if ($isAdmin): ?>
-                <?= $statusFilter === 'pending_review' ? 'Antrean Review Dokumen' : 'Dashboard Manajemen Dokumen' ?>
+                <?= $statusFilter === 'pending_review' ? 'Antrean Review Dokumen' : 'Dashboard Dokumen' ?>
             <?php else: ?>
-                <?= $focusQueue ? 'Antrean Tanda Tangan Anda' : 'Dashboard Dokumen & Tanda Tangan' ?>
+                <?= $focusQueue ? 'Antrean Tanda Tangan Anda' : 'Dashboard' ?>
             <?php endif; ?>
         </h1>
         <p class="small mb-0" style="color: var(--text-muted);">
             <?php if ($isAdmin): ?>
-                Pantau pengajuan masuk, verifikasi kelengkapan slot, dan awasi jejak penandatanganan kampus.
+                Pantau pengajuan dan antrean review.
             <?php else: ?>
-                Halo, <strong style="color: var(--text-heading);"><?= htmlspecialchars($user['name'] ?? 'Pengguna', ENT_QUOTES, 'UTF-8') ?></strong> — <?= $focusQueue ? 'pantau dan tanda tangani dokumen yang ditugaskan kepada Anda.' : 'kelola pengajuan PDF dan giliran tanda tangan berjenjang Anda.' ?>
+                Halo, <strong style="color: var(--text-heading);"><?= htmlspecialchars($user['name'] ?? 'Pengguna', ENT_QUOTES, 'UTF-8') ?></strong>
             <?php endif; ?>
         </p>
     </div>
 
     <div class="d-flex flex-wrap align-items-center gap-2">
         <?php if ($isAdmin): ?>
-            <a href="<?= BASE_URL ?>/civitas" class="btn-sigma-outline btn-sigma-sm">
-                <i class="bi bi-people"></i> Master Civitas
-            </a>
-            <a href="<?= BASE_URL ?>/document-templates" class="btn-sigma-outline btn-sigma-sm">
-                <i class="bi bi-file-earmark-richtext"></i> Template Dokumen
-            </a>
             <?php if ($statusFilter !== 'pending_review'): ?>
                 <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn-sigma-navy btn-sigma-sm">
                     <i class="bi bi-inboxes"></i> Antrean Review (<?= (int)($docCounts['pending_review'] ?? 0) ?>)
@@ -89,9 +83,6 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
                 </a>
             <?php endif; ?>
         <?php else: ?>
-            <a href="<?= BASE_URL ?>/user-signatures" class="btn-sigma-outline btn-sigma-sm">
-                <i class="bi bi-pen"></i> Template TTD
-            </a>
             <a href="<?= BASE_URL ?>/documents/create" class="btn-sigma-navy">
                 <i class="bi bi-plus-lg"></i> Ajukan Dokumen Baru
             </a>
@@ -147,21 +138,6 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
             </div>
         </div>
     </div>
-
-    <?php if ((int)($docCounts['pending_review'] ?? 0) > 0 && $statusFilter !== 'pending_review'): ?>
-        <div class="alert alert-sigma d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4"
-             style="background: var(--sigma-warning-bg); border-color: #fde68a; color: var(--sigma-warning-text);">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-                <span class="small fw-semibold">
-                    Terdapat <?= (int)$docCounts['pending_review'] ?> dokumen baru yang menunggu review kelengkapan admin sebelum masuk tahap tanda tangan.
-                </span>
-            </div>
-            <a href="<?= BASE_URL ?>/documents?status=pending_review" class="btn-sigma-navy btn-sigma-sm">
-                Tinjau Antrean <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
-    <?php endif; ?>
 
 <?php else: ?>
     <?php
@@ -226,7 +202,7 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge-sigma badge-sigma-warning"><i class="bi bi-bell-fill"></i> Giliran Anda</span>
                         <span class="fw-bold small" style="color: var(--text-heading);">
-                            <?= count($pendingSignDocs) ?> dokumen menunggu tanda tangan Anda sekarang
+                            <?= count($pendingSignDocs) ?> dokumen menunggu tanda tangan Anda
                         </span>
                     </div>
                     <?php if (!$focusQueue): ?>
@@ -252,14 +228,6 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
         </div>
     <?php endif; ?>
 
-    <?php if (!$focusQueue): ?>
-        <!-- Mode Switcher Ringkas User (Pengajuan vs Antrean TTD) -->
-        <div class="filter-chips-sigma mb-3">
-            <a href="<?= BASE_URL ?>/documents" class="filter-chip-sigma <?= !$focusQueue ? 'active' : '' ?>">
-                <i class="bi bi-folder2-open"></i> Dokumen Pengajuan Saya (<?= (int)($docCounts['total'] ?? 0) ?>)
-            </a>
-        </div>
-    <?php endif; ?>
 <?php endif; ?>
 
 <?php
@@ -273,11 +241,8 @@ $renderAssignedQueueBlock = function () use ($user, $assignedDocs, $renderDocSta
         <div class="card-sigma-header flex-wrap">
             <div>
                 <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">
-                    <i class="bi bi-vector-pen me-1 text-sigma-purple"></i> Antrean & Penugasan Tanda Tangan Saya
+                    <i class="bi bi-vector-pen me-1 text-sigma-purple"></i> Antrean Tanda Tangan Saya
                 </h2>
-                <div class="small" style="color: var(--text-muted);">
-                    Daftar dokumen mandiri maupun penugasan dari sivitas lain yang ditandatangani oleh Anda.
-                </div>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <div class="filter-chips-sigma" id="queueFilterChips">
@@ -297,7 +262,7 @@ $renderAssignedQueueBlock = function () use ($user, $assignedDocs, $renderDocSta
                 </div>
                 <h3 class="h6 fw-bold mb-1" style="color: var(--text-heading);">Belum Ada Tugas Tanda Tangan</h3>
                 <p class="small mb-0" style="color: var(--text-muted);">
-                    Anda belum ditugaskan sebagai penandatangan pada dokumen aktif mana pun.
+                    Belum ada dokumen yang perlu Anda tanda tangani.
                 </p>
             </div>
         <?php else: ?>
@@ -354,7 +319,7 @@ $renderAssignedQueueBlock = function () use ($user, $assignedDocs, $renderDocSta
                                         <?php if (($aDoc['signature_type'] ?? '') === 'single'): ?>
                                             Tanda tangan mandiri
                                         <?php else: ?>
-                                            Tahap #<?= $stepOrd ?> dari alur aktif (Tahap <?= $curStep ?>)
+                                            Tahap <?= $stepOrd ?> · aktif: <?= $curStep ?>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -546,7 +511,7 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $documents, $docCounts, $
                                                 </a>
                                                 <?php if ($docStatus === 'pending_review'): ?>
                                                     <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/withdraw" method="POST" class="d-inline"
-                                                          onsubmit="return confirm('Tarik kembali dokumen ini ke status Draft agar slot dapat diubah?');">
+                                                          onsubmit="return confirm('Tarik dokumen ini ke Draft?');">
                                                         <?= Csrf::field() ?>
                                                         <button type="submit" class="btn-sigma-outline btn-sigma-sm" title="Tarik ke Draft">
                                                             <i class="bi bi-arrow-counterclockwise"></i> Tarik

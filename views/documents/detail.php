@@ -100,19 +100,9 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
 
             <!-- Aksi Ringkas Header -->
             <div class="d-flex flex-wrap gap-2 flex-shrink-0">
-                <?php if ($doc['status'] === 'completed'): ?>
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-navy btn-sigma-sm">
-                        <i class="bi bi-file-earmark-check-fill"></i> Unduh PDF Final
-                    </a>
-                <?php else: ?>
+                <?php if ($doc['status'] !== 'completed'): ?>
                     <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-outline btn-sigma-sm">
                         <i class="bi bi-download"></i> Unduh Berkas Asli
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($isCanSignNow): ?>
-                    <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-purple btn-sigma-sm">
-                        <i class="bi bi-pen-fill"></i> Tanda Tangani Sekarang
                     </a>
                 <?php endif; ?>
             </div>
@@ -124,7 +114,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                  style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">
                 <i class="bi bi-x-circle-fill fs-5 mt-1"></i>
                 <div>
-                    <div class="fw-bold mb-1">Pengajuan Dokumen Ini Ditolak (Arsip Batal)</div>
+                    <div class="fw-bold mb-1">Dokumen Ditolak</div>
                     <p class="mb-1 small">
                         <strong>Alasan Penolakan:</strong> <?= nl2br(htmlspecialchars($doc['rejection_reason'] ?: 'Tidak ada keterangan spesifik.', ENT_QUOTES, 'UTF-8')) ?>
                     </p>
@@ -138,7 +128,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                         </small>
                     <?php endif; ?>
                     <small class="d-block mb-2 opacity-75">
-                        Sesuai kebijakan SIGMA (ADR-08), dokumen yang ditolak bersifat arsip batal permanen dan tidak dapat diedit kembali. Silakan ajukan berkas baru.
+                        Dokumen yang ditolak tidak dapat diedit. Silakan ajukan berkas baru.
                     </small>
                     <?php if ($isOwner): ?>
                         <a href="<?= BASE_URL ?>/documents/create" class="btn-sigma-danger btn-sigma-sm">
@@ -186,35 +176,32 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
             ?>
             <div class="sigma-stepper-bar mt-4">
                 <div class="small fw-bold text-uppercase mb-3" style="font-size: 0.7rem; letter-spacing: 0.06em; color: var(--sigma-purple-700);">
-                    Alur Proses Berjenjang (4 Tahap)
+                    Alur Proses
                 </div>
                 <div class="sigma-stepper-track">
                     <div class="sigma-step-item <?= $s1Class ?>">
                         <div class="sigma-step-num"><i class="bi <?= $s1Icon ?>"></i></div>
                         <div>
                             <div class="small fw-bold" style="color: var(--text-heading);">1. Upload & Atur Slot</div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted);">Penetapan posisi koordinat %</div>
                         </div>
                     </div>
                     <div class="sigma-step-item <?= $s2Class ?>">
                         <div class="sigma-step-num"><?= $s2Icon ?></div>
                         <div>
                             <div class="small fw-bold" style="color: var(--text-heading);">2. Peninjauan Admin</div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted);">Verifikasi kelayakan berkas</div>
                         </div>
                     </div>
                     <div class="sigma-step-item <?= $s3Class ?>">
                         <div class="sigma-step-num"><?= $s3Icon ?></div>
                         <div>
                             <div class="small fw-bold" style="color: var(--text-heading);">3. Penandatanganan</div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted);">Giliran aktif: Tahap <?= (int)$doc['current_step'] ?></div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Tahap <?= (int)$doc['current_step'] ?></div>
                         </div>
                     </div>
                     <div class="sigma-step-item <?= $s4Class ?>">
                         <div class="sigma-step-num"><?= $s4Icon ?></div>
                         <div>
-                            <div class="small fw-bold" style="color: var(--text-heading);">4. Dokumen Selesai</div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted);">PDF final berstempel & QR sah</div>
+                            <div class="small fw-bold" style="color: var(--text-heading);">4. Selesai</div>
                         </div>
                     </div>
                 </div>
@@ -278,7 +265,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                                                 class="btn-sigma-outline btn-sigma-sm py-1 px-2"
                                                 style="font-size: 0.72rem; min-height: 28px;"
                                                 onclick="jumpToPreviewPage(<?= (int) ($s['page_number'] ?: 1) ?>, 'detailSlot_<?= htmlspecialchars($s['id'], ENT_QUOTES, 'UTF-8') ?>')"
-                                                title="Klik untuk melihat posisi kotak slot pada pratinjau PDF di bawah">
+                                                title="Lihat di pratinjau">
                                             <i class="bi bi-geo-alt-fill text-sigma-purple"></i> Hal. <?= (int) $s['page_number'] ?> (<?= (float)$s['x_percent'] ?>%, <?= (float)$s['y_percent'] ?>%)
                                         </button>
                                     <?php else: ?>
@@ -447,7 +434,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                         </button>
                     </div>
 
-                    <button type="button" class="btn-sigma-outline btn-sigma-sm py-1 px-2" id="btnToggleSlotOverlay" title="Tampilkan atau sembunyikan kotak batas slot tanda tangan">
+                    <button type="button" class="btn-sigma-outline btn-sigma-sm py-1 px-2" id="btnToggleSlotOverlay" title="Tampilkan/sembunyikan slot">
                         <i class="bi bi-bounding-box text-sigma-purple"></i> <span id="toggleSlotOverlayLabel">Sembunyikan Slot</span>
                     </button>
 
@@ -508,13 +495,13 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                 <!-- Indikator Memuat PDF -->
                 <div id="detailPdfLoadingSpinner" class="py-5" style="color: var(--text-muted);">
                     <div class="spinner-border spinner-border-sm text-sigma-purple me-2" role="status"></div>
-                    <span class="small">Memuat lembar dokumen & pratinjau slot tanda tangan...</span>
+                    <span class="small">Memuat pratinjau...</span>
                 </div>
 
                 <!-- Alert Fallback jika PDF.js gagal -->
                 <div id="detailPdfFallbackAlert" class="alert alert-warning alert-sigma py-2 px-3 small d-none text-start mb-3">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                    Pratinjau kanvas tidak dapat dimuat otomatis. Menampilkan representasi lembar halaman beserta posisi kotak slot & tanda tangan di bawah ini.
+                    Pratinjau PDF gagal dimuat. Posisi slot tetap ditampilkan di bawah.
                 </div>
 
                 <!-- Wadah Kanvas PDF + Lapisan Overlay Kotak Slot & Tanda Tangan -->
@@ -781,7 +768,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
             <div class="card-sigma-body p-3 d-grid gap-2">
                 <?php if ($isAdmin && $doc['status'] === 'pending_review'): ?>
                     <p class="small mb-2" style="color: var(--text-muted);">
-                        Telaah lembar PDF dan posisi slot penandatangan sebelum mengizinkan alur berjenjang dimulai (Tahap 1).
+                        Periksa PDF dan posisi slot sebelum menyetujui.
                     </p>
                     <button type="button" class="btn-sigma-navy w-100" data-bs-toggle="modal" data-bs-target="#modalApprove">
                         <i class="bi bi-check-circle"></i> Setujui Berkas
@@ -792,9 +779,6 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                 <?php endif; ?>
 
                 <?php if ($isCanSignNow): ?>
-                    <p class="small mb-2" style="color: var(--text-muted);">
-                        Saat ini adalah giliran tanda tangan Anda (Tahap <?= (int)$mySigner['step_order'] ?>).
-                    </p>
                     <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-navy w-100">
                         <i class="bi bi-pen-fill"></i> Tanda Tangani Sekarang
                     </a>
@@ -809,7 +793,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                         <i class="bi bi-bounding-box"></i> Atur Slot Tanda Tangan
                     </a>
                     <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/delete" method="POST"
-                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus draft dokumen ini? Berkas PDF akan dihapus secara permanen.');">
+                          onsubmit="return confirm('Hapus draft ini secara permanen?');">
                         <?= Csrf::field() ?>
                         <button type="submit" class="btn-sigma-outline w-100 text-danger">
                             <i class="bi bi-trash"></i> Hapus Draft
@@ -825,7 +809,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
 
                 <?php if ($doc['status'] === 'completed'): ?>
                     <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download" class="btn-sigma-purple w-100">
-                        <i class="bi bi-file-earmark-check-fill"></i> Unduh PDF Final Berstempel
+                        <i class="bi bi-file-earmark-check-fill"></i> Unduh PDF Final
                     </a>
                 <?php endif; ?>
             </div>
@@ -848,7 +832,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                             <?php if ($doc['status'] === 'completed'): ?>
                                 <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/download?type=original"
                                    class="text-decoration-none fw-semibold" style="font-size: 0.72rem; color: var(--sigma-purple-700);"
-                                   title="Unduh berkas PDF asli sebelum dibubuhi tanda tangan">
+                                   title="Unduh PDF sebelum ditandatangani">
                                     <i class="bi bi-download me-1"></i>Unduh Asli
                                 </a>
                             <?php endif; ?>
@@ -867,7 +851,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                     </li>
                     <li>
                         <div class="d-flex align-items-center justify-content-between mb-1">
-                            <span style="font-size: 0.75rem; color: var(--text-muted);">Hash Integritas SHA-256 (Asli)</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Hash SHA-256 (Asli)</span>
                             <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold"
                                     style="font-size: 0.72rem; color: var(--sigma-purple-700);"
                                     onclick="copyHash('<?= htmlspecialchars($doc['file_hash'], ENT_QUOTES, 'UTF-8') ?>', this)">
@@ -880,7 +864,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                     <li class="border-top pt-3" style="border-color: var(--border-subtle) !important;">
                         <div class="d-flex align-items-center justify-content-between mb-1">
                             <span class="fw-bold d-flex align-items-center gap-1" style="font-size: 0.75rem; color: var(--sigma-success-text);">
-                                <i class="bi bi-patch-check-fill"></i> Hash Integritas SHA-256 (Final)
+                                <i class="bi bi-patch-check-fill"></i> Hash SHA-256 (Final)
                             </span>
                             <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold"
                                     style="font-size: 0.72rem; color: var(--sigma-success-text);"
@@ -891,9 +875,6 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                         <div class="sigma-hash-box" style="background: var(--sigma-success-bg); border-color: #bbf7d0; color: var(--sigma-success-text);">
                             <?= htmlspecialchars($doc['final_file_hash'], ENT_QUOTES, 'UTF-8') ?>
                         </div>
-                        <span class="d-block mt-1" style="font-size: 0.7rem; color: var(--text-muted);">
-                            Sidik jari kriptografis SHA-256 berkas PDF setelah pembubuhan tanda tangan dan QR Token SIGMA.
-                        </span>
                     </li>
                     <?php endif; ?>
                     <?php if (!empty($doc['reviewed_at'])): ?>
@@ -908,13 +889,6 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                             Oleh: <strong style="color: var(--text-heading);"><?= htmlspecialchars($doc['reviewer_name'] ?? 'Administrator', ENT_QUOTES, 'UTF-8') ?></strong>
                             &bull; <?= date('d M Y, H:i', strtotime($doc['reviewed_at'])) ?> WIB
                         </div>
-                    </li>
-                    <?php elseif ($doc['status'] === 'pending_review'): ?>
-                    <li class="border-top pt-3" style="border-color: var(--border-subtle) !important;">
-                        <span class="d-block mb-1" style="font-size: 0.75rem; color: var(--text-muted);">Status Review Admin</span>
-                        <span class="badge-sigma badge-sigma-warning">
-                            <i class="bi bi-hourglass-split"></i> Menunggu Peninjauan Admin
-                        </span>
                     </li>
                     <?php endif; ?>
                 </ul>
@@ -1041,16 +1015,9 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
             <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/approve" method="POST">
                 <?= Csrf::field() ?>
                 <div class="modal-body p-4">
-                    <p class="mb-3" style="color: var(--text-heading);">
-                        Apakah Anda yakin ingin menyetujui dokumen <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong>?
+                    <p class="mb-0" style="color: var(--text-heading);">
+                        Setujui dokumen <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong>? Proses tanda tangan akan langsung dimulai.
                     </p>
-                    <div class="alert alert-sigma py-2 px-3 small mb-0 d-flex align-items-start gap-2"
-                         style="background: var(--sigma-tint-50); border-color: #dfd7ee; color: var(--sigma-navy);">
-                        <i class="bi bi-info-circle-fill mt-1 text-sigma-purple"></i>
-                        <div>
-                            Setelah disetujui, alur penandatanganan berjenjang akan segera dimulai. Berkas dialihkan ke status <strong>Proses Penandatanganan</strong> dan penandatangan pada <strong>Tahap 1</strong> menerima giliran aktif.
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                     <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>
@@ -1080,7 +1047,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                          style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">
                         <i class="bi bi-exclamation-triangle-fill mt-1"></i>
                         <div>
-                            <strong>Kebijakan Kampus (ADR-08):</strong> Dokumen yang ditolak berstatus <em>Arsip Batal Permanen</em> dan tidak dapat diedit kembali. Pengaju harus membuat pengajuan baru.
+                            Dokumen yang ditolak tidak dapat diedit. Pengaju harus mengajukan ulang.
                         </div>
                     </div>
                     <div class="mb-2">
@@ -1088,7 +1055,7 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
                             Alasan Penolakan <span class="text-danger">*</span>
                         </label>
                         <textarea class="form-control sigma-input" id="rejection_reason" name="rejection_reason" rows="3"
-                                  placeholder="Tuliskan alasan penolakan secara jelas (contoh: posisi slot menimpa teks surat, lampiran belum lengkap)..." required></textarea>
+                                  placeholder="Contoh: posisi slot menimpa teks surat" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
@@ -1117,12 +1084,9 @@ $isCanSignNow = (!$isAdmin && $mySigner && $doc['status'] === 'signing' && $mySi
             <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/withdraw" method="POST">
                 <?= Csrf::field() ?>
                 <div class="modal-body p-4">
-                    <p class="mb-3" style="color: var(--text-heading);">
-                        Anda akan menarik pengajuan dokumen <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong> dari antrean peninjauan Administrator kembali ke status <strong>Draft</strong>.
+                    <p class="mb-0" style="color: var(--text-heading);">
+                        Tarik <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong> kembali ke Draft untuk mengubah posisi slot?
                     </p>
-                    <div class="rounded-3 border p-3 small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important; color: var(--text-muted);">
-                        Setelah ditarik ke Draft, Anda akan langsung diarahkan ke halaman <strong>Atur Slot</strong> untuk mengubah posisi tanda tangan atau membatalkan pengajuan.
-                    </div>
                 </div>
                 <div class="modal-footer border-top py-2 px-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                     <button type="button" class="btn-sigma-outline btn-sigma-sm" data-bs-dismiss="modal">Batal</button>

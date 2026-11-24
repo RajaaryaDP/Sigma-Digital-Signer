@@ -429,7 +429,7 @@ class Documents
 
             error_log('[Documents::store] ' . $e->getMessage());
             $safeMsg = ($e instanceof \PDOException)
-                ? 'Gagal menyimpan dokumen karena kendala pada basis data. Silakan coba kembali.'
+                ? 'Gagal menyimpan dokumen. Silakan coba kembali.'
                 : 'Gagal menyimpan dokumen: ' . $e->getMessage();
 
             $_SESSION['flash'] = [
@@ -526,7 +526,7 @@ class Documents
         if (empty($signers)) {
             $_SESSION['flash'] = [
                 'type'    => 'warning',
-                'message' => 'Tidak ada penandatangan yang ditambahkan. Silakan buat ulang dokumen dengan penandatangan.'
+                'message' => 'Belum ada penandatangan. Silakan buat ulang dokumen.'
             ];
             header('Location: ' . BASE_URL . '/documents/' . $id);
             exit;
@@ -604,7 +604,7 @@ class Documents
                 error_log('[Documents::update/save_slots] ' . $e->getMessage());
                 $_SESSION['flash'] = [
                     'type'    => 'danger',
-                    'message' => 'Gagal menyimpan posisi slot tanda tangan karena kendala pada basis data.'
+                    'message' => 'Gagal menyimpan posisi slot tanda tangan.'
                 ];
                 header('Location: ' . BASE_URL . '/documents/' . $id . '/arrange');
                 exit;
@@ -668,7 +668,7 @@ class Documents
             } catch (\Throwable $e) {
                 error_log('[Documents::update/arrange] ' . $e->getMessage());
                 $safeMsg = ($e instanceof \PDOException)
-                    ? 'Gagal mengajukan dokumen karena kendala pada basis data. Silakan coba kembali.'
+                    ? 'Gagal mengajukan dokumen. Silakan coba kembali.'
                     : 'Gagal mengajukan dokumen: ' . $e->getMessage();
 
                 $_SESSION['flash'] = [
@@ -744,7 +744,7 @@ class Documents
         } catch (\Throwable $e) {
             error_log('[Documents::approve] ' . $e->getMessage());
             $safeMsg = ($e instanceof \PDOException)
-                ? 'Terjadi kesalahan basis data saat menyetujui dokumen. Silakan coba kembali.'
+                ? 'Gagal menyetujui dokumen. Silakan coba kembali.'
                 : 'Terjadi kesalahan saat menyetujui dokumen: ' . $e->getMessage();
 
             $_SESSION['flash'] = [
@@ -816,7 +816,7 @@ class Documents
         } catch (\Throwable $e) {
             error_log('[Documents::reject] ' . $e->getMessage());
             $safeMsg = ($e instanceof \PDOException)
-                ? 'Terjadi kesalahan basis data saat menolak dokumen. Silakan coba kembali.'
+                ? 'Gagal menolak dokumen. Silakan coba kembali.'
                 : 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage();
 
             $_SESSION['flash'] = [
@@ -939,7 +939,7 @@ class Documents
         if (!$userProfile || empty($userProfile['civitas_id']) || empty($userProfile['civitas_name'])) {
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Akun atau data civitas Anda sudah tidak aktif sehingga tidak berwenang menandatangani dokumen.'
+                'message' => 'Akun Anda tidak aktif sehingga tidak dapat menandatangani.'
             ];
             header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
             exit;
@@ -1144,7 +1144,7 @@ class Documents
 
                 $_SESSION['flash'] = [
                     'type'    => 'success',
-                    'message' => 'Tanda tangan Anda berhasil dibubuhkan. Seluruh pihak telah menandatangani — dokumen kini berstatus Selesai.'
+                    'message' => 'Tanda tangan berhasil. Dokumen selesai.'
                 ];
             } else {
                 $updatedDoc = $this->model->getById($doc['id']);
@@ -1160,7 +1160,7 @@ class Documents
 
                 $_SESSION['flash'] = [
                     'type'    => 'success',
-                    'message' => 'Tanda tangan Anda berhasil dibubuhkan. Giliran diteruskan ke penandatangan Step ' . $nextStep . '.'
+                    'message' => 'Tanda tangan berhasil. Giliran diteruskan ke Tahap ' . $nextStep . '.'
                 ];
             }
         } catch (\Throwable $e) {
@@ -1171,7 +1171,7 @@ class Documents
 
             error_log('[Documents::sign] ' . $e->getMessage());
             $safeMsg = ($e instanceof \PDOException)
-                ? 'Gagal menyimpan tanda tangan karena kendala pada basis data. Silakan coba kembali.'
+                ? 'Gagal menyimpan tanda tangan. Silakan coba kembali.'
                 : 'Gagal menyimpan tanda tangan: ' . $e->getMessage();
 
             $_SESSION['flash'] = [
@@ -1265,7 +1265,7 @@ class Documents
         } catch (\Throwable $e) {
             error_log('[Documents::decline] ' . $e->getMessage());
             $safeMsg = ($e instanceof \PDOException)
-                ? 'Terjadi kesalahan basis data saat menolak dokumen. Silakan coba kembali.'
+                ? 'Gagal menolak dokumen. Silakan coba kembali.'
                 : 'Terjadi kesalahan saat menolak dokumen: ' . $e->getMessage();
 
             $_SESSION['flash'] = [
@@ -1311,7 +1311,7 @@ class Documents
             if (!$deleted) {
                 $_SESSION['flash'] = [
                     'type'    => 'warning',
-                    'message' => 'Draft tidak dapat dibatalkan karena status dokumen telah berubah atau sudah dihapus.'
+                    'message' => 'Draft tidak dapat dibatalkan karena statusnya sudah berubah.'
                 ];
                 header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
                 exit;
@@ -1386,7 +1386,7 @@ class Documents
         if ($doc['status'] !== 'pending_review') {
             $_SESSION['flash'] = [
                 'type'    => 'warning',
-                'message' => 'Dokumen hanya dapat ditarik ke Draft selama masih berstatus Menunggu Review Administrator.'
+                'message' => 'Hanya dokumen yang menunggu review yang bisa ditarik ke Draft.'
             ];
             header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
             exit;
@@ -1397,7 +1397,7 @@ class Documents
             if (!$withdrawn) {
                 $_SESSION['flash'] = [
                     'type'    => 'warning',
-                    'message' => 'Pengajuan tidak dapat ditarik karena dokumen sudah diproses oleh Administrator atau telah dihapus.'
+                    'message' => 'Pengajuan tidak dapat ditarik karena sudah diproses Administrator.'
                 ];
                 header('Location: ' . BASE_URL . '/documents/' . $doc['id']);
                 exit;

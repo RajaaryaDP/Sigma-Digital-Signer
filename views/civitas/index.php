@@ -9,7 +9,7 @@ require_once __DIR__ . '/../layout/header.php';
             Administrasi Biodata Kampus
         </div>
         <h4 class="fw-bold mb-1" style="color: var(--text-heading);">Master Data Civitas Kampus</h4>
-        <p class="small mb-0" style="color: var(--text-muted);">Direktori profil resmi Dosen, Mahasiswa, dan Tenaga Kependidikan untuk validasi QR Code &amp; Tanda Tangan.</p>
+        <p class="small mb-0" style="color: var(--text-muted);">Data Dosen, Mahasiswa, dan Tendik.</p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
         <a href="<?= BASE_URL ?>/civitas/template" class="btn-sigma-outline text-decoration-none" title="Unduh template resmi CSV">
@@ -136,7 +136,7 @@ require_once __DIR__ . '/../layout/header.php';
             <h6 class="fw-semibold mb-1" style="color: var(--text-heading);">Tidak Ada Data Civitas yang Ditemukan</h6>
             <p class="small mb-3" style="color: var(--text-muted);">
                 <?= !empty($search) || !empty($currentType)
-                    ? 'Tidak ada data civitas yang cocok dengan filter atau kata kunci pencarian Anda.'
+                    ? 'Tidak ada data yang cocok.'
                     : 'Belum ada data civitas kampus yang tersimpan di sistem.' ?>
             </p>
             <?php if (!empty($search) || !empty($currentType)): ?>
@@ -246,7 +246,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </div>
                 <h5 class="fw-bold mb-1" style="color: var(--text-heading);">Konfirmasi Hapus Civitas</h5>
                 <p class="small mb-3" style="color: var(--text-muted);">
-                    Apakah Anda yakin ingin menghapus data civitas berikut?
+                    Hapus data civitas berikut?
                 </p>
 
                 <div class="p-3 rounded-3 border text-start mb-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
@@ -256,7 +256,7 @@ require_once __DIR__ . '/../layout/header.php';
                     <div class="fw-bold font-mono-hash" style="color: var(--text-heading);" id="modalDeleteIdentifier">-</div>
                 </div>
                 <p style="font-size: 0.78rem; color: var(--text-muted);">
-                    * Data akan dihapus secara soft-delete dan tidak lagi muncul pada daftar pemilih tanda tangan.
+                    * Civitas ini tidak akan muncul lagi di daftar penandatangan.
                 </p>
 
                 <form id="deleteForm" method="POST" action="">

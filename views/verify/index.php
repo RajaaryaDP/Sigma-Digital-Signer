@@ -181,7 +181,7 @@ require_once __DIR__ . '/../layout/header.php';
             $badgeStatusText = 'RESMI & SAH PENUH';
             $badgeClass      = 'badge-sigma-success';
             $heroTitle       = 'Dokumen Resmi Terverifikasi';
-            $heroSubtitle    = 'Tanda tangan digital ini tercatat sah, tervalidasi hash SHA-256, dan seluruh tahapan pengesahan dokumen telah selesai di sistem SIGMA PNJ.';
+            $heroSubtitle    = 'Tanda tangan sah dan semua tahap pengesahan sudah selesai.';
             $stampStatusText = 'Status: Sah / Selesai';
             $stampBadgeClass = 'badge-sigma-success';
         } elseif ($isDocSigning) {
@@ -191,7 +191,7 @@ require_once __DIR__ . '/../layout/header.php';
             $badgeStatusText = 'DALAM PROSES BERJENJANG';
             $badgeClass      = 'badge-sigma-purple';
             $heroTitle       = 'Tanda Tangan Sah — Dokumen Dalam Proses';
-            $heroSubtitle    = 'Tanda tangan civitas ini sah dan terdaftar resmi di SIGMA PNJ. Dokumen masih menunggu penyelesaian penandatangan berikutnya.';
+            $heroSubtitle    = 'Tanda tangan sah. Dokumen masih menunggu penandatangan berikutnya.';
             $stampStatusText = 'Status: Sah (Menunggu Pihak Lain)';
             $stampBadgeClass = 'badge-sigma-warning';
         } elseif ($isDocRejected) {
@@ -201,7 +201,7 @@ require_once __DIR__ . '/../layout/header.php';
             $badgeStatusText = 'DOKUMEN DIBATALKAN / DITOLAK';
             $badgeClass      = 'badge-sigma-danger';
             $heroTitle       = 'Peringatan: Dokumen Telah Dibatalkan';
-            $heroSubtitle    = 'Dokumen ini berstatus batal/ditolak pada alur pengesahan SIGMA (Arsip Batal Permanen), sehingga tanda tangan tidak lagi berlaku.';
+            $heroSubtitle    = 'Dokumen ini ditolak, sehingga tanda tangan tidak berlaku.';
             $stampStatusText = 'Status: Batal / Gugur';
             $stampBadgeClass = 'badge-sigma-danger';
         } else {
@@ -211,7 +211,7 @@ require_once __DIR__ . '/../layout/header.php';
             $badgeStatusText = strtoupper((string) $docStatus);
             $badgeClass      = 'badge-sigma-purple';
             $heroTitle       = 'Dokumen Dalam Tinjauan';
-            $heroSubtitle    = 'Tanda tangan tercatat resmi dalam basis data SIGMA Politeknik Negeri Jakarta.';
+            $heroSubtitle    = 'Tanda tangan tercatat resmi di SIGMA.';
             $stampStatusText = 'Status: Tercatat';
             $stampBadgeClass = 'badge-sigma-neutral';
         }
@@ -352,12 +352,12 @@ require_once __DIR__ . '/../layout/header.php';
                                 <div class="small py-3 text-center">
                                     <i class="bi bi-qr-code fs-1 d-block mb-1 text-sigma-purple"></i>
                                     <span class="badge-sigma badge-sigma-purple">Format: Hanya Kode QR</span>
-                                    <div class="text-muted mt-2" style="font-size: 0.76rem;">Disahkan secara elektronik dengan stempel QR verifikasi resmi SIGMA PNJ.</div>
+                                    <div class="text-muted mt-2" style="font-size: 0.76rem;">Disahkan dengan QR verifikasi SIGMA.</div>
                                 </div>
                             <?php else: ?>
                                 <div class="text-muted small py-3">
                                     <i class="bi bi-file-earmark-check fs-2 d-block mb-1" style="color: var(--sigma-success-text);"></i>
-                                    <span>Tanda tangan tercatat secara digital dalam basis data SIGMA.</span>
+                                    <span>Tanda tangan tercatat di SIGMA.</span>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -449,7 +449,7 @@ require_once __DIR__ . '/../layout/header.php';
                             </div>
                             <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
                                 <i class="bi bi-shield-check text-sigma-purple me-1"></i>
-                                Hash SHA-256 membuktikan integritas berkas PDF sejak pertama kali diunggah.
+                                Sidik jari berkas saat diunggah.
                             </div>
                         </div>
 
@@ -457,7 +457,7 @@ require_once __DIR__ . '/../layout/header.php';
                             <div class="mb-3">
                                 <div class="d-flex align-items-center justify-content-between mb-1">
                                     <label class="small fw-bold mb-0" style="color: var(--sigma-success-text);">
-                                        <i class="bi bi-patch-check-fill"></i> Hash Integritas SHA-256 Final (Stamping)
+                                        <i class="bi bi-patch-check-fill"></i> Hash SHA-256 Final
                                     </label>
                                     <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold no-print" style="font-size: 0.75rem; color: var(--sigma-success-text);" onclick="copyToClipboard('<?= htmlspecialchars($verified['document_final_file_hash'], ENT_QUOTES) ?>', this)">
                                         <i class="bi bi-clipboard me-1"></i>Salin Hash Final
@@ -467,7 +467,7 @@ require_once __DIR__ . '/../layout/header.php';
                                     <?= htmlspecialchars($verified['document_final_file_hash']) ?>
                                 </div>
                                 <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
-                                    Hash SHA-256 final membuktikan keutuhan berkas PDF setelah pembubuhan tanda tangan &amp; QR verifikasi.
+                                    Sidik jari berkas setelah ditandatangani.
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -501,7 +501,7 @@ require_once __DIR__ . '/../layout/header.php';
                         </div>
                         <div class="p-3 p-md-4">
                             <p class="text-muted small mb-3">
-                                Status seluruh pihak penandatangan yang berwenang atas dokumen ini:
+                                Status setiap penandatangan:
                             </p>
 
                             <?php foreach ($allSigners as $idx => $signer):
@@ -608,7 +608,7 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
             <div class="text-center text-muted border-top mt-3 pt-3" style="font-size: 0.76rem; line-height: 1.5; border-color: var(--border-subtle) !important;">
                 <img src="<?= BASE_URL ?>/assets/img/logo.png" alt="SIGMA" width="18" height="18" style="object-fit: contain; vertical-align: -3px; margin-right: 4px;">
-                Halaman verifikasi publik ini diterbitkan otomatis oleh <strong>SIGMA (Sistem Tanda Tangan Digital) Politeknik Negeri Jakarta</strong> berdasarkan snapshot identitas penandatangan, token QR UUID unik, dan hash integritas SHA-256 berkas.
+                Diterbitkan otomatis oleh <strong>SIGMA Politeknik Negeri Jakarta</strong>.
             </div>
         </div>
 
@@ -622,7 +622,7 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
             <h3 class="fw-bold mb-1 text-white">Dokumen Tidak Terdaftar / Tidak Valid</h3>
             <p class="mb-0 small" style="max-width: 580px; margin: 0 auto; color: rgba(255,255,255,0.85);">
-                Token yang Anda periksa tidak ditemukan dalam pangkalan data resmi SIGMA Politeknik Negeri Jakarta, atau dokumen tersebut telah dibatalkan.
+                Token tidak ditemukan atau dokumen sudah dibatalkan.
             </p>
         </div>
 
@@ -633,7 +633,7 @@ require_once __DIR__ . '/../layout/header.php';
                     <div>
                         <div class="fw-bold mb-1">Perhatian: Integritas Dokumen Tidak Terverifikasi</div>
                         <div>
-                            Jika dokumen fisik atau PDF mencantumkan cap resmi Politeknik Negeri Jakarta, mohon waspada terhadap kemungkinan token keliru atau pemalsuan dokumen.
+                            Periksa kembali token. Jika sudah benar, dokumen ini patut diwaspadai.
                         </div>
                     </div>
                 </div>
@@ -648,13 +648,13 @@ require_once __DIR__ . '/../layout/header.php';
 
             <form action="<?= BASE_URL ?>/verify" method="GET">
                 <div class="mb-3">
-                    <label class="sigma-form-label">Koreksi Token Verifikasi (UUID 36-Karakter)</label>
+                    <label class="sigma-form-label">Perbaiki Token</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-muted"><i class="bi bi-key-fill"></i></span>
                         <input type="text" name="token" class="form-control sigma-input font-mono-hash" value="<?= htmlspecialchars($token) ?>" placeholder="Contoh: 7d6c5b4a-3f2e-1d0c-8e4a-5b6c7d8e9f0a" required autofocus>
                     </div>
                     <div class="form-text text-muted small">
-                        Pastikan seluruh 36 karakter UUID (termasuk tanda strip <code>-</code>) terketik secara lengkap tanpa spasi tambahan.
+                        Pastikan token lengkap 36 karakter, termasuk tanda strip.
                     </div>
                 </div>
                 <div class="d-flex flex-column flex-sm-row gap-2 mt-4">
@@ -670,7 +670,7 @@ require_once __DIR__ . '/../layout/header.php';
             </form>
 
             <div class="border-top mt-4 pt-3 text-center text-muted small" style="border-color: var(--border-subtle) !important;">
-                Butuh bantuan konfirmasi berkas? Hubungi Sekretariat Jurusan Teknik Informatika dan Komputer PNJ.
+                Butuh bantuan? Hubungi Sekretariat Jurusan TIK PNJ.
             </div>
         </div>
 
@@ -684,7 +684,7 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
             <h2 class="fw-bold mb-2 text-white">Verifikasi Keaslian Dokumen Resmi</h2>
             <p class="mb-0 small" style="max-width: 620px; margin: 0 auto; line-height: 1.55; color: rgba(255,255,255,0.82);">
-                Layanan Publik SIGMA untuk memeriksa keabsahan tanda tangan digital civitas akademika, status persetujuan berjenjang, dan hash integritas SHA-256 dokumen.
+                Cek keaslian tanda tangan digital dokumen PNJ.
             </p>
         </div>
 
@@ -697,14 +697,14 @@ require_once __DIR__ . '/../layout/header.php';
                         </div>
                         <div>
                             <h5 class="fw-bold mb-0" style="color: var(--text-heading);">Cek Keabsahan Token QR</h5>
-                            <div class="text-muted small">Masukkan 36 karakter kode unik token dokumen</div>
+                            <div class="text-muted small">Masukkan token dari dokumen</div>
                         </div>
                     </div>
 
                     <form action="<?= BASE_URL ?>/verify" method="GET">
                         <div class="mb-3">
                             <label class="sigma-form-label">
-                                Token Verifikasi Dokumen (UUID) <span class="text-danger">*</span>
+                                Token Verifikasi <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text" style="background: var(--sigma-tint-50); color: var(--sigma-purple-700); border-color: var(--border-strong);"><i class="bi bi-key-fill"></i></span>
@@ -712,7 +712,7 @@ require_once __DIR__ . '/../layout/header.php';
                             </div>
                             <div class="form-text text-muted small mt-2">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Token dapat ditemukan tercetak di dekat stempel QR Code pada dokumen, atau tempel tautan lengkap hasil scan QR.
+                                Token ada di dekat QR pada dokumen. Bisa juga tempel tautan hasil scan QR.
                             </div>
                         </div>
 
@@ -735,17 +735,17 @@ require_once __DIR__ . '/../layout/header.php';
                                     1. Scan QR Code
                                 </div>
                                 <div class="text-muted" style="font-size: 0.78rem;">
-                                    Arahkan kamera smartphone ke stempel QR Code untuk membuka tautan verifikasi otomatis.
+                                    Scan QR di dokumen dengan kamera HP.
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="p-3 rounded-3 h-100 border" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                                 <div class="fw-bold text-sigma-navy mb-1">
-                                    2. Hash SHA-256
+                                    2. Pencocokan
                                 </div>
                                 <div class="text-muted" style="font-size: 0.78rem;">
-                                    Sistem mencocokkan integritas berkas PDF lewat hash SHA-256 dan token UUID unik penerbitan.
+                                    Sistem mencocokkan token dan berkas.
                                 </div>
                             </div>
                         </div>
@@ -755,7 +755,7 @@ require_once __DIR__ . '/../layout/header.php';
                                     3. Bukti Otentik
                                 </div>
                                 <div class="text-muted" style="font-size: 0.78rem;">
-                                    Muncul snapshot identitas civitas, stempel tanda tangan, dan rantai pengesahan berjenjang.
+                                    Identitas penandatangan dan status pengesahan ditampilkan.
                                 </div>
                             </div>
                         </div>
@@ -769,7 +769,7 @@ require_once __DIR__ . '/../layout/header.php';
                         <i class="bi bi-mortarboard text-sigma-purple me-2"></i>Otoritas Penerbit
                     </h6>
                     <p class="text-muted small mb-3">
-                        Sistem Informasi Tanda Tangan Digital (SIGMA) dikelola oleh Jurusan Teknik Informatika dan Komputer, Politeknik Negeri Jakarta untuk menjaga keterlacakan dokumen akademik.
+                        SIGMA dikelola oleh Jurusan Teknik Informatika dan Komputer, PNJ.
                     </p>
                     <div class="p-3 rounded-3 border small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -782,7 +782,7 @@ require_once __DIR__ . '/../layout/header.php';
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-shield-lock-fill text-sigma-purple"></i>
-                            <span class="fw-semibold text-sigma-navy">Hash Integritas SHA-256 &amp; Verifikasi QR Token</span>
+                            <span class="fw-semibold text-sigma-navy">Verifikasi QR Token</span>
                         </div>
                     </div>
                 </div>
