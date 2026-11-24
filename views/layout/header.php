@@ -195,8 +195,9 @@ $roleDisplay = $isAdmin
 
 <?php if (!empty($_SESSION['flash'])): ?>
     <?php
-        $flash = $_SESSION['flash'];
-        $flashType = htmlspecialchars($flash['type'] ?? 'info');
+        $flash     = $_SESSION['flash'];
+        $rawType   = (string) ($flash['type'] ?? 'info');
+        $flashType = in_array($rawType, ['success', 'danger', 'warning', 'info'], true) ? $rawType : 'info';
         $flashIcons = [
             'success' => 'bi-check-circle-fill',
             'danger'  => 'bi-exclamation-triangle-fill',
@@ -208,7 +209,7 @@ $roleDisplay = $isAdmin
     ?>
     <div class="alert alert-<?= $flashType ?> alert-sigma alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
         <i class="bi <?= $flashIcon ?>"></i>
-        <div class="small fw-medium flex-grow-1"><?= htmlspecialchars($flash['message'] ?? '') ?></div>
+        <div class="small fw-medium flex-grow-1"><?= htmlspecialchars((string) ($flash['message'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>

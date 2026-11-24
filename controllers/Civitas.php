@@ -157,7 +157,7 @@ class Civitas
 
             $_SESSION['flash'] = [
                 'type'    => 'success',
-                'message' => 'Data civitas "' . htmlspecialchars($data['name']) . '" berhasil ditambahkan.'
+                'message' => 'Data civitas "' . $data['name'] . '" berhasil ditambahkan.'
             ];
         } catch (\Throwable $e) {
             error_log('[Civitas::store] ' . $e->getMessage());
@@ -284,7 +284,7 @@ class Civitas
 
             $_SESSION['flash'] = [
                 'type'    => 'success',
-                'message' => 'Data civitas "' . htmlspecialchars($data['name']) . '" berhasil diperbarui.'
+                'message' => 'Data civitas "' . $data['name'] . '" berhasil diperbarui.'
             ];
         } catch (\Throwable $e) {
             error_log('[Civitas::update] ' . $e->getMessage());
@@ -311,23 +311,38 @@ class Civitas
             exit;
         }
 
+        if ($this->civitasModel->hasActiveAdminAccount($id)) {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Data civitas milik akun Administrator aktif tidak dapat dihapus.'
+            ];
+            header('Location: ' . BASE_URL . '/civitas');
+            exit;
+        }
+
         try {
-            $this->civitasModel->delete($id);
+            $deactivatedUsers = 0;
+            $this->civitasModel->delete($id, $deactivatedUsers);
 
             // Catat mutasi penghapusan ke audit trail
             $this->auditModel->log(
                 $_SESSION['user']['id'],
                 'civitas.delete',
                 [
-                    'civitas_id' => $id,
-                    'identifier' => $civitas['identifier'],
-                    'name'       => $civitas['name'],
+                    'civitas_id'              => $id,
+                    'identifier'              => $civitas['identifier'],
+                    'name'                    => $civitas['name'],
+                    'deactivated_users_count' => $deactivatedUsers,
                 ]
             );
 
+            $suffix = $deactivatedUsers > 0
+                ? ' beserta ' . $deactivatedUsers . ' akun login terkait telah dinonaktifkan.'
+                : ' telah dihapus.';
+
             $_SESSION['flash'] = [
                 'type'    => 'success',
-                'message' => 'Data civitas "' . htmlspecialchars($civitas['name']) . '" (' . htmlspecialchars($civitas['identifier']) . ') telah dihapus.'
+                'message' => 'Data civitas "' . $civitas['name'] . '" (' . $civitas['identifier'] . ')' . $suffix
             ];
         } catch (\Throwable $e) {
             error_log('[Civitas::delete] ' . $e->getMessage());
@@ -553,7 +568,7 @@ class Civitas
                 // Tolak berkas biner yang menyamar sebagai .csv
                 $rawHead = (string) file_get_contents($tmpPath, false, null, 0, 4096);
                 if (strpos($rawHead, "\0") !== false || !in_array($mime, $allowedMimes, true)) {
-                    $errors[] = 'Tipe MIME berkas tidak valid (' . htmlspecialchars($mime) . '). Pastikan berkas merupakan teks CSV murni (text/csv atau text/plain), bukan berkas Excel .xlsx atau biner.';
+                    $errors[] = 'Tipe MIME berkas tidak valid (' . $mime . '). Pastikan berkas merupakan teks CSV murni (text/csv atau text/plain), bukan berkas Excel .xlsx atau biner.';
                 }
             }
         }
@@ -801,7 +816,7 @@ class Civitas
         } else {
             $existing = $this->civitasModel->getByIdentifier($data['identifier'], $excludeId);
             if ($existing) {
-                $errors['identifier'] = 'NIM/NIP "' . htmlspecialchars($data['identifier']) . '" sudah terdaftar pada civitas lain.';
+                $errors['identifier'] = 'NIM/NIP "' . $data['identifier'] . '" sudah terdaftar pada civitas lain.';
             }
         }
 
@@ -841,7 +856,9 @@ class Civitas
         } else {
             $existingEmail = $this->civitasModel->getByEmail($data['email'], $excludeId);
             if ($existingEmail) {
-                $errors['email'] = 'Email "' . htmlspecialchars($data['email']) . '" sudah digunakan oleh civitas lain.';
+                $errors['email'] = 'Email "' . $data['email'] . '" sudah digunakan oleh civitas lain.';
+            } elseif ($this->civitasModel->isEmailUsedByOtherActiveUser($data['email'], $excludeId)) {
+                $errors['email'] = 'Email "' . $data['email'] . '" sudah digunakan oleh akun pengguna aktif lain.';
             }
         }
 

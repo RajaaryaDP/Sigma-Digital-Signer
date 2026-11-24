@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../core/Loader.php';
+require_once __DIR__ . '/../core/StoragePath.php';
 require_once __DIR__ . '/../models/SignaturesModel.php';
 require_once __DIR__ . '/../models/DocumentsModel.php';
 
@@ -68,22 +69,25 @@ class Signatures
             }
         }
 
-        $filePath = $this->storageDir . '/' . ltrim($signature['signature_image_path'], '/\\');
-        $realStorage = realpath($this->storageDir);
-        $realFile    = realpath($filePath);
+        $realFile = StoragePath::resolve(
+            (string) ($signature['signature_image_path'] ?? ''),
+            'signatures/documents',
+            ['png'],
+            $this->storageDir
+        );
 
-        if (!$realFile || !$realStorage || strpos($realFile, $realStorage) !== 0 || !is_readable($realFile)) {
+        if ($realFile === null) {
             http_response_code(404);
             exit('Berkas fisik tanda tangan tidak tersedia di storage server.');
         }
 
         // Streaming respon gambar PNG dengan header proteksi
         header('Content-Type: image/png');
-        header('Content-Length: ' . filesize($filePath));
+        header('Content-Length: ' . filesize($realFile));
         header('Cache-Control: private, max-age=3600');
         header('X-Content-Type-Options: nosniff');
 
-        readfile($filePath);
+        readfile($realFile);
         exit;
     }
 }

@@ -26,6 +26,7 @@ class UsersModel
         }
         $stmt = $this->db->prepare(
             "SELECT u.*, 
+                    c.id AS active_civitas_id,
                     c.identifier AS civitas_identifier, 
                     c.name AS civitas_name, 
                     c.type AS civitas_type, 
@@ -53,6 +54,7 @@ class UsersModel
         }
         $stmt = $this->db->prepare(
             "SELECT u.*, 
+                    c.id AS active_civitas_id,
                     c.identifier AS civitas_identifier, 
                     c.name AS civitas_name, 
                     c.type AS civitas_type, 
@@ -67,6 +69,22 @@ class UsersModel
         $stmt->execute([$cleanId]);
         $user = $stmt->fetch();
         return $user ?: null;
+    }
+
+    /**
+     * Memeriksa apakah akun masih sah untuk memegang sesi aktif (VULN-06):
+     * - Admin diizinkan selama baris users aktif
+     * - Non-admin wajib memiliki data civitas yang masih aktif (deleted_at IS NULL)
+     */
+    public static function isEligibleForActiveSession(?array $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        if (($user['role'] ?? '') === 'admin') {
+            return true;
+        }
+        return !empty($user['active_civitas_id']);
     }
 
     /**

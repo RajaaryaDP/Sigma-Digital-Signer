@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../core/Loader.php';
+require_once __DIR__ . '/../core/StoragePath.php';
 require_once __DIR__ . '/../models/SignaturesModel.php';
 require_once __DIR__ . '/../models/DocumentsModel.php';
 
@@ -83,9 +84,14 @@ class Verify
         // (Aman bagi publik verifikator tanpa membuka endpoint file langsung)
         $sigImageSrc = null;
         if (!empty($verified['signature_image_path'])) {
-            $absPath = $this->storageDir . '/' . ltrim($verified['signature_image_path'], '/\\');
-            if (file_exists($absPath) && is_readable($absPath)) {
-                $raw = @file_get_contents($absPath);
+            $realSigPath = StoragePath::resolve(
+                (string) $verified['signature_image_path'],
+                'signatures/documents',
+                ['png'],
+                $this->storageDir
+            );
+            if ($realSigPath !== null) {
+                $raw = @file_get_contents($realSigPath);
                 if ($raw !== false && strlen($raw) > 50) {
                     $sigImageSrc = 'data:image/png;base64,' . base64_encode($raw);
                 }

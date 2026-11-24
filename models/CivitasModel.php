@@ -226,12 +226,61 @@ class CivitasModel
     }
 
     /**
-     * Memperbarui data civitas
+     * Memeriksa apakah email sudah dipakai akun users aktif lain (di luar civitas_id yang dikecualikan)
+     */
+    public function isEmailUsedByOtherActiveUser(string $email, ?string $excludeCivitasId = null): bool
+    {
+        $cleanEmail = strtolower(trim(str_replace("\0", '', mb_scrub($email, 'UTF-8'))));
+        if ($cleanEmail === '') {
+            return false;
+        }
+
+        $sql    = "SELECT 1 FROM users WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL";
+        $params = [$cleanEmail];
+
+        if (!empty($excludeCivitasId)) {
+            $sql     .= " AND (civitas_id IS NULL OR civitas_id != ?)";
+            $params[] = trim(str_replace("\0", '', mb_scrub($excludeCivitasId, 'UTF-8')));
+        }
+
+        $sql .= " LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
+     * Memeriksa apakah record civitas tertaut pada akun Administrator aktif
+     */
+    public function hasActiveAdminAccount(string $civitasId): bool
+    {
+        $cleanId = trim(str_replace("\0", '', mb_scrub($civitasId, 'UTF-8')));
+        if ($cleanId === '') {
+            return false;
+        }
+        $stmt = $this->db->prepare(
+            "SELECT 1 FROM users
+             WHERE civitas_id = ? AND role = 'admin' AND deleted_at IS NULL
+             LIMIT 1"
+        );
+        $stmt->execute([$cleanId]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
+     * Memperbarui data civitas dan menyinkronkan nama & email ke akun users tertaut (VULN-06)
      */
     public function update(string $id, array $data): bool
     {
         $cleanId      = trim(str_replace("\0", '', mb_scrub($id, 'UTF-8')));
         $departmentId = !empty($data['department_id']) ? trim((string) $data['department_id']) : null;
+        $cleanIdent   = mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64);
+        $cleanName    = mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255);
+        $cleanDept    = mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150);
+        $cleanPos     = mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150);
+        $cleanEmail   = mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255);
+        $cleanPhone   = !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null;
+        $cleanAvatar  = !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null;
 
         $ownTx = !$this->db->inTransaction();
         if ($ownTx) {
@@ -239,6 +288,10 @@ class CivitasModel
         }
 
         try {
+            if ($this->isEmailUsedByOtherActiveUser($cleanEmail, $cleanId)) {
+                throw new \RuntimeException('Email tersebut sudah digunakan oleh akun pengguna aktif lain.');
+            }
+
             $stmt = $this->db->prepare(
                 "UPDATE civitas SET 
                     department_id = ?,
@@ -256,16 +309,24 @@ class CivitasModel
 
             $ok = $stmt->execute([
                 $departmentId,
-                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['identifier'], 'UTF-8'))), 0, 64),
-                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['name'], 'UTF-8'))), 0, 255),
+                $cleanIdent,
+                $cleanName,
                 $data['type'],
-                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['department'], 'UTF-8'))), 0, 150),
-                mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['position'], 'UTF-8'))), 0, 150),
-                mb_substr(strtolower(trim(str_replace("\0", '', mb_scrub((string) $data['email'], 'UTF-8')))), 0, 255),
-                !empty($data['phone']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['phone'], 'UTF-8'))), 0, 32) : null,
-                !empty($data['avatar_path']) ? mb_substr(trim(str_replace("\0", '', mb_scrub((string) $data['avatar_path'], 'UTF-8'))), 0, 500) : null,
+                $cleanDept,
+                $cleanPos,
+                $cleanEmail,
+                $cleanPhone,
+                $cleanAvatar,
                 $cleanId,
             ]);
+
+            // Sinkronkan nama & email ke akun users aktif yang tertaut (VULN-06)
+            $stmtSyncUser = $this->db->prepare(
+                "UPDATE users
+                 SET name = ?, email = ?, updated_at = NOW()
+                 WHERE civitas_id = ? AND deleted_at IS NULL"
+            );
+            $stmtSyncUser->execute([$cleanName, $cleanEmail, $cleanId]);
 
             if (array_key_exists('study_program_ids', $data) && is_array($data['study_program_ids'])) {
                 $deptModel = new DepartmentsModel();
@@ -286,14 +347,58 @@ class CivitasModel
     }
 
     /**
-     * Soft delete data civitas
+     * Soft delete data civitas beserta penonaktifan atomik akun login non-admin tertaut (VULN-06)
      */
-    public function delete(string $id): bool
+    public function delete(string $id, int &$deactivatedUsers = 0): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE civitas SET deleted_at = NOW(), updated_at = NOW() WHERE id = ? AND deleted_at IS NULL"
-        );
-        return $stmt->execute([$id]);
+        $cleanId          = trim(str_replace("\0", '', mb_scrub($id, 'UTF-8')));
+        $deactivatedUsers = 0;
+
+        if ($cleanId === '') {
+            return false;
+        }
+
+        $ownTx = !$this->db->inTransaction();
+        if ($ownTx) {
+            $this->db->beginTransaction();
+        }
+
+        try {
+            if ($this->hasActiveAdminAccount($cleanId)) {
+                throw new \RuntimeException('Data civitas milik akun Administrator aktif tidak dapat dihapus.');
+            }
+
+            $stmt = $this->db->prepare(
+                "UPDATE civitas SET deleted_at = NOW(), updated_at = NOW() WHERE id = ? AND deleted_at IS NULL"
+            );
+            $stmt->execute([$cleanId]);
+
+            if ($stmt->rowCount() === 0) {
+                if ($ownTx) {
+                    $this->db->rollBack();
+                }
+                return false;
+            }
+
+            // Ikut nonaktifkan (soft-delete) akun login non-admin yang tertaut pada civitas ini
+            $stmtUsers = $this->db->prepare(
+                "UPDATE users
+                 SET deleted_at = NOW(), updated_at = NOW()
+                 WHERE civitas_id = ? AND role <> 'admin' AND deleted_at IS NULL"
+            );
+            $stmtUsers->execute([$cleanId]);
+            $deactivatedUsers = $stmtUsers->rowCount();
+
+            if ($ownTx) {
+                $this->db->commit();
+            }
+            return true;
+        } catch (\Throwable $e) {
+            if ($ownTx && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /**

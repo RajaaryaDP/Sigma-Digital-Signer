@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/../core/Loader.php';
+require_once __DIR__ . '/../core/SignatureImageValidator.php';
+require_once __DIR__ . '/../core/StoragePath.php';
 require_once __DIR__ . '/../models/DocumentsModel.php';
 require_once __DIR__ . '/../models/CivitasModel.php';
 require_once __DIR__ . '/../models/DepartmentsModel.php';
@@ -977,106 +979,49 @@ class Documents
                 if (!$template) {
                     $errors['signature'] = 'Template tanda tangan tidak valid atau bukan milik Anda.';
                 } else {
-                    $srcPath = $this->storageDir . '/' . ltrim($template['image_path'], '/\\');
-                    if (!file_exists($srcPath) || !is_readable($srcPath)) {
+                    $srcPath = StoragePath::resolve(
+                        (string) ($template['image_path'] ?? ''),
+                        'signatures/templates',
+                        ['png'],
+                        $this->storageDir
+                    );
+                    if ($srcPath === null) {
                         $errors['signature'] = 'Berkas template tanda tangan tidak tersedia di storage server.';
-                    } elseif (!copy($srcPath, $destPath)) {
-                        $errors['signature'] = 'Gagal membuat salinan independen tanda tangan di storage server.';
+                    } else {
+                        $tplErr = SignatureImageValidator::validateExistingFile($srcPath);
+                        if ($tplErr !== null) {
+                            $errors['signature'] = $tplErr;
+                        } elseif (!copy($srcPath, $destPath)) {
+                            $errors['signature'] = 'Gagal membuat salinan independen tanda tangan di storage server.';
+                        }
                     }
                 }
             } elseif ($inputMethod === 'canvas') {
-                // Goresan kanvas baru → tulis langsung ke salinan terisolasi
-                $canvasData = isset($_POST['signature_canvas']) && is_string($_POST['signature_canvas']) ? trim($_POST['signature_canvas']) : '';
-
-                if (empty($canvasData)) {
-                    $errors['signature'] = 'Silakan bubuhkan goresan tanda tangan Anda pada kanvas.';
-                } elseif (!preg_match('/^data:image\/png;base64,(.+)$/', $canvasData, $matches)) {
-                    $errors['signature'] = 'Format data kanvas tanda tangan tidak valid.';
-                } else {
-                    $decoded = base64_decode($matches[1], true);
-                    if ($decoded === false || strlen($decoded) < 100) {
-                        $errors['signature'] = 'Gambar tanda tangan dari kanvas tidak terbaca atau kosong.';
-                    } else {
-                        $imgInfo = @getimagesizefromstring($decoded);
-                        if ($imgInfo === false || $imgInfo['mime'] !== 'image/png') {
-                            $errors['signature'] = 'Hasil kanvas harus berupa gambar PNG yang valid.';
-                        } elseif (file_put_contents($destPath, $decoded) === false) {
-                            $errors['signature'] = 'Gagal menyimpan berkas tanda tangan ke penyimpanan privat server.';
-                        }
-                    }
+                // Goresan kanvas baru → validasi batas ukuran & dimensi PNG sebelum dekode GD (VULN-07)
+                $canvasData = isset($_POST['signature_canvas']) && is_string($_POST['signature_canvas']) ? $_POST['signature_canvas'] : '';
+                $sigErr     = SignatureImageValidator::validateAndSaveCanvas($canvasData, $destPath);
+                if ($sigErr !== null) {
+                    $errors['signature'] = $sigErr;
                 }
             } elseif ($inputMethod === 'upload') {
-                // Unggah PNG transparan sekali pakai → wajib lolos validasi alpha channel (BUG-05)
-                if (!isset($_FILES['signature_file']) || $_FILES['signature_file']['error'] === UPLOAD_ERR_NO_FILE) {
-                    $errors['signature'] = 'Silakan pilih berkas gambar tanda tangan PNG untuk diunggah.';
-                } elseif ($_FILES['signature_file']['error'] !== UPLOAD_ERR_OK) {
-                    $errors['signature'] = 'Terjadi kesalahan saat mengunggah berkas tanda tangan.';
-                } else {
-                    $file = $_FILES['signature_file'];
-                    if ($file['size'] > 2 * 1024 * 1024) {
-                        $errors['signature'] = 'Ukuran berkas tanda tangan melebihi batas maksimal 2 MB.';
-                    } else {
-                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                        $mime = finfo_file($finfo, $file['tmp_name']);
-                        finfo_close($finfo);
-
-                        if ($mime !== 'image/png') {
-                            $errors['signature'] = 'Berkas tanda tangan wajib berformat gambar PNG transparan (.png).';
-                        } else {
-                            $im = @imagecreatefrompng($file['tmp_name']);
-                            if ($im === false) {
-                                $errors['signature'] = 'Berkas gambar PNG tanda tangan rusak atau tidak dapat diproses.';
-                            } else {
-                                $w = imagesx($im);
-                                $h = imagesy($im);
-                                $hasAlpha = false;
-
-                                // Sampling titik sudut & tepi
-                                $sampleCoords = [
-                                    [0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1],
-                                    [intdiv($w, 2), 0], [intdiv($w, 2), $h - 1],
-                                    [0, intdiv($h, 2)], [$w - 1, intdiv($h, 2)]
-                                ];
-                                foreach ($sampleCoords as $coord) {
-                                    $rgba = imagecolorsforindex($im, imagecolorat($im, $coord[0], $coord[1]));
-                                    if ($rgba['alpha'] > 10) {
-                                        $hasAlpha = true;
-                                        break;
-                                    }
-                                }
-
-                                // Grid sampling melompat jika tepi belum mendeteksi alpha
-                                if (!$hasAlpha) {
-                                    $stepX = max(1, intdiv($w, 50));
-                                    $stepY = max(1, intdiv($h, 50));
-                                    for ($y = 0; $y < $h && !$hasAlpha; $y += $stepY) {
-                                        for ($x = 0; $x < $w; $x += $stepX) {
-                                            $rgba = imagecolorsforindex($im, imagecolorat($im, $x, $y));
-                                            if ($rgba['alpha'] > 10) {
-                                                $hasAlpha = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                                imagedestroy($im);
-
-                                if (!$hasAlpha) {
-                                    $errors['signature'] = 'Gambar PNG tidak memiliki latar belakang transparan. Harap gunakan gambar tanda tangan berlatar transparan agar tidak menutupi teks dokumen.';
-                                } elseif (!move_uploaded_file($file['tmp_name'], $destPath)) {
-                                    $errors['signature'] = 'Gagal memindahkan berkas tanda tangan ke penyimpanan privat.';
-                                }
-                            }
-                        }
-                    }
+                // Unggah PNG transparan sekali pakai → validasi dimensi (VULN-07) & alpha channel (BUG-05)
+                $uploadedFile = isset($_FILES['signature_file']) && is_array($_FILES['signature_file'])
+                    ? $_FILES['signature_file']
+                    : [];
+                $sigErr = SignatureImageValidator::validateAndSaveUpload($uploadedFile, $destPath);
+                if ($sigErr !== null) {
+                    $errors['signature'] = $sigErr;
                 }
             } else {
                 $errors['signature'] = 'Metode input tanda tangan tidak dikenali.';
             }
         }
 
-        // Jika ada error validasi, render ulang halaman penandatanganan
+        // Jika ada error validasi, bersihkan berkas sementara bila sempat terbuat lalu render ulang
         if (!empty($errors)) {
+            if ($destPath !== null && is_file($destPath)) {
+                @unlink($destPath);
+            }
             $payload = $this->signViewPayload($doc, $signer);
             $payload['errors']      = $errors;
             $payload['postedInput'] = $inputMethod;
@@ -1319,10 +1264,14 @@ class Documents
 
             $physicalDeleted = false;
             if (!empty($doc['file_path']) && $this->model->countActiveByFilePath((string) $doc['file_path']) === 0) {
-                $docsRoot      = realpath($this->storageDir . '/documents');
-                $candidatePath = $this->storageDir . '/' . ltrim((string) $doc['file_path'], '/\\');
-                $realTarget    = realpath($candidatePath);
-                if ($docsRoot && $realTarget && strpos($realTarget, $docsRoot . DIRECTORY_SEPARATOR) === 0 && is_file($realTarget)) {
+                $realTarget = StoragePath::resolve(
+                    (string) $doc['file_path'],
+                    'documents',
+                    ['pdf'],
+                    $this->storageDir,
+                    false
+                );
+                if ($realTarget !== null) {
                     $physicalDeleted = @unlink($realTarget);
                 }
             }
@@ -1461,26 +1410,27 @@ class Documents
 
         // Jika dokumen completed, sajikan berkas final berstempel (Task 9)
         if ($doc['status'] === 'completed') {
-            $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
-            if (empty($doc['final_file_path']) || !file_exists($finalPath)) {
+            $finalRealPath = !empty($doc['final_file_path'])
+                ? StoragePath::resolve((string) $doc['final_file_path'], 'documents', ['pdf'], $this->storageDir)
+                : null;
+            if ($finalRealPath === null) {
                 require_once __DIR__ . '/../core/PdfStamper.php';
                 $stampRes = PdfStamper::stampDocument($id, $this->userId);
                 if ($stampRes['success']) {
                     $doc = $this->model->getById($id);
-                    $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
+                    $finalRealPath = !empty($doc['final_file_path'])
+                        ? StoragePath::resolve((string) $doc['final_file_path'], 'documents', ['pdf'], $this->storageDir)
+                        : null;
                 }
             }
-            if (!empty($doc['final_file_path']) && file_exists($finalPath) && is_readable($finalPath)) {
+            if ($finalRealPath !== null) {
                 $targetFileRel = $doc['final_file_path'];
                 $displayName   = 'FINAL_' . $doc['file_name_original'];
             }
         }
 
-        $filePath = $this->storageDir . '/' . ltrim($targetFileRel, '/\\');
-        $realStorage = realpath($this->storageDir);
-        $realFile    = realpath($filePath);
-
-        if (!$realFile || !$realStorage || strpos($realFile, $realStorage) !== 0 || !is_readable($realFile)) {
+        $realFile = StoragePath::resolve((string) ($targetFileRel ?? ''), 'documents', ['pdf'], $this->storageDir);
+        if ($realFile === null) {
             http_response_code(404);
             exit('Berkas fisik PDF tidak tersedia di storage server.');
         }
@@ -1489,12 +1439,12 @@ class Documents
 
         // Streaming respon PDF
         header('Content-Type: application/pdf');
-        header('Content-Length: ' . filesize($filePath));
+        header('Content-Length: ' . filesize($realFile));
         header('Content-Disposition: inline; filename="' . $cleanDisplayName . '"');
         header('Cache-Control: private, max-age=600');
         header('X-Content-Type-Options: nosniff');
 
-        readfile($filePath);
+        readfile($realFile);
         exit;
     }
 
@@ -1526,27 +1476,28 @@ class Documents
 
         // Jika dokumen completed dan tidak meminta berkas asli, download berkas final berstempel (Task 9)
         if ($doc['status'] === 'completed' && !$isOriginalRequested) {
-            $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
-            if (empty($doc['final_file_path']) || !file_exists($finalPath)) {
+            $finalRealPath = !empty($doc['final_file_path'])
+                ? StoragePath::resolve((string) $doc['final_file_path'], 'documents', ['pdf'], $this->storageDir)
+                : null;
+            if ($finalRealPath === null) {
                 require_once __DIR__ . '/../core/PdfStamper.php';
                 $stampRes = PdfStamper::stampDocument($id, $this->userId);
                 if ($stampRes['success']) {
                     $doc = $this->model->getById($id);
-                    $finalPath = $this->storageDir . '/' . ltrim($doc['final_file_path'] ?? '', '/\\');
+                    $finalRealPath = !empty($doc['final_file_path'])
+                        ? StoragePath::resolve((string) $doc['final_file_path'], 'documents', ['pdf'], $this->storageDir)
+                        : null;
                 }
             }
-            if (!empty($doc['final_file_path']) && file_exists($finalPath) && is_readable($finalPath)) {
+            if ($finalRealPath !== null) {
                 $targetFileRel = $doc['final_file_path'];
                 $downloadName  = 'FINAL_' . basename($doc['file_name_original']);
                 $servedFinal   = true;
             }
         }
 
-        $filePath = $this->storageDir . '/' . ltrim($targetFileRel, '/\\');
-        $realStorage = realpath($this->storageDir);
-        $realFile    = realpath($filePath);
-
-        if (!$realFile || !$realStorage || strpos($realFile, $realStorage) !== 0 || !is_readable($realFile)) {
+        $realFile = StoragePath::resolve((string) ($targetFileRel ?? ''), 'documents', ['pdf'], $this->storageDir);
+        if ($realFile === null) {
             http_response_code(404);
             exit('Berkas fisik PDF tidak tersedia.');
         }
@@ -1562,12 +1513,12 @@ class Documents
         $cleanDownloadName = preg_replace('/[\x00-\x1F\x7F"]/', '', $downloadName);
 
         header('Content-Type: application/pdf');
-        header('Content-Length: ' . filesize($filePath));
+        header('Content-Length: ' . filesize($realFile));
         header('Content-Disposition: attachment; filename="' . $cleanDownloadName . '"');
         header('Cache-Control: private, max-age=600');
         header('X-Content-Type-Options: nosniff');
 
-        readfile($filePath);
+        readfile($realFile);
         exit;
     }
 }

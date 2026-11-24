@@ -210,6 +210,48 @@ if ($rawPage === '' || $rawPage === 'home' || $rawPage === 'landing' || $rawPage
 // Public endpoints that do not require authentication
 $publicPages = ['home', 'auth', 'verify'];
 
+// Validasi keaktifan akun & civitas pada sesi berjalan + sinkronisasi profil (VULN-06)
+$isLogoutRequest = ($page === 'auth' && ($segments[1] ?? '') === 'logout');
+if (isset($_SESSION['user']['id']) && !$isLogoutRequest) {
+    require_once __DIR__ . '/models/UsersModel.php';
+    $sigmaSessionUser = (new UsersModel())->getById((string) $_SESSION['user']['id']);
+
+    if (!UsersModel::isEligibleForActiveSession($sigmaSessionUser)) {
+        $_SESSION = [];
+        session_destroy();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        session_regenerate_id(true);
+        Csrf::rotate();
+
+        if (!in_array($page, $publicPages, true)) {
+            $_SESSION['flash'] = [
+                'type'    => 'danger',
+                'message' => 'Sesi Anda telah dihentikan karena akun atau data civitas Anda sudah tidak aktif.'
+            ];
+            header('Location: ' . BASE_URL . '/auth');
+            exit;
+        }
+    } else {
+        // Segarkan profil sesi agar perubahan nama/email/jabatan di Master Civitas langsung terlihat
+        $_SESSION['user'] = [
+            'id'           => $sigmaSessionUser['id'],
+            'civitas_id'   => $sigmaSessionUser['civitas_id'],
+            'name'         => $sigmaSessionUser['name'],
+            'email'        => $sigmaSessionUser['email'],
+            'role'         => $sigmaSessionUser['role'],
+            'avatar_path'  => $sigmaSessionUser['avatar_path'],
+            'identifier'   => $sigmaSessionUser['civitas_identifier'] ?? null,
+            'civitas_name' => $sigmaSessionUser['civitas_name'] ?? $sigmaSessionUser['name'],
+            'civitas_type' => $sigmaSessionUser['civitas_type'] ?? null,
+            'department'   => $sigmaSessionUser['civitas_department'] ?? null,
+            'position'     => $sigmaSessionUser['civitas_position'] ?? null,
+            'phone'        => $sigmaSessionUser['civitas_phone'] ?? null,
+        ];
+    }
+}
+
 // Global Auth Guard: Redirect unauthenticated user to login
 if (!isset($_SESSION['user']) && !in_array($page, $publicPages, true)) {
     header('Location: ' . BASE_URL . '/auth');
@@ -253,8 +295,26 @@ $method = $_SERVER['REQUEST_METHOD'];
 $postOnlyActions = ['store', 'update', 'delete', 'approve', 'reject', 'decline', 'withdraw'];
 $expectsPost     = in_array($action, $postOnlyActions, true);
 
-$controllerName = str_replace('-', '', ucwords($page, '-'));
-$controllerFile = __DIR__ . '/controllers/' . $controllerName . '.php';
+// Daftar putih (allowlist) eksplisit modul resmi SIGMA (VULN-09)
+// Modul arsip contoh skeleton UTS (/accounts, /account-types, /actions) tidak terdaftar
+// sehingga otomatis mengembalikan HTTP 404 tanpa mengubah/menghapus berkas arsipnya.
+$allowedRoutes = [
+    'home'               => 'Home',
+    'auth'               => 'Auth',
+    'verify'             => 'Verify',
+    'documents'          => 'Documents',
+    'signatures'         => 'Signatures',
+    'user-signatures'    => 'UserSignatures',
+    'document-templates' => 'DocumentTemplates',
+    'civitas'            => 'Civitas',
+    'departments'        => 'Departments',
+    'prodi'              => 'Prodi',
+];
+
+$controllerName = $allowedRoutes[$page] ?? null;
+$controllerFile = $controllerName !== null
+    ? (__DIR__ . '/controllers/' . $controllerName . '.php')
+    : null;
 
 function sigma_render_404(string $subtitle): void
 {
@@ -295,8 +355,8 @@ function sigma_render_403(
     exit;
 }
 
-if (!file_exists($controllerFile)) {
-    sigma_render_404('Halaman atau modul <code>' . htmlspecialchars($page, ENT_QUOTES, 'UTF-8') . '</code> belum tersedia.');
+if ($controllerName === null || $controllerFile === null || !file_exists($controllerFile)) {
+    sigma_render_404('Halaman atau modul <code>' . htmlspecialchars($page, ENT_QUOTES, 'UTF-8') . '</code> tidak tersedia.');
 }
 
 require_once $controllerFile;
@@ -344,7 +404,7 @@ if ($method === 'POST') {
 
 $controller = new $controllerName();
 
-if (!method_exists($controller, $action)) {
+if ($action === '' || $action[0] === '_' || !method_exists($controller, $action) || !is_callable([$controller, $action])) {
     sigma_render_404('Aksi atau rute yang diminta tidak tersedia.');
 }
 

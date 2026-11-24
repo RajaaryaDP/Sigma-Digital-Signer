@@ -602,8 +602,8 @@
                             : 'info';
                         unset($_SESSION['flash']);
                     ?>
-                    <div class="notice notice-<?= htmlspecialchars($noticeType) ?>" role="status">
-                        <p><?= htmlspecialchars($flash['message'] ?? '') ?></p>
+                    <div class="notice notice-<?= htmlspecialchars($noticeType, ENT_QUOTES, 'UTF-8') ?>" role="status">
+                        <p><?= htmlspecialchars((string) ($flash['message'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
                     </div>
                 <?php endif; ?>
 
@@ -662,7 +662,7 @@
                         <label for="inputCaptcha">Kode Captcha</label>
                         <div class="captcha-box">
                             <img
-                                src="<?= BASE_URL ?>/auth/captcha?t=<?= time() ?>"
+                                src="<?= BASE_URL ?>/auth/captcha?scope=login&amp;t=<?= bin2hex(random_bytes(4)) ?>"
                                 alt="Kode Captcha"
                                 id="captchaImg"
                                 class="captcha-img"
@@ -737,7 +737,7 @@
 
         if (btnRefreshCaptcha && captchaImg) {
             btnRefreshCaptcha.addEventListener('click', function () {
-                captchaImg.src = '<?= BASE_URL ?>/auth/captcha?t=' + new Date().getTime();
+                captchaImg.src = '<?= BASE_URL ?>/auth/captcha?scope=login&t=' + Date.now() + '_' + Math.random().toString(36).slice(2);
             });
         }
 

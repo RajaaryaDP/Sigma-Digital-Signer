@@ -301,6 +301,47 @@
             font-size: 0.78rem;
         }
 
+        .captcha-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .captcha-img {
+            display: block;
+            border-radius: 7px;
+            border: 1px solid var(--line);
+            height: 46px;
+            width: 140px;
+            background: #f6f5fb;
+            object-fit: contain;
+        }
+
+        .captcha-refresh {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 7px;
+            border: 1px solid var(--line);
+            background: var(--field);
+            color: var(--ink);
+            font-size: 1.15rem;
+            transition: background-color 140ms ease, border-color 140ms ease;
+        }
+
+        .captcha-refresh:hover {
+            background: #e2ddec;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .captcha-refresh:active {
+            background: #d9d0e6;
+        }
+
         .submit-button {
             display: flex;
             align-items: center;
@@ -555,6 +596,43 @@
                         <?php endif; ?>
                     </div>
 
+                    <div class="field">
+                        <label for="inputRegisterCaptcha">Kode Captcha</label>
+                        <div class="captcha-box">
+                            <img
+                                src="<?= BASE_URL ?>/auth/captcha?scope=register&amp;t=<?= bin2hex(random_bytes(4)) ?>"
+                                alt="Kode Captcha Registrasi"
+                                id="registerCaptchaImg"
+                                class="captcha-img"
+                                width="140"
+                                height="46">
+                            <button
+                                type="button"
+                                id="btnRefreshRegisterCaptcha"
+                                class="captcha-refresh"
+                                aria-label="Muat ulang kode captcha"
+                                title="Muat ulang captcha">
+                                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="field-control <?= isset($errors['captcha']) ? 'has-error' : '' ?>">
+                            <input
+                                type="text"
+                                id="inputRegisterCaptcha"
+                                name="captcha"
+                                placeholder="Masukkan 5 karakter di atas"
+                                maxlength="5"
+                                autocomplete="off"
+                                autocapitalize="characters"
+                                aria-invalid="<?= isset($errors['captcha']) ? 'true' : 'false' ?>"
+                                <?= isset($errors['captcha']) ? 'aria-describedby="registerCaptchaError"' : '' ?>
+                                required>
+                        </div>
+                        <?php if (isset($errors['captcha'])): ?>
+                            <p class="field-error" id="registerCaptchaError"><?= htmlspecialchars($errors['captcha']) ?></p>
+                        <?php endif; ?>
+                    </div>
+
                     <button class="submit-button" type="submit" id="submitRegisterBtn">
                         <span class="submit-label">Verifikasi &amp; Aktifkan Akun</span>
                         <span class="submit-arrow" aria-hidden="true">&rarr;</span>
@@ -592,6 +670,14 @@
 
         bindPasswordToggle('togglePasswordBtn', 'inputPassword');
         bindPasswordToggle('toggleConfirmBtn', 'inputPasswordConfirm');
+
+        const registerCaptchaImg = document.getElementById('registerCaptchaImg');
+        const btnRefreshRegisterCaptcha = document.getElementById('btnRefreshRegisterCaptcha');
+        if (btnRefreshRegisterCaptcha && registerCaptchaImg) {
+            btnRefreshRegisterCaptcha.addEventListener('click', function () {
+                registerCaptchaImg.src = '<?= BASE_URL ?>/auth/captcha?scope=register&t=' + Date.now() + '_' + Math.random().toString(36).slice(2);
+            });
+        }
 
         const registerForm = document.getElementById('registerForm');
         const submitRegisterBtn = document.getElementById('submitRegisterBtn');

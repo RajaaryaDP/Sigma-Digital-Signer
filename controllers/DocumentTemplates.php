@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../core/Loader.php';
+require_once __DIR__ . '/../core/StoragePath.php';
 require_once __DIR__ . '/../models/DocumentTemplatesModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
 
@@ -570,28 +571,17 @@ class DocumentTemplates
     }
 
     /**
-     * Memastikan path berkas berada di dalam batas kanonikal storage/document_templates/
+     * Memastikan path berkas berada di dalam batas kanonikal storage/document_templates/ (VULN-08)
      */
-    private function resolveSafeTemplatePath(string $relativePath): ?string
+    private function resolveSafeTemplatePath(string $relativePath, bool $requireReadable = true): ?string
     {
-        if ($relativePath === '') {
-            return null;
-        }
-
-        $templatesRoot = realpath($this->storageDir . '/' . self::STORAGE_SUBDIR);
-        $candidate     = $this->storageDir . '/' . ltrim($relativePath, '/\\');
-        $realTarget    = realpath($candidate);
-
-        if (!$templatesRoot || !$realTarget) {
-            return null;
-        }
-
-        $normalizedRoot = rtrim($templatesRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        if (strpos($realTarget, $normalizedRoot) !== 0 || !is_file($realTarget)) {
-            return null;
-        }
-
-        return $realTarget;
+        return StoragePath::resolve(
+            $relativePath,
+            self::STORAGE_SUBDIR,
+            ['docx'],
+            $this->storageDir,
+            $requireReadable
+        );
     }
 
     /**
@@ -599,7 +589,7 @@ class DocumentTemplates
      */
     private function deletePhysicalFile(string $relativePath): bool
     {
-        $realTarget = $this->resolveSafeTemplatePath($relativePath);
+        $realTarget = $this->resolveSafeTemplatePath($relativePath, false);
         if ($realTarget === null) {
             return false;
         }

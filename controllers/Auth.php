@@ -5,9 +5,13 @@ require_once __DIR__ . '/../models/CivitasModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
 require_once __DIR__ . '/../core/Loader.php';
 require_once __DIR__ . '/../core/Csrf.php';
+require_once __DIR__ . '/../core/RateLimiter.php';
 
 class Auth
 {
+    /** Masa berlaku kode CAPTCHA di sesi (5 menit) — VULN-10 */
+    private const CAPTCHA_TTL_SECONDS = 300;
+
     private $userModel;
     private $civitasModel;
     private $auditModel;
@@ -32,6 +36,35 @@ class Auth
             $captcha  = isset($_POST['captcha']) && is_string($_POST['captcha']) ? strtoupper(trim($_POST['captcha'])) : '';
             $errors   = [];
 
+            // Guard Rate Limiting Login (VULN-10): hentikan brute-force sebelum query DB / password_verify
+            $rateCheck = RateLimiter::check('login');
+            if (!$rateCheck['allowed']) {
+                $this->clearCaptcha('login');
+                $retryAfter = (int) $rateCheck['retry_after'];
+
+                $this->auditModel->log(
+                    null,
+                    'user.login_rate_limited',
+                    [
+                        'attempted_email' => mb_substr($email, 0, 255),
+                        'reason'          => $rateCheck['reason'],
+                        'retry_after'     => $retryAfter,
+                    ]
+                );
+
+                http_response_code(429);
+                header('Retry-After: ' . $retryAfter);
+                $errors['general'] = 'Terlalu banyak percobaan masuk yang gagal. Silakan tunggu ' . $retryAfter . ' detik sebelum mencoba kembali.';
+                $this->load->view('views/auth/login.php', [
+                    'errors' => $errors,
+                    'old'    => ['email' => $email],
+                ]);
+                return;
+            }
+
+            // Selalu konsumsi & reset kode CAPTCHA pada setiap permintaan POST (gagal maupun sukses — VULN-10)
+            $captchaStatus = $this->consumeCaptcha('login', $captcha);
+
             if (empty($email)) {
                 $errors['email'] = 'Email institusi wajib diisi.';
             }
@@ -39,41 +72,78 @@ class Auth
                 $errors['password'] = 'Password wajib diisi.';
             }
 
-            $sessionCaptcha = $_SESSION['captcha_code'] ?? '';
-            if (empty($captcha)) {
+            if ($captchaStatus === 'empty') {
                 $errors['captcha'] = 'Kode captcha wajib diisi.';
-            } elseif (empty($sessionCaptcha) || $captcha !== $sessionCaptcha) {
+            } elseif ($captchaStatus === 'expired') {
+                $errors['captcha'] = 'Kode captcha telah kedaluwarsa. Silakan masukkan kode captcha yang baru.';
+            } elseif ($captchaStatus !== 'valid') {
                 $errors['captcha'] = 'Kode captcha yang Anda masukkan salah.';
             }
 
             if (!empty($errors)) {
+                if ($captchaStatus !== 'valid') {
+                    $rlResult = RateLimiter::recordFailure('login');
+                    if (!$rlResult['allowed']) {
+                        http_response_code(429);
+                        header('Retry-After: ' . (int) $rlResult['retry_after']);
+                        $errors['general'] = 'Terlalu banyak percobaan masuk yang gagal. Silakan tunggu ' . (int) $rlResult['retry_after'] . ' detik sebelum mencoba kembali.';
+                    }
+                }
                 $this->load->view('views/auth/login.php', [
                     'errors' => $errors,
                     'old'    => ['email' => $email],
                 ]);
                 return;
             }
-
-            // Reset captcha setelah verifikasi berhasil
-            unset($_SESSION['captcha_code']);
 
             $user = $this->userModel->getByEmail($email);
 
             if (!$user || !password_verify($password, $user['password'])) {
+                $rlResult = RateLimiter::recordFailure('login');
+
                 // Catat kegagalan login ke audit trail
                 $this->auditModel->log(
                     $user['id'] ?? null,
                     'user.login_failed',
-                    ['attempted_email' => $email]
+                    ['attempted_email' => mb_substr($email, 0, 255)]
                 );
 
-                $errors['general'] = 'Email atau password yang Anda masukkan tidak sesuai.';
+                if (!$rlResult['allowed']) {
+                    http_response_code(429);
+                    header('Retry-After: ' . (int) $rlResult['retry_after']);
+                    $errors['general'] = 'Email atau password tidak sesuai. Terlalu banyak percobaan gagal — silakan tunggu ' . (int) $rlResult['retry_after'] . ' detik sebelum mencoba kembali.';
+                } else {
+                    $errors['general'] = 'Email atau password yang Anda masukkan tidak sesuai.';
+                }
                 $this->load->view('views/auth/login.php', [
                     'errors' => $errors,
                     'old'    => ['email' => $email],
                 ]);
                 return;
             }
+
+            // Guard VULN-06: akun non-admin wajib tertaut ke data civitas yang masih aktif
+            if (!UsersModel::isEligibleForActiveSession($user)) {
+                RateLimiter::recordFailure('login');
+                $this->auditModel->log(
+                    $user['id'],
+                    'user.login_blocked_inactive_civitas',
+                    [
+                        'attempted_email' => mb_substr($email, 0, 255),
+                        'civitas_id'      => $user['civitas_id'] ?? null,
+                    ]
+                );
+
+                $errors['general'] = 'Akun Anda tidak dapat digunakan karena data civitas terkait sudah tidak aktif. Hubungi Administrator.';
+                $this->load->view('views/auth/login.php', [
+                    'errors' => $errors,
+                    'old'    => ['email' => $email],
+                ]);
+                return;
+            }
+
+            // Bersihkan pembatas percobaan sesi setelah kredensial terverifikasi
+            RateLimiter::clearSession('login');
 
             // Anti Session Fixation (VULN-05): regenerasi ID sesi & bersihkan state pra-login
             if (session_status() === PHP_SESSION_ACTIVE) {
@@ -110,10 +180,10 @@ class Auth
                 ]
             );
 
-            // Berikan flash message selamat datang
+            // Berikan flash message selamat datang (plain text; HTML escaping ditangani view header.php — VULN-11)
             $_SESSION['flash'] = [
                 'type'    => 'success',
-                'message' => 'Selamat datang kembali, ' . htmlspecialchars($user['name']) . '!'
+                'message' => 'Selamat datang kembali, ' . $user['name'] . '!'
             ];
 
             header('Location: ' . BASE_URL . '/documents');
@@ -140,6 +210,7 @@ class Auth
             $email           = isset($_POST['email']) && is_string($_POST['email']) ? strtolower(trim($_POST['email'])) : '';
             $password        = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
             $passwordConfirm = isset($_POST['password_confirm']) && is_string($_POST['password_confirm']) ? $_POST['password_confirm'] : '';
+            $captcha         = isset($_POST['captcha']) && is_string($_POST['captcha']) ? strtoupper(trim($_POST['captcha'])) : '';
 
             $errors = [];
             $old    = [
@@ -147,6 +218,43 @@ class Auth
                 'name'       => $name,
                 'email'      => $email,
             ];
+
+            // Guard Rate Limiting Registrasi (VULN-10): cegah enumerasi (NIM/NIP, email) civitas
+            $rateCheck = RateLimiter::check('register');
+            if (!$rateCheck['allowed']) {
+                $this->clearCaptcha('register');
+                $retryAfter = (int) $rateCheck['retry_after'];
+
+                $this->auditModel->log(
+                    null,
+                    'user.register_rate_limited',
+                    [
+                        'attempted_identifier' => mb_substr($identifier, 0, 64),
+                        'attempted_email'      => mb_substr($email, 0, 255),
+                        'reason'               => $rateCheck['reason'],
+                        'retry_after'          => $retryAfter,
+                    ]
+                );
+
+                http_response_code(429);
+                header('Retry-After: ' . $retryAfter);
+                $errors['general'] = 'Terlalu banyak percobaan registrasi yang gagal. Silakan tunggu ' . $retryAfter . ' detik sebelum mencoba kembali.';
+                $this->load->view('views/auth/register.php', [
+                    'errors' => $errors,
+                    'old'    => $old,
+                ]);
+                return;
+            }
+
+            // Selalu konsumsi & reset CAPTCHA registrasi pada setiap POST (VULN-10)
+            $captchaStatus = $this->consumeCaptcha('register', $captcha);
+            if ($captchaStatus === 'empty') {
+                $errors['captcha'] = 'Kode captcha wajib diisi.';
+            } elseif ($captchaStatus === 'expired') {
+                $errors['captcha'] = 'Kode captcha telah kedaluwarsa. Silakan masukkan kode captcha yang baru.';
+            } elseif ($captchaStatus !== 'valid') {
+                $errors['captcha'] = 'Kode captcha yang Anda masukkan salah.';
+            }
 
             // Validasi NIM / NIP
             if ($identifier === '') {
@@ -194,30 +302,48 @@ class Auth
                 $errors['password_confirm'] = 'Konfirmasi password tidak cocok dengan password yang Anda masukkan.';
             }
 
-            // Pintu Filter 2: Pencocokan Ganda terhadap Master Data Civitas (Whitelist Match Gate)
-            $matchedCivitas = null;
-            if (!isset($errors['identifier']) && !isset($errors['email'])) {
-                $matchedCivitas = $this->civitasModel->findForRegistration($identifier, $email);
-
-                if (!$matchedCivitas) {
-                    $this->auditModel->log(
-                        null,
-                        'user.register_failed',
-                        [
-                            'reason'               => 'civitas_mismatch',
-                            'attempted_identifier' => mb_substr($identifier, 0, 64),
-                            'attempted_email'      => mb_substr($email, 0, 255),
-                        ]
-                    );
-
-                    $errors['general'] = 'Verifikasi gagal: Kombinasi NIM/NIP dan Email tidak ditemukan atau tidak cocok pada Master Data Civitas Kampus. Pastikan NIM/NIP dan Email sesuai dengan data yang terdaftar di Admin.';
-                } else {
-                    // Validasi kesesuaian domain dengan kategori civitas
-                    if ($emailDomain === 'stu.pnj.ac.id' && $matchedCivitas['type'] !== 'mahasiswa') {
-                        $errors['email'] = 'Domain @stu.pnj.ac.id hanya diperuntukkan bagi civitas berkategori Mahasiswa.';
-                    } elseif ($emailDomain === 'pnj.ac.id' && !in_array($matchedCivitas['type'], ['dosen', 'tendik'], true)) {
-                        $errors['email'] = 'Civitas Mahasiswa wajib menggunakan domain @stu.pnj.ac.id.';
+            // Jika CAPTCHA atau validasi dasar gagal, hentikan SEBELUM menyentuh Master Data Civitas (anti enumerasi)
+            if (!empty($errors)) {
+                if ($captchaStatus !== 'valid') {
+                    $rlResult = RateLimiter::recordFailure('register');
+                    if (!$rlResult['allowed']) {
+                        http_response_code(429);
+                        header('Retry-After: ' . (int) $rlResult['retry_after']);
+                        $errors['general'] = 'Terlalu banyak percobaan registrasi yang gagal. Silakan tunggu ' . (int) $rlResult['retry_after'] . ' detik sebelum mencoba kembali.';
                     }
+                }
+                $this->load->view('views/auth/register.php', [
+                    'errors' => $errors,
+                    'old'    => $old,
+                ]);
+                return;
+            }
+
+            // Pintu Filter 2: Pencocokan Ganda terhadap Master Data Civitas (Whitelist Match Gate)
+            $matchedCivitas = $this->civitasModel->findForRegistration($identifier, $email);
+            $recordThrottle = false;
+
+            if (!$matchedCivitas) {
+                $recordThrottle = true;
+                $this->auditModel->log(
+                    null,
+                    'user.register_failed',
+                    [
+                        'reason'               => 'civitas_mismatch',
+                        'attempted_identifier' => mb_substr($identifier, 0, 64),
+                        'attempted_email'      => mb_substr($email, 0, 255),
+                    ]
+                );
+
+                $errors['general'] = 'Verifikasi gagal: Kombinasi NIM/NIP dan Email tidak ditemukan atau tidak cocok pada Master Data Civitas Kampus. Pastikan NIM/NIP dan Email sesuai dengan data yang terdaftar di Admin.';
+            } else {
+                // Validasi kesesuaian domain dengan kategori civitas
+                if ($emailDomain === 'stu.pnj.ac.id' && $matchedCivitas['type'] !== 'mahasiswa') {
+                    $recordThrottle  = true;
+                    $errors['email'] = 'Domain @stu.pnj.ac.id hanya diperuntukkan bagi civitas berkategori Mahasiswa.';
+                } elseif ($emailDomain === 'pnj.ac.id' && !in_array($matchedCivitas['type'], ['dosen', 'tendik'], true)) {
+                    $recordThrottle  = true;
+                    $errors['email'] = 'Civitas Mahasiswa wajib menggunakan domain @stu.pnj.ac.id.';
                 }
             }
 
@@ -227,11 +353,21 @@ class Auth
                 $existingByEmail   = $this->userModel->getByEmail($matchedCivitas['email']);
 
                 if ($existingByCivitas || $existingByEmail) {
+                    $recordThrottle    = true;
                     $errors['general'] = 'Akun untuk NIM/NIP atau Email civitas ini sudah terdaftar dan aktif di sistem. Silakan langsung masuk melalui halaman Login.';
                 }
             }
 
             if (!empty($errors)) {
+                if ($recordThrottle) {
+                    $rlResult = RateLimiter::recordFailure('register');
+                    if (!$rlResult['allowed']) {
+                        http_response_code(429);
+                        header('Retry-After: ' . (int) $rlResult['retry_after']);
+                        $errors['general'] = ($errors['general'] ?? 'Verifikasi registrasi gagal.')
+                            . ' Terlalu banyak percobaan gagal — silakan tunggu ' . (int) $rlResult['retry_after'] . ' detik sebelum mencoba kembali.';
+                    }
+                }
                 $this->load->view('views/auth/register.php', [
                     'errors' => $errors,
                     'old'    => $old,
@@ -248,6 +384,8 @@ class Auth
                     'password'   => $password,
                     'role'       => 'user',
                 ]);
+
+                RateLimiter::clearSession('register');
 
                 // Catat keberhasilan registrasi mandiri ke tabel audit_logs
                 $this->auditModel->log(
@@ -315,13 +453,16 @@ class Auth
     }
 
     /**
-     * Endpoint untuk men-generate gambar CAPTCHA
+     * Endpoint untuk men-generate gambar CAPTCHA per scope ('login' atau 'register') — VULN-10
      */
     public function captcha()
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
+
+        $rawScope = isset($_GET['scope']) && is_string($_GET['scope']) ? strtolower(trim($_GET['scope'])) : 'login';
+        $scope    = in_array($rawScope, ['login', 'register'], true) ? $rawScope : 'login';
 
         // Karakter mudah dibaca (menghindari karakter ambigu seperti 0, O, 1, I)
         $characters = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -332,7 +473,15 @@ class Auth
             $captchaCode .= $characters[random_int(0, $maxIndex)];
         }
 
-        $_SESSION['captcha_code'] = $captchaCode;
+        if (!isset($_SESSION['captcha_codes']) || !is_array($_SESSION['captcha_codes'])) {
+            $_SESSION['captcha_codes'] = [];
+        }
+        $_SESSION['captcha_codes'][$scope] = [
+            'code'      => $captchaCode,
+            'issued_at' => time(),
+        ];
+        // Bersihkan kunci legacy agar tidak tersisa di sesi
+        unset($_SESSION['captcha_code']);
 
         $width = 140;
         $height = 46;
@@ -368,5 +517,44 @@ class Auth
         imagepng($image);
         imagedestroy($image);
         exit;
+    }
+
+    /**
+     * Menghapus kode CAPTCHA pada scope tertentu dari sesi.
+     */
+    private function clearCaptcha(string $scope): void
+    {
+        if (isset($_SESSION['captcha_codes'][$scope])) {
+            unset($_SESSION['captcha_codes'][$scope]);
+        }
+        unset($_SESSION['captcha_code']);
+    }
+
+    /**
+     * Memverifikasi kode CAPTCHA sekali pakai (*one-time use*) dan langsung menghapusnya
+     * dari sesi baik saat cocok, salah, kosong, maupun kedaluwarsa (VULN-10).
+     *
+     * @return string 'valid' | 'empty' | 'expired' | 'invalid'
+     */
+    private function consumeCaptcha(string $scope, string $input): string
+    {
+        $entry = $_SESSION['captcha_codes'][$scope] ?? null;
+        // Hapus seketika sebelum evaluasi agar satu kode tidak pernah bisa dicoba dua kali
+        $this->clearCaptcha($scope);
+
+        if ($input === '') {
+            return 'empty';
+        }
+
+        if (!is_array($entry) || empty($entry['code']) || !is_string($entry['code'])) {
+            return 'expired';
+        }
+
+        $issuedAt = (int) ($entry['issued_at'] ?? 0);
+        if ($issuedAt <= 0 || (time() - $issuedAt) > self::CAPTCHA_TTL_SECONDS) {
+            return 'expired';
+        }
+
+        return hash_equals($entry['code'], $input) ? 'valid' : 'invalid';
     }
 }

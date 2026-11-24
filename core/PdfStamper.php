@@ -5,6 +5,8 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/DocumentsModel.php';
 require_once __DIR__ . '/../models/SignaturesModel.php';
 require_once __DIR__ . '/../models/AuditLogModel.php';
+require_once __DIR__ . '/SignatureImageValidator.php';
+require_once __DIR__ . '/StoragePath.php';
 
 use setasign\Fpdi\Fpdi;
 use chillerlan\QRCode\QRCode;
@@ -58,14 +60,16 @@ class PdfStamper
         // Early return: berkas final sudah pernah digenerate & DB sudah mencatat hash.
         // Mencegah regenerasi berulang (race antara trigger otomatis & lazy download)
         // serta spam audit log document.final_generated.
-        if (!empty($doc['final_file_path']) && !empty($doc['final_file_hash'])
-            && file_exists($finalAbsPath) && filesize($finalAbsPath) > 0) {
-            return [
-                'success'         => true,
-                'final_file_path' => $doc['final_file_path'],
-                'final_file_hash' => $doc['final_file_hash'],
-                'message'         => 'Berkas PDF final berstempel sudah tersedia.'
-            ];
+        if (!empty($doc['final_file_path']) && !empty($doc['final_file_hash'])) {
+            $existingFinalReal = StoragePath::resolve((string) $doc['final_file_path'], 'documents', ['pdf'], $storageDir);
+            if ($existingFinalReal !== null && filesize($existingFinalReal) > 0) {
+                return [
+                    'success'         => true,
+                    'final_file_path' => $doc['final_file_path'],
+                    'final_file_hash' => $doc['final_file_hash'],
+                    'message'         => 'Berkas PDF final berstempel sudah tersedia.'
+                ];
+            }
         }
 
         $signatures = $sigModel->getByDocumentId($documentId);
@@ -73,9 +77,8 @@ class PdfStamper
             return ['success' => false, 'message' => 'Tidak ada rekam tanda tangan yang ditemukan untuk dokumen ini.'];
         }
 
-        $sourcePdfPath = $storageDir . '/' . ltrim($doc['file_path'], '/\\');
-
-        if (!file_exists($sourcePdfPath) || !is_readable($sourcePdfPath)) {
+        $sourcePdfPath = StoragePath::resolve((string) ($doc['file_path'] ?? ''), 'documents', ['pdf'], $storageDir);
+        if ($sourcePdfPath === null) {
             return ['success' => false, 'message' => 'Berkas PDF asli tidak ditemukan di direktori penyimpanan privat.'];
         }
 
@@ -273,20 +276,25 @@ class PdfStamper
                         // 1. Jika Format QR + TTD: Gambar coretan tanda tangan (fit-contain BUG-07) di area atas kolom kiri
                         if (!$isQrOnly) {
                             $scribbleH  = max(2.5, $availH - $identityH);
-                            $sigImgPath = !empty($sig['signature_image_path']) ? ($storageDir . '/' . ltrim($sig['signature_image_path'], '/\\')) : '';
-                            if (!empty($sigImgPath) && file_exists($sigImgPath) && is_readable($sigImgPath)) {
-                                $imgInfo = @getimagesize($sigImgPath);
-                                $origW   = $imgInfo[0] ?? 0;
-                                $origH   = $imgInfo[1] ?? 0;
-                                if ($origW > 0 && $origH > 0) {
-                                    $scale   = min($leftW / $origW, $scribbleH / $origH);
-                                    $renderW = $origW * $scale;
-                                    $renderH = $origH * $scale;
-                                    $renderX = $leftX + ($leftW - $renderW) / 2.0;
-                                    $renderY = $yPt + $pad + ($scribbleH - $renderH) / 2.0;
-                                    $pdf->Image($sigImgPath, $renderX, $renderY, $renderW, $renderH);
+                            $sigImgPath = !empty($sig['signature_image_path'])
+                                ? StoragePath::resolve((string) $sig['signature_image_path'], 'signatures/documents', ['png'], $storageDir)
+                                : null;
+                            if ($sigImgPath !== null) {
+                                $imgErr = SignatureImageValidator::validateExistingFile($sigImgPath);
+                                if ($imgErr === null) {
+                                    $imgInfo = @getimagesize($sigImgPath);
+                                    $origW   = (int) ($imgInfo[0] ?? 0);
+                                    $origH   = (int) ($imgInfo[1] ?? 0);
+                                    if ($origW > 0 && $origH > 0) {
+                                        $scale   = min($leftW / $origW, $scribbleH / $origH);
+                                        $renderW = $origW * $scale;
+                                        $renderH = $origH * $scale;
+                                        $renderX = $leftX + ($leftW - $renderW) / 2.0;
+                                        $renderY = $yPt + $pad + ($scribbleH - $renderH) / 2.0;
+                                        $pdf->Image($sigImgPath, $renderX, $renderY, $renderW, $renderH, 'PNG');
+                                    }
                                 } else {
-                                    $pdf->Image($sigImgPath, $leftX, $yPt + $pad, $leftW, $scribbleH);
+                                    error_log("[PdfStamper] Melewati gambar tanda tangan tidak aman ({$imgErr}): {$sigImgPath}");
                                 }
                             }
                             $textY = $yPt + $pad + $scribbleH;
