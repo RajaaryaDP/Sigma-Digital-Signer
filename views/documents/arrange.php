@@ -34,15 +34,6 @@ require_once __DIR__ . '/../layout/header.php';
     </div>
 </div>
 
-<!-- Banner Petunjuk Penataan Slot Terpadu -->
-<div class="sigma-guide-banner py-2 px-3 mb-4 d-flex align-items-start gap-2">
-    <i class="bi bi-info-circle-fill text-sigma-purple mt-1 fs-5 flex-shrink-0"></i>
-    <div class="small" style="color: var(--sigma-navy);">
-        <strong>Penataan Slot Langsung di Atas Lembar Dokumen:</strong> Anda dapat melihat halaman berkas PDF asli secara langsung di kanvas sebelah kiri.
-        Klik dan seret (drag) kotak slot tanda tangan tepat ke area tanda tangan yang diinginkan. Anda juga dapat berpindah halaman jika dokumen memiliki lebih dari satu halaman.
-    </div>
-</div>
-
 <form id="arrangeForm" action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/update" method="POST">
     <?= Csrf::field() ?>
     <input type="hidden" name="action_type" id="actionTypeInput" value="save_slots">
@@ -54,7 +45,7 @@ require_once __DIR__ . '/../layout/header.php';
                 <div class="card-sigma-header py-2 px-3 flex-wrap">
                     <span class="fw-bold small d-flex align-items-center gap-2" style="color: var(--text-heading);">
                         <i class="bi bi-file-earmark-check text-sigma-purple"></i>
-                        <span>Lembar Kerja Penempatan Slot Tanda Tangan</span>
+                        <span>Penempatan Slot</span>
                     </span>
 
                     <!-- Toolbar Navigasi Halaman PDF -->
@@ -70,7 +61,7 @@ require_once __DIR__ . '/../layout/header.php';
                                 <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
-                        <button type="button" class="btn-sigma-purple btn-sigma-sm d-none" id="btnPlaceOnCurrentPage" title="Pindahkan slot penandatangan aktif ke halaman yang sedang dibuka">
+                        <button type="button" class="btn-sigma-purple btn-sigma-sm d-none" id="btnPlaceOnCurrentPage" title="Pindahkan slot aktif ke halaman ini">
                             <i class="bi bi-geo-alt"></i> Tempatkan di Hal <span id="toolbarCurrentPageNum">1</span>
                         </button>
                     </div>
@@ -82,13 +73,13 @@ require_once __DIR__ . '/../layout/header.php';
                         <div class="spinner-border text-sigma-purple" role="status" style="width: 2.5rem; height: 2.5rem;">
                             <span class="visually-hidden">Memuat PDF...</span>
                         </div>
-                        <div class="small mt-2 fw-medium" style="color: var(--text-muted);">Memuat halaman dokumen PDF asli...</div>
+                        <div class="small mt-2 fw-medium" style="color: var(--text-muted);">Memuat PDF...</div>
                     </div>
 
                     <!-- Alert Fallback jika PDF.js gagal atau offline -->
                     <div id="pdfFallbackAlert" class="alert alert-warning alert-sigma py-2 px-3 small d-none text-start mb-3">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                        Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat mengatur koordinat pada kanvas representasi rasio A4 di bawah ini.
+                        Pratinjau PDF gagal dimuat. Slot tetap bisa diatur di lembar kosong di bawah.
                     </div>
 
                     <!-- Alert Peringatan Perbedaan Halaman Slot Aktif vs Halaman Tampil -->
@@ -190,10 +181,10 @@ require_once __DIR__ . '/../layout/header.php';
                     <div class="mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem; color: var(--text-muted);">
                         <span>
                             <i class="bi bi-hand-index-thumb me-1"></i>
-                            Klik &amp; seret kotak slot langsung di atas lembar dokumen, atau klik di area dokumen untuk memindahkan slot aktif.
+                            Seret kotak slot ke posisi tanda tangan.
                         </span>
                         <span class="badge-sigma badge-sigma-purple">
-                            <i class="bi bi-layers"></i> Menampilkan Halaman: <strong id="activePageBadge">1</strong>
+                            <i class="bi bi-layers"></i> Hal. <strong id="activePageBadge">1</strong>
                         </span>
                     </div>
                 </div>
@@ -205,8 +196,7 @@ require_once __DIR__ . '/../layout/header.php';
             <div class="card-sigma mb-4 sticky-lg-top" style="top: 90px; z-index: 900;">
                 <div class="card-sigma-header">
                     <div>
-                        <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">Daftar Slot Penandatangan</h2>
-                        <small style="color: var(--text-muted);">Koordinat relatif terhadap lembar halaman (%)</small>
+                        <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">Daftar Slot</h2>
                     </div>
                     <span class="badge-sigma badge-sigma-purple">
                         <?= count($signers) ?> Penandatangan
@@ -328,14 +318,6 @@ require_once __DIR__ . '/../layout/header.php';
                         </button>
                     </div>
 
-                    <div class="text-center mt-3">
-                        <small style="font-size: 0.75rem; color: var(--text-muted);">
-                            <?= $isSingle
-                                ? 'Setelah diselesaikan, dokumen mandiri akan langsung berstatus final.'
-                                : 'Setelah diajukan ke Administrator, posisi slot tidak dapat diubah lagi.' ?>
-                        </small>
-                    </div>
-
                 </div>
             </div>
         </div>
@@ -355,12 +337,8 @@ require_once __DIR__ . '/../layout/header.php';
             <form action="<?= BASE_URL ?>/documents/<?= htmlspecialchars($doc['id'], ENT_QUOTES, 'UTF-8') ?>/delete" method="POST">
                 <?= Csrf::field() ?>
                 <div class="modal-body p-4">
-                    <p class="mb-2" style="color: var(--text-heading);">
-                        Anda akan membatalkan dan menghapus draft dokumen
-                        <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong>.
-                    </p>
-                    <p class="small mb-0" style="color: var(--text-muted);">
-                        Pengaturan alur penandatangan dan posisi slot pada draft ini ikut dihapus agar tidak meninggalkan sisa draft di daftar dokumen Anda.
+                    <p class="mb-0" style="color: var(--text-heading);">
+                        Draft <strong>"<?= htmlspecialchars($doc['title'], ENT_QUOTES, 'UTF-8') ?>"</strong> beserta pengaturan slotnya akan dihapus.
                     </p>
                 </div>
                 <div class="modal-footer border-top d-flex flex-wrap justify-content-between gap-2" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
@@ -944,8 +922,8 @@ document.addEventListener('DOMContentLoaded', function () {
     btnSubmitToAdmin.addEventListener('click', function () {
         const isSingle = <?= json_encode($doc['signature_type'] === 'single') ?>;
         const confirmMsg = isSingle 
-            ? 'Apakah Anda yakin posisi tanda tangan sudah sesuai? Dokumen mandiri akan difinalisasi.'
-            : 'Apakah Anda yakin seluruh slot tanda tangan sudah sesuai? Dokumen akan diajukan ke Administrator untuk peninjauan resmi.';
+            ? 'Selesaikan dokumen? Dokumen langsung berstatus final.'
+            : 'Ajukan ke Administrator? Posisi slot tidak bisa diubah lagi.';
         if (confirm(confirmMsg)) {
             actionTypeInput.value = 'submit';
             arrangeForm.submit();

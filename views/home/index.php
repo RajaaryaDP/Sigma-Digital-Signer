@@ -1753,7 +1753,7 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                     </div>
                     <h2 class="verify-banner-title">Verifikasi Keaslian Dokumen Resmi</h2>
                     <p class="verify-banner-sub">
-                        Layanan Publik SIGMA untuk memeriksa keabsahan tanda tangan digital civitas akademika, status persetujuan berjenjang, dan hash integritas SHA-256 dokumen.
+                        Cek keaslian tanda tangan digital dokumen PNJ.
                     </p>
                 </div>
 
@@ -1771,13 +1771,13 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                                 </span>
                                 <div>
                                     <h3 class="verify-card-title">Cek Keabsahan Token QR</h3>
-                                    <p class="verify-card-subtitle">Masukkan 36 karakter kode unik token dokumen</p>
+                                    <p class="verify-card-subtitle">Masukkan token dari dokumen</p>
                                 </div>
                             </div>
 
                             <form action="<?= BASE_URL ?>/verify" method="GET" id="homeVerifyForm" novalidate>
                                 <label for="verify-token-input" class="verify-label">
-                                    Token Verifikasi Dokumen (UUID)<span class="verify-required" aria-hidden="true">*</span>
+                                    Token Verifikasi<span class="verify-required" aria-hidden="true">*</span>
                                 </label>
                                 <div class="verify-input-group">
                                     <span class="verify-input-prefix" aria-hidden="true">
@@ -1801,11 +1801,11 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                                         <line x1="12" y1="16" x2="12" y2="12" />
                                         <line x1="12" y1="8" x2="12.01" y2="8" />
                                     </svg>
-                                    <span>Token dapat ditemukan tercetak di dekat stempel QR Code pada dokumen, atau tempel tautan lengkap hasil scan QR.</span>
+                                    <span>Token ada di dekat QR pada dokumen. Bisa juga tempel tautan hasil scan QR.</span>
                                 </div>
 
                                 <div id="verify-inline-error" class="verify-error-box" role="alert" hidden>
-                                    Masukkan kode token UUID dokumen atau tautan QR terlebih dahulu sebelum memeriksa keaslian.
+                                    Masukkan token atau tautan QR terlebih dahulu.
                                 </div>
 
                                 <button type="submit" class="btn-verify-submit" id="verifySubmitBtn">
@@ -1827,19 +1827,19 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                                     <h4 class="verify-how-title">
                                         <span>1. Scan QR Code</span>
                                     </h4>
-                                    <p class="verify-how-desc">Arahkan kamera smartphone ke stempel QR Code untuk membuka tautan verifikasi otomatis.</p>
+                                    <p class="verify-how-desc">Scan QR di dokumen dengan kamera HP.</p>
                                 </div>
                                 <div class="verify-how-item">
                                     <h4 class="verify-how-title">                                        
-                                        <span>2. Hash SHA-256</span>
+                                        <span>2. Pencocokan</span>
                                     </h4>
-                                    <p class="verify-how-desc">Sistem mencocokkan integritas berkas PDF lewat hash SHA-256 dan token UUID unik penerbitan.</p>
+                                    <p class="verify-how-desc">Sistem mencocokkan token dan berkas.</p>
                                 </div>
                                 <div class="verify-how-item">
                                     <h4 class="verify-how-title">
                                         <span>3. Bukti Otentik</span>
                                     </h4>
-                                    <p class="verify-how-desc">Muncul snapshot identitas civitas, stempel tanda tangan, dan rantai pengesahan berjenjang.</p>
+                                    <p class="verify-how-desc">Identitas penandatangan dan status pengesahan ditampilkan.</p>
                                 </div>
                             </div>
                         </div>
@@ -1855,14 +1855,14 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                                 <span>Otoritas Penerbit</span>
                             </h3>
                             <p class="verify-authority-desc">
-                                Sistem Informasi Tanda Tangan Digital (SIGMA) dikelola oleh Jurusan Teknik Informatika dan Komputer, Politeknik Negeri Jakarta untuk menjaga keterlacakan dokumen akademik.
+                                SIGMA dikelola oleh Jurusan Teknik Informatika dan Komputer, Politeknik Negeri Jakarta.
                             </p>
                             <div class="verify-authority-box">
                                 <div class="verify-authority-row">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
                                         <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" />
                                     </svg>
-                                    <strong>Kampus UI Depok, Jawa Barat 16425</strong>
+                                    <strong>Gedung AA PNJ, Jl. Prof. DR. G.A. Siwabessy, Kukusan, Kecamatan Beji, Kota Depok, Jawa Barat 16425</strong>
                                 </div>
                                 <div class="verify-authority-row">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1876,7 +1876,7 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
                                         <path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8Z" />
                                     </svg>
-                                    <strong>Hash Integritas SHA-256 &amp; Verifikasi QR Token</strong>
+                                    <strong>Verifikasi QR Token</strong>
                                 </div>
                             </div>
                         </div>

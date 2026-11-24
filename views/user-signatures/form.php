@@ -36,8 +36,8 @@ require_once __DIR__ . '/../layout/header.php';
                         <i class="bi bi-pen-fill"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0" style="color: var(--text-heading);">Buat Template Tanda Tangan Digital</h5>
-                        <small style="color: var(--text-muted);">Siapkan tanda tangan digital pribadi untuk menandatangani dokumen akademik</small>
+                        <h5 class="fw-bold mb-0" style="color: var(--text-heading);">Buat Template Tanda Tangan</h5>
+                        
                     </div>
                 </div>
             </div>
@@ -67,7 +67,7 @@ require_once __DIR__ . '/../layout/header.php';
                                 <input type="text" name="label" class="form-control sigma-input"
                                        placeholder="Contoh: Tanda Tangan Utama, Paraf Resmi"
                                        value="<?= htmlspecialchars($values['label'] ?? '') ?>" maxlength="100">
-                                <small style="font-size: 0.75rem; color: var(--text-muted);">Nama pengenal untuk memudahkan Anda memilih di antara beberapa template.</small>
+                                
                             </div>
 
                             <div class="col-md-5 d-flex align-items-center">
@@ -78,7 +78,7 @@ require_once __DIR__ . '/../layout/header.php';
                                         Jadikan Template Utama (Default)
                                     </label>
                                     <small class="d-block" style="font-size: 0.72rem; color: var(--text-muted);">
-                                        Otomatis dipilih saat Anda membuka lembar penandatanganan berkas.
+                                        Otomatis dipilih saat menandatangani.
                                     </small>
                                 </div>
                             </div>
@@ -154,7 +154,7 @@ require_once __DIR__ . '/../layout/header.php';
                                     </div>
                                 </div>
                                 <div class="form-text mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
-                                    <i class="bi bi-info-circle me-1"></i>Mendukung sentuhan layar HP/tablet serta mouse komputer. Goresan otomatis diproses dengan latar belakang transparan.
+                                    <i class="bi bi-info-circle me-1"></i>Bisa pakai mouse atau layar sentuh.
                                 </div>
                             </div>
 
@@ -189,7 +189,7 @@ require_once __DIR__ . '/../layout/header.php';
                                     </div>
                                 </div>
                                 <div class="form-text mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
-                                    <i class="bi bi-lightbulb me-1"></i>Gunakan gambar tanda tangan berlatar belakang transparan (alpha channel) agar tampak menyatu dan profesional di lembar PDF.
+                                    <i class="bi bi-lightbulb me-1"></i>Gunakan PNG berlatar transparan.
                                 </div>
                             </div>
 
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!file) return;
 
         if (file.type !== 'image/png') {
-            alert('Peringatan: Berkas harus berformat gambar PNG (.png) dengan latar belakang transparan.');
+            alert('Berkas harus berformat PNG.');
             fileInput.value = '';
             return;
         }
