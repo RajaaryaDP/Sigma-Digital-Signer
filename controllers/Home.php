@@ -26,6 +26,17 @@ class Home
         ]);
     }
 
+    public function verifikasi()
+    {
+        $currentUser = $_SESSION['user'] ?? null;
+
+        $this->load->view('views/home/index.php', [
+            'title'       => 'Verifikasi Keaslian Dokumen | SIGMA Politeknik Negeri Jakarta',
+            'currentUser' => $currentUser,
+            'activeTab'   => 'verifikasi',
+        ]);
+    }
+
     public function guide()
     {
         $currentUser = $_SESSION['user'] ?? null;

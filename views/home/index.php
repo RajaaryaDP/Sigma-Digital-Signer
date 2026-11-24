@@ -2,10 +2,19 @@
 $isLoggedIn = isset($_SESSION['user']);
 $user = $_SESSION['user'] ?? null;
 $activeTab = $activeTab ?? 'beranda';
+$initialBerandaSlide = 0;
 if ($activeTab === 'panduan') {
     $activeTab = 'guide';
+} elseif ($activeTab === 'verify') {
+    $activeTab = 'verifikasi';
+} elseif ($activeTab === 'fitur') {
+    $activeTab = 'beranda';
+    $initialBerandaSlide = 1;
+} elseif ($activeTab === 'tentang') {
+    $activeTab = 'beranda';
+    $initialBerandaSlide = 2;
 }
-if (!in_array($activeTab, ['beranda', 'fitur', 'tentang', 'guide'], true)) {
+if (!in_array($activeTab, ['beranda', 'verifikasi', 'guide'], true)) {
     $activeTab = 'beranda';
 }
 $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
@@ -104,22 +113,32 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             top: 12px;
         }
 
-        /* Header uses subtle smoky radial layers to frame the brand lockup and tab bar against the light content canvas. */
+        /* Header shares the footer's navy base and login-background.png motif at 40% opacity for a unified top-to-bottom frame. */
         .sigma-header {
             position: relative;
-            background:
-                radial-gradient(ellipse at 18% 20%, rgba(96, 114, 166, 0.28), transparent 45%),
-                radial-gradient(ellipse at 52% 85%, rgba(82, 99, 148, 0.24), transparent 50%),
-                radial-gradient(ellipse at 85% 30%, rgba(102, 118, 168, 0.22), transparent 42%),
-                linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+            isolation: isolate;
+            overflow: hidden;
+            background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
             color: var(--surface-white);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
+        .sigma-header::before {
+            position: absolute;
+            z-index: 0;
+            inset: 0;
+            background: url("<?= BASE_URL ?>/assets/img/login-background.png") center / cover no-repeat;
+            content: "";
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
         .sigma-header-inner {
-            max-width: 1200px;
+            position: relative;
+            z-index: 1;
+            width: 100%;
             margin: 0 auto;
-            padding: 14px 36px;
+            padding: 14px clamp(24px, 4vw, 56px);
             min-height: 86px;
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -167,7 +186,7 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: clamp(28px, 5vw, 76px);
+            gap: clamp(20px, 3.6vw, 54px);
         }
 
         .sigma-tab {
@@ -349,6 +368,118 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             width: 100%;
             height: auto;
             max-width: 340px;
+        }
+
+        /* Beranda carousel widens the outer track so left/right arrows sit well clear of the inner 1024px slide content. */
+        #panel-beranda {
+            max-width: 1320px;
+        }
+
+        .beranda-slider {
+            position: relative;
+            padding: 0 clamp(68px, 7.5vw, 112px);
+        }
+
+        .beranda-slider-viewport {
+            overflow: hidden;
+            width: 100%;
+            max-width: 1024px;
+            margin: 0 auto;
+            transition: height 280ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .beranda-slider-track {
+            display: flex;
+            align-items: flex-start;
+            width: 100%;
+            transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+        }
+
+        .beranda-slide {
+            flex: 0 0 100%;
+            width: 100%;
+            min-width: 0;
+            padding: 4px 2px 12px;
+        }
+
+        .beranda-slide[aria-hidden="true"] {
+            pointer-events: none;
+        }
+
+        .beranda-slide-arrow {
+            position: absolute;
+            top: 195px;
+            transform: translateY(-50%);
+            z-index: 5;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1px solid rgba(29, 39, 72, 0.16);
+            background: var(--surface-white);
+            color: var(--ink);
+            box-shadow: 0 4px 14px rgba(29, 39, 72, 0.09);
+            transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+        }
+
+        .beranda-slide-arrow--prev {
+            left: 0;
+        }
+
+        .beranda-slide-arrow--next {
+            right: 0;
+        }
+
+        .beranda-slide-arrow:hover:not(:disabled) {
+            background: var(--navy-cta);
+            border-color: var(--navy-cta);
+            color: var(--surface-white);
+        }
+
+        .beranda-slide-arrow:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .beranda-dots {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: clamp(20px, 2.8vw, 30px);
+        }
+
+        .beranda-dot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+
+        .beranda-dot::before {
+            content: "";
+            display: block;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #b6aec9;
+            transition: width 220ms ease, background-color 180ms ease;
+        }
+
+        .beranda-dot:hover::before {
+            background: #6d638a;
+        }
+
+        .beranda-dot[aria-current="true"]::before {
+            width: 26px;
+            background: var(--navy-cta);
         }
 
         /* Fitur section shifts rhythm to a centered header and two-column catalog so users can scan all eight system capabilities. */
@@ -841,6 +972,336 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             }
         }
 
+        /* Verifikasi section embeds public QR token lookup inside the landing shell with an asymmetric two-column split (token checker on left, institutional authority on right). */
+        .verify-wrap {
+            max-width: 1040px;
+            margin: 0 auto;
+        }
+
+        .verify-banner {
+            background: linear-gradient(135deg, #1d2748 0%, #2d2b4b 60%, #4d3e72 100%);
+            color: var(--surface-white);
+            border: 1px solid rgba(195, 181, 217, 0.35);
+            border-radius: 16px;
+            padding: clamp(22px, 3.2vw, 32px) clamp(20px, 3vw, 36px);
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(29, 39, 72, 0.14);
+            margin-bottom: 24px;
+        }
+
+        .verify-banner-org {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            color: var(--surface-white);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-bottom: 14px;
+        }
+
+        .verify-banner-title {
+            margin: 0 0 10px;
+            color: var(--surface-white);
+            font-size: clamp(1.5rem, 2.5vw, 2rem);
+            font-weight: 800;
+            line-height: 1.24;
+        }
+
+        .verify-banner-sub {
+            margin: 0 auto;
+            max-width: 640px;
+            color: #ebe9f5;
+            font-size: clamp(0.86rem, 1.05vw, 0.94rem);
+            line-height: 1.55;
+        }
+
+        .verify-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.38fr) minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .verify-col {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .verify-panel-card {
+            background: var(--surface-white);
+            border: 1px solid rgba(29, 39, 72, 0.1);
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(29, 39, 72, 0.06);
+            padding: clamp(20px, 2.6vw, 26px);
+        }
+
+        .verify-card-head {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding-bottom: 16px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid #e6e3f0;
+        }
+
+        .verify-icon-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--icon-Tint);
+            color: #4c35a8;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .verify-card-title {
+            margin: 0 0 3px;
+            color: var(--ink);
+            font-size: 1.08rem;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .verify-card-subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.83rem;
+            line-height: 1.4;
+        }
+
+        .verify-label {
+            display: block;
+            margin: 0 0 8px;
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .verify-required {
+            color: #b42318;
+            margin-left: 2px;
+        }
+
+        .verify-input-group {
+            display: flex;
+            align-items: stretch;
+            border: 1.5px solid #b8b3ca;
+            border-radius: 9px;
+            overflow: hidden;
+            background: var(--surface-white);
+            transition: border-color 140ms ease, box-shadow 140ms ease;
+        }
+
+        .verify-input-group:focus-within {
+            border-color: var(--focus);
+            box-shadow: 0 0 0 3px rgba(98, 70, 208, 0.16);
+        }
+
+        .verify-input-prefix {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            background: #f3f1fa;
+            color: #4c35a8;
+            border-right: 1px solid #d5d0e5;
+            flex-shrink: 0;
+        }
+
+        .verify-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 44px;
+            padding: 10px 14px;
+            border: 0;
+            background: transparent;
+            color: var(--ink);
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.9rem;
+        }
+
+        .verify-input::placeholder {
+            color: #6b677e;
+        }
+
+        .verify-input:focus {
+            outline: none;
+        }
+
+        .verify-help {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin: 10px 0 18px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .verify-help svg {
+            flex-shrink: 0;
+            margin-top: 2px;
+            color: #555268;
+        }
+
+        .verify-error-box {
+            margin: 0 0 14px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #f5c2c7;
+            background: #fff5f5;
+            color: #842029;
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.45;
+        }
+
+        .verify-error-box[hidden] {
+            display: none !important;
+        }
+
+        .btn-verify-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 46px;
+            padding: 11px 20px;
+            border-radius: 9px;
+            border: 1px solid var(--navy-cta);
+            background: var(--navy-cta);
+            color: var(--surface-white);
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+            transition: background-color 140ms ease, transform 140ms ease;
+        }
+
+        .btn-verify-submit:hover {
+            background: var(--navy-cta-hover);
+            border-color: var(--navy-cta-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-verify-submit:active {
+            background: var(--navy-deep);
+            transform: translateY(0);
+        }
+
+        .verify-subcard-heading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 14px;
+            color: var(--ink);
+            font-size: 0.96rem;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .verify-subcard-heading svg {
+            color: #5236b8;
+            flex-shrink: 0;
+        }
+
+        .verify-how-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .verify-how-item {
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #e4e0f0;
+            background: #f8f7fc;
+        }
+
+        .verify-how-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0 0 6px;
+            color: var(--ink);
+            font-size: 0.83rem;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .verify-how-title svg {
+            color: #5236b8;
+            flex-shrink: 0;
+        }
+
+        .verify-how-desc {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.78rem;
+            line-height: 1.48;
+        }
+
+        .verify-authority-desc {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.56;
+        }
+
+        .verify-authority-box {
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid #e4e0f0;
+            background: #f8f7fc;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .verify-authority-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--ink);
+            font-size: 0.82rem;
+            line-height: 1.4;
+        }
+
+        .verify-authority-row svg {
+            color: #5236b8;
+            flex-shrink: 0;
+        }
+
+        .verify-authority-link {
+            color: #3d2892;
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .verify-authority-link:hover {
+            color: var(--focus);
+        }
+
+        .verify-login-card {
+            text-align: center;
+        }
+
+        .verify-login-prompt {
+            margin: 0 0 12px;
+            color: var(--muted);
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
         /* White spacer band mirrors the clean break above the curved footer wave in all three Figma frames. */
         .pre-footer-band {
             height: clamp(32px, 5vw, 64px);
@@ -891,10 +1352,21 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             .users-grid {
                 gap: 22px 32px;
             }
+
+            .beranda-slider {
+                padding: 0 62px;
+            }
+
+            .verify-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
 
         /* Phone breakpoint collapses multi-column card grids to a single column and adjusts padding for thumb reach. */
         @media (max-width: 620px) {
+            .beranda-slider {
+                padding: 0 52px;
+            }
             .sigma-header-inner {
                 padding: 12px 16px;
             }
@@ -919,8 +1391,9 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             }
 
             .sigma-nav {
-                justify-content: space-between;
-                gap: 12px;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 4px 14px;
             }
 
             .tab-panel {
@@ -928,7 +1401,8 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             }
 
             .features-grid,
-            .users-grid {
+            .users-grid,
+            .verify-how-grid {
                 grid-template-columns: minmax(0, 1fr);
                 gap: 16px;
             }
@@ -977,21 +1451,12 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                 <button
                     type="button"
                     role="tab"
-                    id="tab-fitur"
+                    id="tab-verifikasi"
                     class="sigma-tab"
-                    aria-selected="<?= $activeTab === 'fitur' ? 'true' : 'false' ?>"
-                    aria-controls="panel-fitur"
-                    tabindex="<?= $activeTab === 'fitur' ? '0' : '-1' ?>"
-                    data-tab="fitur">Fitur</button>
-                <button
-                    type="button"
-                    role="tab"
-                    id="tab-tentang"
-                    class="sigma-tab"
-                    aria-selected="<?= $activeTab === 'tentang' ? 'true' : 'false' ?>"
-                    aria-controls="panel-tentang"
-                    tabindex="<?= $activeTab === 'tentang' ? '0' : '-1' ?>"
-                    data-tab="tentang">Tentang</button>
+                    aria-selected="<?= $activeTab === 'verifikasi' ? 'true' : 'false' ?>"
+                    aria-controls="panel-verifikasi"
+                    tabindex="<?= $activeTab === 'verifikasi' ? '0' : '-1' ?>"
+                    data-tab="verifikasi">Verifikasi</button>
                 <button
                     type="button"
                     role="tab"
@@ -1020,234 +1485,421 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             role="tabpanel"
             aria-labelledby="tab-beranda"
             <?= $activeTab === 'beranda' ? '' : 'hidden' ?>>
-            <div class="hero-grid">
-                <div class="hero-copy">
-                    <h1 class="hero-title">Tanda Tangan Digital, Lebih Mudah Menggunakan SIGMA</h1>
-                    <p class="hero-subtitle">
-                        Platform tanda tangan digital untuk memudahkan pengelolaan dokumen secara cepat, aman, dan praktis.
-                    </p>
-                    <div class="hero-cta-row">
-                        <a href="<?= $isLoggedIn ? (BASE_URL . '/documents') : (BASE_URL . '/auth') ?>" class="btn-hero-start">
-                            <span>Mulai Sekarang</span>
-                            <span aria-hidden="true">&rarr;</span>
-                        </a>
+            <div class="beranda-slider" aria-roledescription="carousel" aria-label="Beranda, Fitur, dan Tentang SIGMA">
+                <button type="button" class="beranda-slide-arrow beranda-slide-arrow--prev" id="berandaPrevSlide" aria-label="Slide sebelumnya">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                </button>
+
+                <div class="beranda-slider-viewport" id="berandaSliderViewport">
+                    <div class="beranda-slider-track" id="berandaSliderTrack">
+                        <!-- Slide 1: Beranda Hero -->
+                        <div class="beranda-slide" id="slide-beranda" data-slide-index="0" aria-hidden="<?= $initialBerandaSlide === 0 ? 'false' : 'true' ?>">
+                            <div class="hero-grid">
+                                <div class="hero-copy">
+                                    <h1 class="hero-title">Tanda Tangan Digital, Lebih Mudah Menggunakan SIGMA</h1>
+                                    <p class="hero-subtitle">
+                                        Platform tanda tangan digital untuk memudahkan pengelolaan dokumen secara cepat, aman, dan praktis.
+                                    </p>
+                                    <div class="hero-cta-row">
+                                        <a href="<?= $isLoggedIn ? (BASE_URL . '/documents') : (BASE_URL . '/auth') ?>" class="btn-hero-start">
+                                            <span>Mulai Sekarang</span>
+                                            <span aria-hidden="true">&rarr;</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="hero-illustration-card">
+                                    <!-- Custom vector illustration of a laptop and signed document directly depicts SIGMA's digital signing workflow. -->
+                                    <svg
+                                        class="hero-illustration-svg"
+                                        viewBox="0 0 360 280"
+                                        width="340"
+                                        height="264"
+                                        role="img"
+                                        aria-label="Ilustrasi penandatanganan dokumen digital pada laptop">
+                                        <path
+                                            d="M66 184C32 162 28 112 58 88C84 67 116 82 144 62C174 40 206 18 242 36C278 54 282 108 262 146C242 184 198 206 150 204C112 202 88 198 66 184Z"
+                                            fill="#dbd6f2" />
+                                        <g stroke="#ffffff" stroke-width="1.5" fill="none" opacity="0.85">
+                                            <circle cx="196" cy="70" r="24" />
+                                            <ellipse cx="196" cy="70" rx="12" ry="24" />
+                                            <line x1="172" y1="70" x2="220" y2="70" />
+                                            <line x1="176" y1="59" x2="216" y2="59" />
+                                            <line x1="176" y1="81" x2="216" y2="81" />
+                                        </g>
+                                        <polygon points="62,92 224,92 248,196 86,196" fill="#ffffff" stroke="#232946" stroke-width="2" stroke-linejoin="round" />
+                                        <polygon points="70,99 218,99 239,190 91,190" fill="#4636c6" />
+                                        <line x1="94" y1="109" x2="196" y2="109" stroke="#1d233b" stroke-width="4" stroke-linecap="round" />
+                                        <path
+                                            d="M104 109H190C198 109 204 115 208 126L230 192C233 201 241 207 250 207H156C144 207 135 199 131 188L104 109Z"
+                                            fill="#ffffff"
+                                            stroke="#cfd3e6"
+                                            stroke-width="1.5" />
+                                        <line x1="126" y1="127" x2="190" y2="127" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
+                                        <line x1="131" y1="141" x2="195" y2="141" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
+                                        <line x1="136" y1="155" x2="200" y2="155" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
+                                        <line x1="141" y1="169" x2="192" y2="169" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
+                                        <path
+                                            d="M182 192C185 184 191 183 192 190C193 195 187 197 190 193C194 189 201 189 204 193C207 196 212 191 217 192"
+                                            fill="none"
+                                            stroke="#232946"
+                                            stroke-width="1.8"
+                                            stroke-linecap="round" />
+                                        <polygon points="86,196 248,196 296,204 134,204" fill="#d9ddf0" stroke="#232946" stroke-width="2" stroke-linejoin="round" />
+                                        <polygon points="134,204 296,204 292,211 128,211" fill="#1d233b" />
+                                        <polygon points="86,196 134,204 128,211 82,201" fill="#1d233b" />
+                                        <g>
+                                            <path
+                                                d="M268 150C258 147 246 146 238 153C232 158 228 166 221 169C217 171 216 176 221 178C228 180 236 175 241 172L236 181C234 185 238 189 243 187L250 183C250 187 255 189 260 186L275 178L298 175L290 144L268 150Z"
+                                                fill="#f29d7e" />
+                                            <line x1="259" y1="115" x2="213" y2="185" stroke="#1d233b" stroke-width="6" stroke-linecap="round" />
+                                            <line x1="254" y1="123" x2="245" y2="136" stroke="#d9ddf0" stroke-width="2" stroke-linecap="round" />
+                                            <polygon points="210,189 216,184 212,181" fill="#1d233b" />
+                                            <path
+                                                d="M238 154C231 159 225 168 219 170C215 171 215 176 220 177C226 178 235 173 243 166"
+                                                fill="#f29d7e" />
+                                            <polygon points="285,141 296,139 306,177 295,179" fill="#ffffff" stroke="#d5d8e8" stroke-width="1" />
+                                            <polygon points="294,136 328,128 338,174 303,181" fill="#1d233b" />
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slide 2: Fitur SIGMA -->
+                        <div class="beranda-slide" id="fitur" data-slide-index="1" aria-hidden="<?= $initialBerandaSlide === 1 ? 'false' : 'true' ?>">
+                            <div class="section-header">
+                                <h2 class="section-heading">Fitur SIGMA</h2>
+                                <p class="section-lead">
+                                    Berbagai fitur untuk membantu pengelolaan dan penandatanganan dokumen secara mudah, aman, dan praktis.
+                                </p>
+                            </div>
+
+                            <div class="features-grid">
+                                <article class="feature-card">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                                            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                                            <circle cx="12" cy="16" r="1" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Autentikasi Pengguna</h3>
+                                    <p class="feature-desc">Pengguna dapat masuk ke SIGMA menggunakan email dan password.</p>
+                                </article>
+
+                                <article class="feature-card">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <circle cx="9" cy="8" r="3" />
+                                            <path d="M3 19v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" />
+                                            <circle cx="17" cy="9" r="2.5" />
+                                            <path d="M21 19v-1a4 4 0 0 0-3-3.87" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Akses Berdasarkan Role</h3>
+                                    <p class="feature-desc">Menampilkan menu dan akses sesuai dengan peran pengguna.</p>
+                                </article>
+
+                                <article class="feature-card">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M7 18a4.6 4.4 0 0 1 0-9 5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1" />
+                                            <polyline points="9 15 12 12 15 15" />
+                                            <line x1="12" y1="12" x2="12" y2="21" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Unggah Dokumen</h3>
+                                    <p class="feature-desc">Mengunggah dokumen dengan pemeriksaan format dan ukuran file.</p>
+                                </article>
+
+                                <article class="feature-card">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                            <path d="m15 5 4 4" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Pengelolaan Dokumen &amp; Tanda Tangan</h3>
+                                    <p class="feature-desc">Mengelola dokumen dan tanda tangan digital yang telah diproses.</p>
+                                </article>
+
+                                <article class="feature-card">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+                                            <circle cx="12" cy="12" r="3" />
+                                            <path d="m16 19 2 2 4-4" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Pengelolaan &amp; Monitoring Dokumen</h3>
+                                    <p class="feature-desc">Admin dapat mengelola dan memantau dokumen yang diproses dalam sistem.</p>
+                                </article>
+
+                                <a href="#verifikasi" data-go-tab="verifikasi" class="feature-card feature-card-link">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                                            <path d="m9 12 2 2 4-4" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Verifikasi Keaslian Dokumen</h3>
+                                    <p class="feature-desc">Memastikan keaslian dokumen melalui watermark verifikasi.</p>
+                                </a>
+
+                                <article class="feature-card">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M7 18a4.6 4.4 0 0 1 0-9 5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1" />
+                                            <polyline points="9 17 12 20 15 17" />
+                                            <line x1="12" y1="12" x2="12" y2="20" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Unduh Dokumen Terverifikasi</h3>
+                                    <p class="feature-desc">Mengunduh dokumen yang sudah terverifikasi.</p>
+                                </article>
+
+                                <article class="feature-card">
+                                    <span class="feature-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                                            <polyline points="3 3 3 8 8 8" />
+                                            <polyline points="12 7 12 12 15 14" />
+                                        </svg>
+                                    </span>
+                                    <h3 class="feature-title">Riwayat Dokumen</h3>
+                                    <p class="feature-desc">Melihat riwayat dan aktivitas dokumen dalam sistem.</p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <!-- Slide 3: Tentang SIGMA -->
+                        <div class="beranda-slide" id="tentang" data-slide-index="2" aria-hidden="<?= $initialBerandaSlide === 2 ? 'false' : 'true' ?>">
+                            <div class="about-wrap">
+                                <div class="about-block">
+                                    <h2 class="section-heading">Tentang SIGMA</h2>
+                                    <p class="about-text">
+                                        SIGMA merupakan platform penandatanganan digital yang menyediakan layanan untuk memudahkan dalam mengelola dan menandatangani sebuah dokumen akademik.
+                                    </p>
+                                </div>
+
+                                <div class="about-block">
+                                    <h3 class="about-subheading">Tujuan SIGMA</h3>
+                                    <p class="about-text">
+                                        Memudahkan proses penandatanganan dokumen secara digital, sehingga pengelolaan dokumen menjadi lebih praktis dan terstruktur.
+                                    </p>
+                                </div>
+
+                                <div class="users-divider" role="presentation">
+                                    <p class="users-divider-label">Pengguna SIGMA</p>
+                                </div>
+
+                                <div class="users-grid">
+                                    <article class="user-role-card">
+                                        <h4 class="user-role-title">Mahasiswa</h4>
+                                        <p class="user-role-desc">Menggunakan SIGMA untuk kebutuhan dokumen akademik.</p>
+                                    </article>
+
+                                    <article class="user-role-card">
+                                        <h4 class="user-role-title">Dosen</h4>
+                                        <p class="user-role-desc">Mengelola dan menandatangani dokumen sesuai kewenangan.</p>
+                                    </article>
+
+                                    <article class="user-role-card">
+                                        <h4 class="user-role-title">Admin</h4>
+                                        <p class="user-role-desc">Mengelola dan memantau dokumen dalam sistem.</p>
+                                    </article>
+
+                                    <article class="user-role-card">
+                                        <h4 class="user-role-title">Kaprodi/Kajur</h4>
+                                        <p class="user-role-desc">Terlibat dalam proses persetujuan dokumen sesuai kebutuhan.</p>
+                                    </article>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="hero-illustration-card">
-                    <!-- Custom vector illustration of a laptop and signed document directly depicts SIGMA's digital signing workflow. -->
-                    <svg
-                        class="hero-illustration-svg"
-                        viewBox="0 0 360 280"
-                        width="340"
-                        height="264"
-                        role="img"
-                        aria-label="Ilustrasi penandatanganan dokumen digital pada laptop">
-                        <path
-                            d="M66 184C32 162 28 112 58 88C84 67 116 82 144 62C174 40 206 18 242 36C278 54 282 108 262 146C242 184 198 206 150 204C112 202 88 198 66 184Z"
-                            fill="#dbd6f2" />
-                        <g stroke="#ffffff" stroke-width="1.5" fill="none" opacity="0.85">
-                            <circle cx="196" cy="70" r="24" />
-                            <ellipse cx="196" cy="70" rx="12" ry="24" />
-                            <line x1="172" y1="70" x2="220" y2="70" />
-                            <line x1="176" y1="59" x2="216" y2="59" />
-                            <line x1="176" y1="81" x2="216" y2="81" />
-                        </g>
-                        <polygon points="62,92 224,92 248,196 86,196" fill="#ffffff" stroke="#232946" stroke-width="2" stroke-linejoin="round" />
-                        <polygon points="70,99 218,99 239,190 91,190" fill="#4636c6" />
-                        <line x1="94" y1="109" x2="196" y2="109" stroke="#1d233b" stroke-width="4" stroke-linecap="round" />
-                        <path
-                            d="M104 109H190C198 109 204 115 208 126L230 192C233 201 241 207 250 207H156C144 207 135 199 131 188L104 109Z"
-                            fill="#ffffff"
-                            stroke="#cfd3e6"
-                            stroke-width="1.5" />
-                        <line x1="126" y1="127" x2="190" y2="127" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
-                        <line x1="131" y1="141" x2="195" y2="141" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
-                        <line x1="136" y1="155" x2="200" y2="155" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
-                        <line x1="141" y1="169" x2="192" y2="169" stroke="#30344c" stroke-width="2" stroke-linecap="round" />
-                        <path
-                            d="M182 192C185 184 191 183 192 190C193 195 187 197 190 193C194 189 201 189 204 193C207 196 212 191 217 192"
-                            fill="none"
-                            stroke="#232946"
-                            stroke-width="1.8"
-                            stroke-linecap="round" />
-                        <polygon points="86,196 248,196 296,204 134,204" fill="#d9ddf0" stroke="#232946" stroke-width="2" stroke-linejoin="round" />
-                        <polygon points="134,204 296,204 292,211 128,211" fill="#1d233b" />
-                        <polygon points="86,196 134,204 128,211 82,201" fill="#1d233b" />
-                        <g>
-                            <path
-                                d="M268 150C258 147 246 146 238 153C232 158 228 166 221 169C217 171 216 176 221 178C228 180 236 175 241 172L236 181C234 185 238 189 243 187L250 183C250 187 255 189 260 186L275 178L298 175L290 144L268 150Z"
-                                fill="#f29d7e" />
-                            <line x1="259" y1="115" x2="213" y2="185" stroke="#1d233b" stroke-width="6" stroke-linecap="round" />
-                            <line x1="254" y1="123" x2="245" y2="136" stroke="#d9ddf0" stroke-width="2" stroke-linecap="round" />
-                            <polygon points="210,189 216,184 212,181" fill="#1d233b" />
-                            <path
-                                d="M238 154C231 159 225 168 219 170C215 171 215 176 220 177C226 178 235 173 243 166"
-                                fill="#f29d7e" />
-                            <polygon points="285,141 296,139 306,177 295,179" fill="#ffffff" stroke="#d5d8e8" stroke-width="1" />
-                            <polygon points="294,136 328,128 338,174 303,181" fill="#1d233b" />
-                        </g>
+                <button type="button" class="beranda-slide-arrow beranda-slide-arrow--next" id="berandaNextSlide" aria-label="Slide berikutnya">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="9 18 15 12 9 6" />
                     </svg>
+                </button>
+
+                <div class="beranda-dots" role="group" aria-label="Indikator posisi slide Beranda">
+                    <button type="button" class="beranda-dot" data-slide-dot="0" aria-label="Slide 1: Beranda" aria-current="<?= $initialBerandaSlide === 0 ? 'true' : 'false' ?>"></button>
+                    <button type="button" class="beranda-dot" data-slide-dot="1" aria-label="Slide 2: Fitur SIGMA" aria-current="<?= $initialBerandaSlide === 1 ? 'true' : 'false' ?>"></button>
+                    <button type="button" class="beranda-dot" data-slide-dot="2" aria-label="Slide 3: Tentang SIGMA" aria-current="<?= $initialBerandaSlide === 2 ? 'true' : 'false' ?>"></button>
                 </div>
             </div>
         </section>
 
+        <!-- Panel Verifikasi Publik -->
         <section
-            id="panel-fitur"
+            id="panel-verifikasi"
             class="tab-panel"
             role="tabpanel"
-            aria-labelledby="tab-fitur"
-            <?= $activeTab === 'fitur' ? '' : 'hidden' ?>>
-            <div class="section-header">
-                <h2 class="section-heading">Fitur SIGMA</h2>
-                <p class="section-lead">
-                    Berbagai fitur untuk membantu pengelolaan dan penandatanganan dokumen secara mudah, aman, dan praktis.
-                </p>
-            </div>
-
-            <div class="features-grid">
-                <article class="feature-card">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <rect x="5" y="11" width="14" height="10" rx="2" />
-                            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                            <circle cx="12" cy="16" r="1" />
+            aria-labelledby="tab-verifikasi"
+            <?= $activeTab === 'verifikasi' ? '' : 'hidden' ?>>
+            <div class="verify-wrap">
+                <div class="verify-banner">
+                    <div class="verify-banner-org">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+                            <path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3Zm0 14.2L5 13.38V17c0 2.76 3.13 5 7 5s7-2.24 7-5v-3.62l-7 3.82Z" />
                         </svg>
-                    </span>
-                    <h3 class="feature-title">Autentikasi Pengguna</h3>
-                    <p class="feature-desc">Pengguna dapat masuk ke SIGMA menggunakan email dan password.</p>
-                </article>
-
-                <article class="feature-card">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <circle cx="9" cy="8" r="3" />
-                            <path d="M3 19v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" />
-                            <circle cx="17" cy="9" r="2.5" />
-                            <path d="M21 19v-1a4 4 0 0 0-3-3.87" />
-                        </svg>
-                    </span>
-                    <h3 class="feature-title">Akses Berdasarkan Role</h3>
-                    <p class="feature-desc">Menampilkan menu dan akses sesuai dengan peran pengguna.</p>
-                </article>
-
-                <article class="feature-card">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M7 18a4.6 4.4 0 0 1 0-9 5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1" />
-                            <polyline points="9 15 12 12 15 15" />
-                            <line x1="12" y1="12" x2="12" y2="21" />
-                        </svg>
-                    </span>
-                    <h3 class="feature-title">Unggah Dokumen</h3>
-                    <p class="feature-desc">Mengunggah dokumen dengan pemeriksaan format dan ukuran file.</p>
-                </article>
-
-                <article class="feature-card">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            <path d="m15 5 4 4" />
-                        </svg>
-                    </span>
-                    <h3 class="feature-title">Pengelolaan Dokumen &amp; Tanda Tangan</h3>
-                    <p class="feature-desc">Mengelola dokumen dan tanda tangan digital yang telah diproses.</p>
-                </article>
-
-                <article class="feature-card">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="m16 19 2 2 4-4" />
-                        </svg>
-                    </span>
-                    <h3 class="feature-title">Pengelolaan &amp; Monitoring Dokumen</h3>
-                    <p class="feature-desc">Admin dapat mengelola dan memantau dokumen yang diproses dalam sistem.</p>
-                </article>
-
-                <a href="<?= BASE_URL ?>/verify" class="feature-card feature-card-link">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-                            <path d="m9 12 2 2 4-4" />
-                        </svg>
-                    </span>
-                    <h3 class="feature-title">Verifikasi Keaslian Dokumen</h3>
-                    <p class="feature-desc">Memastikan keaslian dokumen melalui watermark verifikasi.</p>
-                </a>
-
-                <article class="feature-card">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M7 18a4.6 4.4 0 0 1 0-9 5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1" />
-                            <polyline points="9 17 12 20 15 17" />
-                            <line x1="12" y1="12" x2="12" y2="20" />
-                        </svg>
-                    </span>
-                    <h3 class="feature-title">Unduh Dokumen Terverifikasi</h3>
-                    <p class="feature-desc">Mengunduh dokumen yang sudah terverifikasi.</p>
-                </article>
-
-                <article class="feature-card">
-                    <span class="feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-                            <polyline points="3 3 3 8 8 8" />
-                            <polyline points="12 7 12 12 15 14" />
-                        </svg>
-                    </span>
-                    <h3 class="feature-title">Riwayat Dokumen</h3>
-                    <p class="feature-desc">Melihat riwayat dan aktivitas dokumen dalam sistem.</p>
-                </article>
-            </div>
-        </section>
-
-        <section
-            id="panel-tentang"
-            class="tab-panel"
-            role="tabpanel"
-            aria-labelledby="tab-tentang"
-            <?= $activeTab === 'tentang' ? '' : 'hidden' ?>>
-            <div class="about-wrap">
-                <div class="about-block">
-                    <h2 class="section-heading">Tentang SIGMA</h2>
-                    <p class="about-text">
-                        SIGMA merupakan platform penandatanganan digital yang menyediakan layanan untuk memudahkan dalam mengelola dan menandatangani sebuah dokumen akademik.
+                        <span>SIGMA - Tanda Tangan Digital</span>
+                    </div>
+                    <h2 class="verify-banner-title">Verifikasi Keaslian Dokumen Resmi</h2>
+                    <p class="verify-banner-sub">
+                        Layanan Publik SIGMA untuk memeriksa keabsahan tanda tangan digital civitas akademika, status persetujuan berjenjang, dan hash integritas SHA-256 dokumen.
                     </p>
                 </div>
 
-                <div class="about-block">
-                    <h3 class="about-subheading">Tujuan SIGMA</h3>
-                    <p class="about-text">
-                        Memudahkan proses penandatanganan dokumen secara digital, sehingga pengelolaan dokumen menjadi lebih praktis dan terstruktur.
-                    </p>
-                </div>
+                <div class="verify-grid">
+                    <div class="verify-col">
+                        <div class="verify-panel-card">
+                            <div class="verify-card-head">
+                                <span class="verify-icon-circle" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                                        <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 19h2M19 14v2" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <h3 class="verify-card-title">Cek Keabsahan Token QR</h3>
+                                    <p class="verify-card-subtitle">Masukkan 36 karakter kode unik token dokumen</p>
+                                </div>
+                            </div>
 
-                <div class="users-divider" role="presentation">
-                    <p class="users-divider-label">Pengguna SIGMA</p>
-                </div>
+                            <form action="<?= BASE_URL ?>/verify" method="GET" id="homeVerifyForm" novalidate>
+                                <label for="verify-token-input" class="verify-label">
+                                    Token Verifikasi Dokumen (UUID)<span class="verify-required" aria-hidden="true">*</span>
+                                </label>
+                                <div class="verify-input-group">
+                                    <span class="verify-input-prefix" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+                                            <path d="M7 14a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm0-8a5 5 0 1 0 4.58 7H16v2h2v-2h2v-2h-8.42A5 5 0 0 0 7 6Z" />
+                                        </svg>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        id="verify-token-input"
+                                        name="token"
+                                        class="verify-input"
+                                        placeholder="Contoh: fb7897b6-ab8a-47aa-8659-96146c826f15"
+                                        required
+                                        autocomplete="off"
+                                        spellcheck="false">
+                                </div>
+                                <div class="verify-help">
+                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="16" x2="12" y2="12" />
+                                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                                    </svg>
+                                    <span>Token dapat ditemukan tercetak di dekat stempel QR Code pada dokumen, atau tempel tautan lengkap hasil scan QR.</span>
+                                </div>
 
-                <div class="users-grid">
-                    <article class="user-role-card">
-                        <h4 class="user-role-title">Mahasiswa</h4>
-                        <p class="user-role-desc">Menggunakan SIGMA untuk kebutuhan dokumen akademik.</p>
-                    </article>
+                                <div id="verify-inline-error" class="verify-error-box" role="alert" hidden>
+                                    Masukkan kode token UUID dokumen atau tautan QR terlebih dahulu sebelum memeriksa keaslian.
+                                </div>
 
-                    <article class="user-role-card">
-                        <h4 class="user-role-title">Dosen</h4>
-                        <p class="user-role-desc">Mengelola dan menandatangani dokumen sesuai kewenangan.</p>
-                    </article>
+                                <button type="submit" class="btn-verify-submit" id="verifySubmitBtn">
+                                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                                        <path d="m9 12 2 2 4-4" />
+                                    </svg>
+                                    <span id="verifySubmitLabel">Periksa Keaslian Dokumen Sekarang</span>
+                                </button>
+                            </form>
+                        </div>
 
-                    <article class="user-role-card">
-                        <h4 class="user-role-title">Admin</h4>
-                        <p class="user-role-desc">Mengelola dan memantau dokumen dalam sistem.</p>
-                    </article>
+                        <div class="verify-panel-card">
+                            <h3 class="verify-subcard-heading">  
+                                <span>Bagaimana Cara Kerja Verifikasi SIGMA?</span>
+                            </h3>
+                            <div class="verify-how-grid">
+                                <div class="verify-how-item">
+                                    <h4 class="verify-how-title">
+                                        <span>1. Scan QR Code</span>
+                                    </h4>
+                                    <p class="verify-how-desc">Arahkan kamera smartphone ke stempel QR Code untuk membuka tautan verifikasi otomatis.</p>
+                                </div>
+                                <div class="verify-how-item">
+                                    <h4 class="verify-how-title">                                        
+                                        <span>2. Hash SHA-256</span>
+                                    </h4>
+                                    <p class="verify-how-desc">Sistem mencocokkan integritas berkas PDF lewat hash SHA-256 dan token UUID unik penerbitan.</p>
+                                </div>
+                                <div class="verify-how-item">
+                                    <h4 class="verify-how-title">
+                                        <span>3. Bukti Otentik</span>
+                                    </h4>
+                                    <p class="verify-how-desc">Muncul snapshot identitas civitas, stempel tanda tangan, dan rantai pengesahan berjenjang.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <article class="user-role-card">
-                        <h4 class="user-role-title">Kaprodi/Kajur</h4>
-                        <p class="user-role-desc">Terlibat dalam proses persetujuan dokumen sesuai kebutuhan.</p>
-                    </article>
+                    <div class="verify-col">
+                        <div class="verify-panel-card">
+                            <h3 class="verify-subcard-heading">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                                    <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                                </svg>
+                                <span>Otoritas Penerbit</span>
+                            </h3>
+                            <p class="verify-authority-desc">
+                                Sistem Informasi Tanda Tangan Digital (SIGMA) dikelola oleh Jurusan Teknik Informatika dan Komputer, Politeknik Negeri Jakarta untuk menjaga keterlacakan dokumen akademik.
+                            </p>
+                            <div class="verify-authority-box">
+                                <div class="verify-authority-row">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                                        <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" />
+                                    </svg>
+                                    <strong>Kampus UI Depok, Jawa Barat 16425</strong>
+                                </div>
+                                <div class="verify-authority-row">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="2" y1="12" x2="22" y2="12" />
+                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" />
+                                    </svg>
+                                    <a href="https://tik.pnj.ac.id" target="_blank" rel="noopener noreferrer" class="verify-authority-link">https://tik.pnj.ac.id</a>
+                                </div>
+                                <div class="verify-authority-row">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                                        <path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8Z" />
+                                    </svg>
+                                    <strong>Hash Integritas SHA-256 &amp; Verifikasi QR Token</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="verify-panel-card verify-login-card">
+                            <?php if ($isLoggedIn): ?>
+                                <p class="verify-login-prompt">Anda telah masuk sebagai Civitas Akademika PNJ</p>
+                                <a href="<?= BASE_URL ?>/documents" class="btn-verify-submit">
+                                    <span>Buka Dashboard SIGMA</span>
+                                </a>
+                            <?php else: ?>
+                                <p class="verify-login-prompt">Civitas Akademika PNJ?</p>
+                                <a href="<?= BASE_URL ?>/auth" class="btn-verify-submit">
+                                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                                        <polyline points="10 17 15 12 10 7" />
+                                        <line x1="15" y1="12" x2="3" y2="12" />
+                                    </svg>
+                                    <span>Masuk ke Akun SIGMA</span>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1433,7 +2085,6 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
             </div>
         </section>
 
-        <div class="pre-footer-band" aria-hidden="true"></div>
     </main>
 
     <!-- Lightbox Modal untuk Memperbesar Gambar Panduan -->
@@ -1453,11 +2104,139 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
     <script>
         (function () {
             const tabs = Array.from(document.querySelectorAll('.sigma-tab[role="tab"]'));
-            const validTabs = ['beranda', 'fitur', 'tentang', 'guide'];
+            const validTabs = ['beranda', 'verifikasi', 'guide'];
+
+            // Beranda Carousel logic (Slide 0: Beranda -> Slide 1: Fitur -> Slide 2: Tentang)
+            const sliderViewport = document.getElementById('berandaSliderViewport');
+            const sliderTrack = document.getElementById('berandaSliderTrack');
+            const slides = Array.from(document.querySelectorAll('.beranda-slide'));
+            const prevSlideBtn = document.getElementById('berandaPrevSlide');
+            const nextSlideBtn = document.getElementById('berandaNextSlide');
+            const slideDots = Array.from(document.querySelectorAll('.beranda-dot[data-slide-dot]'));
+            let currentSlideIndex = <?= (int) $initialBerandaSlide ?>;
+
+            function updateSlideViewportHeight() {
+                if (!sliderViewport || !slides[currentSlideIndex]) return;
+                const activeSlide = slides[currentSlideIndex];
+                sliderViewport.style.height = activeSlide.offsetHeight + 'px';
+            }
+
+            function goToSlide(index, updateHash) {
+                const total = slides.length;
+                if (total === 0) return;
+                currentSlideIndex = ((index % total) + total) % total;
+
+                if (sliderTrack) {
+                    sliderTrack.style.transform = 'translateX(-' + (currentSlideIndex * 100) + '%)';
+                }
+
+                slides.forEach(function (slide, idx) {
+                    const isActive = idx === currentSlideIndex;
+                    slide.setAttribute('aria-hidden', String(!isActive));
+                    if ('inert' in slide) {
+                        slide.inert = !isActive;
+                    }
+                });
+
+                slideDots.forEach(function (dot) {
+                    const dotIdx = parseInt(dot.getAttribute('data-slide-dot'), 10);
+                    dot.setAttribute('aria-current', String(dotIdx === currentSlideIndex));
+                });
+
+                updateSlideViewportHeight();
+
+                if (updateHash) {
+                    const hashMap = ['', '#fitur', '#tentang'];
+                    const newHash = hashMap[currentSlideIndex] || window.location.pathname;
+                    history.replaceState(null, '', newHash || window.location.pathname);
+                }
+            }
+
+            if (prevSlideBtn) {
+                prevSlideBtn.addEventListener('click', function () {
+                    goToSlide(currentSlideIndex - 1, true);
+                    restartAutoSlide();
+                });
+            }
+
+            if (nextSlideBtn) {
+                nextSlideBtn.addEventListener('click', function () {
+                    goToSlide(currentSlideIndex + 1, true);
+                    restartAutoSlide();
+                });
+            }
+
+            slideDots.forEach(function (dot) {
+                dot.addEventListener('click', function () {
+                    const targetIdx = parseInt(this.getAttribute('data-slide-dot'), 10);
+                    if (!Number.isNaN(targetIdx)) {
+                        goToSlide(targetIdx, true);
+                        restartAutoSlide();
+                    }
+                });
+            });
+
+            // Auto-slide every 8 seconds while Beranda tab is active (never gets stuck on mouse hover/click; respects prefers-reduced-motion)
+            const AUTO_SLIDE_MS = 8000;
+            const berandaPanel = document.getElementById('panel-beranda');
+            const reducedMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+            let autoSlideTimer = null;
+
+            function stopAutoSlide() {
+                if (autoSlideTimer !== null) {
+                    clearInterval(autoSlideTimer);
+                    autoSlideTimer = null;
+                }
+            }
+
+            function startAutoSlide() {
+                stopAutoSlide();
+                if (reducedMotionQuery && reducedMotionQuery.matches) return;
+                if (berandaPanel && berandaPanel.hidden) return;
+
+                autoSlideTimer = setInterval(function () {
+                    if (document.hidden || (berandaPanel && berandaPanel.hidden)) return;
+                    goToSlide(currentSlideIndex + 1, false);
+                }, AUTO_SLIDE_MS);
+            }
+
+            function restartAutoSlide() {
+                startAutoSlide();
+            }
+
+            if (sliderViewport) {
+                let touchStartX = 0;
+                let touchStartY = 0;
+
+                sliderViewport.addEventListener('touchstart', function (e) {
+                    if (e.touches.length === 1) {
+                        touchStartX = e.touches[0].clientX;
+                        touchStartY = e.touches[0].clientY;
+                    }
+                }, { passive: true });
+
+                sliderViewport.addEventListener('touchend', function (e) {
+                    if (e.changedTouches.length !== 1) return;
+                    const dx = e.changedTouches[0].clientX - touchStartX;
+                    const dy = e.changedTouches[0].clientY - touchStartY;
+                    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                        if (dx < 0) {
+                            goToSlide(currentSlideIndex + 1, true);
+                        } else if (dx > 0) {
+                            goToSlide(currentSlideIndex - 1, true);
+                        }
+                        restartAutoSlide();
+                    }
+                }, { passive: true });
+            }
+
+            window.addEventListener('resize', updateSlideViewportHeight);
 
             function activateTab(tabName, updateHash, focusTab) {
                 if (tabName === 'panduan') {
                     tabName = 'guide';
+                } else if (tabName === 'verify') {
+                    tabName = 'verifikasi';
                 }
                 const target = validTabs.includes(tabName) ? tabName : 'beranda';
 
@@ -1477,14 +2256,27 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                     }
                 });
 
+                if (target === 'beranda') {
+                    requestAnimationFrame(updateSlideViewportHeight);
+                    startAutoSlide();
+                } else {
+                    stopAutoSlide();
+                }
+
                 if (updateHash) {
-                    const newHash = target === 'beranda' ? window.location.pathname : '#' + target;
+                    const hashMap = ['', '#fitur', '#tentang'];
+                    const berandaHash = hashMap[currentSlideIndex] || window.location.pathname;
+                    const newHash = target === 'beranda' ? berandaHash : '#' + target;
                     history.replaceState(null, '', newHash);
                 }
             }
 
             tabs.forEach(function (tab, index) {
                 tab.addEventListener('click', function () {
+                    if (tab.dataset.tab === 'beranda' && tab.getAttribute('aria-selected') === 'true') {
+                        goToSlide(0, true);
+                        return;
+                    }
                     activateTab(tab.dataset.tab, true, false);
                 });
 
@@ -1507,16 +2299,73 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                 });
             });
 
+            document.querySelectorAll('[data-go-tab]').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    const dest = this.getAttribute('data-go-tab');
+                    if (dest && validTabs.includes(dest)) {
+                        event.preventDefault();
+                        activateTab(dest, true, false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+            });
+
             function syncFromLocation() {
                 let hash = window.location.hash.replace('#', '').toLowerCase();
                 if (hash === 'panduan') hash = 'guide';
+                if (hash === 'verify') hash = 'verifikasi';
+                if (hash === 'fitur') {
+                    activateTab('beranda', false, false);
+                    goToSlide(1, false);
+                    return;
+                }
+                if (hash === 'tentang') {
+                    activateTab('beranda', false, false);
+                    goToSlide(2, false);
+                    return;
+                }
                 if (validTabs.includes(hash)) {
                     activateTab(hash, false, false);
+                } else {
+                    goToSlide(currentSlideIndex, false);
+                    startAutoSlide();
                 }
             }
 
             window.addEventListener('hashchange', syncFromLocation);
             syncFromLocation();
+
+            // Form Verifikasi validation & loading state
+            const verifyForm = document.getElementById('homeVerifyForm');
+            const verifyInput = document.getElementById('verify-token-input');
+            const verifyError = document.getElementById('verify-inline-error');
+            const verifySubmitBtn = document.getElementById('verifySubmitBtn');
+            const verifySubmitLabel = document.getElementById('verifySubmitLabel');
+
+            if (verifyForm && verifyInput) {
+                verifyInput.addEventListener('input', function () {
+                    if (verifyError && !verifyError.hidden) {
+                        verifyError.hidden = true;
+                    }
+                });
+
+                verifyForm.addEventListener('submit', function (event) {
+                    const val = verifyInput.value.trim();
+                    if (val === '') {
+                        event.preventDefault();
+                        if (verifyError) {
+                            verifyError.hidden = false;
+                        }
+                        verifyInput.focus();
+                        return;
+                    }
+                    verifyInput.value = val;
+                    if (verifySubmitBtn && verifySubmitLabel) {
+                        verifySubmitBtn.disabled = true;
+                        verifySubmitLabel.textContent = 'Memeriksa Keaslian Dokumen...';
+                    }
+                });
+            }
 
             // Lightbox functionality
             const lightbox = document.getElementById('guide-lightbox');
