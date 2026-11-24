@@ -1855,14 +1855,14 @@ $pageTitle = $title ?? 'SIGMA | Tanda Tangan Digital Politeknik Negeri Jakarta';
                                 <span>Otoritas Penerbit</span>
                             </h3>
                             <p class="verify-authority-desc">
-                                SIGMA dikelola oleh Jurusan Teknik Informatika dan Komputer, PNJ.
+                                SIGMA dikelola oleh Jurusan Teknik Informatika dan Komputer, Politeknik Negeri Jakarta.
                             </p>
                             <div class="verify-authority-box">
                                 <div class="verify-authority-row">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
                                         <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" />
                                     </svg>
-                                    <strong>Kampus UI Depok, Jawa Barat 16425</strong>
+                                    <strong>Gedung AA PNJ, Jl. Prof. DR. G.A. Siwabessy, Kukusan, Kecamatan Beji, Kota Depok, Jawa Barat 16425</strong>
                                 </div>
                                 <div class="verify-authority-row">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

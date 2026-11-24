@@ -18,7 +18,7 @@ $roleLabel     = $isAdmin
         <img src="<?= BASE_URL ?>/assets/img/logo.png" alt="Logo SIGMA" width="34" height="34" style="object-fit: contain; flex-shrink: 0;">
         <div class="d-flex flex-column min-w-0">
             <span class="sigma-sidebar-brand-title">SIGMA</span>
-            <span class="sigma-sidebar-brand-sub text-truncate">PNJ Digital Sign</span>
+            <span class="sigma-sidebar-brand-sub text-truncate">Tanda Tangan Digital</span>
         </div>
     </a>
 

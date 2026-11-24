@@ -5,7 +5,7 @@ $currentUser = $_SESSION['user'] ?? null;
             </main>
 
             <footer class="sigma-workspace-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
-                <span>&copy; <?= date('Y') ?> <strong>SIGMA</strong> &mdash; Sistem Tanda Tangan Digital Politeknik Negeri Jakarta</span>
+                <span>&copy; <strong>SIGMA</strong> — Sistem Tanda Tangan Digital</span>
                 
             </footer>
         </div>

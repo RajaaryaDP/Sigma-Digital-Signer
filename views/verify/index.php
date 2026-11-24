@@ -684,7 +684,7 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
             <h2 class="fw-bold mb-2 text-white">Verifikasi Keaslian Dokumen Resmi</h2>
             <p class="mb-0 small" style="max-width: 620px; margin: 0 auto; line-height: 1.55; color: rgba(255,255,255,0.82);">
-                Cek keaslian tanda tangan digital dokumen PNJ.
+                Cek keaslian tanda tangan digital pada dokumen.
             </p>
         </div>
 
@@ -769,12 +769,12 @@ require_once __DIR__ . '/../layout/header.php';
                         <i class="bi bi-mortarboard text-sigma-purple me-2"></i>Otoritas Penerbit
                     </h6>
                     <p class="text-muted small mb-3">
-                        SIGMA dikelola oleh Jurusan Teknik Informatika dan Komputer, PNJ.
+                        SIGMA dikelola oleh Jurusan Teknik Informatika dan Komputer, Politeknik Negeri Jakarta.
                     </p>
                     <div class="p-3 rounded-3 border small" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="bi bi-geo-alt-fill text-sigma-purple"></i>
-                            <span class="fw-semibold">Kampus UI Depok, Jawa Barat 16425</span>
+                            <span class="fw-semibold">Gedung AA PNJ, Jl. Prof. DR. G.A. Siwabessy, Kukusan, Kecamatan Beji, Kota Depok, Jawa Barat 16425</span>
                         </div>
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="bi bi-globe text-sigma-purple"></i>
