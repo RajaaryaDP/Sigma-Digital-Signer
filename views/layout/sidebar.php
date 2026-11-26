@@ -100,15 +100,17 @@ $roleLabel     = $isAdmin
 
     <div class="sigma-sidebar-section-label">Pustaka &amp; Alat</div>
     <ul class="sigma-sidebar-nav">
-        <li>
-            <a href="<?= BASE_URL ?>/user-signatures"
-               class="sigma-sidebar-link <?= ($page === 'user-signatures') ? 'active' : '' ?>">
-                <span class="sigma-sidebar-link-main">
-                    <i class="bi bi-vector-pen"></i>
-                    <span>Template TTD</span>
-                </span>
-            </a>
-        </li>
+        <?php if (!$isAdmin): ?>
+            <li>
+                <a href="<?= BASE_URL ?>/user-signatures"
+                   class="sigma-sidebar-link <?= ($page === 'user-signatures') ? 'active' : '' ?>">
+                    <span class="sigma-sidebar-link-main">
+                        <i class="bi bi-vector-pen"></i>
+                        <span>Template TTD</span>
+                    </span>
+                </a>
+            </li>
+        <?php endif; ?>
         <li>
             <a href="<?= BASE_URL ?>/document-templates"
                class="sigma-sidebar-link <?= ($page === 'document-templates') ? 'active' : '' ?>">

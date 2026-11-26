@@ -81,6 +81,35 @@ $actionUrl = $isEdit
                         <?php endif; ?>
                     </div>
 
+                    <?php
+                        $categoryOptions  = $categories ?? DocumentTemplatesModel::getCategories();
+                        $selectedCategory = (string) ($values['category'] ?? '');
+                    ?>
+                    <div class="mb-3">
+                        <label for="templateCategory" class="sigma-form-label">
+                            Kategori Template <span class="text-danger">*</span>
+                        </label>
+                        <select id="templateCategory"
+                                name="category"
+                                class="form-select sigma-input <?= isset($errors['category']) ? 'is-invalid' : '' ?>"
+                                required>
+                            <option value="" disabled <?= $selectedCategory === '' ? 'selected' : '' ?>>
+                                — Pilih Kategori Template —
+                            </option>
+                            <?php foreach ($categoryOptions as $catKey => $catLabel): ?>
+                                <option value="<?= htmlspecialchars($catKey) ?>" <?= $selectedCategory === $catKey ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($catLabel) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text small" style="color: var(--text-muted);">
+                            Kategori digunakan untuk mengelompokkan dan memfilter kartu template di halaman Pustaka Dokumen.
+                        </div>
+                        <?php if (isset($errors['category'])): ?>
+                            <div class="invalid-feedback small"><?= htmlspecialchars($errors['category']) ?></div>
+                        <?php endif; ?>
+                    </div>
+
                     <div class="mb-4">
                         <label for="templateDesc" class="sigma-form-label">
                             Deskripsi <span class="fw-normal" style="color: var(--text-muted);">(Opsional)</span>

@@ -12,6 +12,7 @@ class UserSignatures
     private $auditModel;
     private $load;
     private $userId;
+    private $isAdmin;
     private $storageBaseDir;
 
     public function __construct()
@@ -34,6 +35,7 @@ class UserSignatures
         $this->auditModel     = new AuditLogModel();
         $this->load           = new Loader();
         $this->userId         = $_SESSION['user']['id'];
+        $this->isAdmin        = (($_SESSION['user']['role'] ?? '') === 'admin');
         $this->storageBaseDir = __DIR__ . '/../storage';
 
         $templateDir = $this->storageBaseDir . '/signatures/templates';
@@ -43,10 +45,28 @@ class UserSignatures
     }
 
     /**
+     * Memastikan hanya pengguna non-admin (pengaju/penandatangan) yang dapat mengelola
+     * template tanda tangan pribadi. Admin bukan aktor penandatangan (ADR-01 / OQ-02).
+     */
+    private function requireSignerRole(): void
+    {
+        if ($this->isAdmin) {
+            $_SESSION['flash'] = [
+                'type'    => 'warning',
+                'message' => 'Administrator tidak berpartisipasi dalam alur penandatanganan dokumen sehingga tidak memerlukan template tanda tangan pribadi.'
+            ];
+            header('Location: ' . BASE_URL . '/documents');
+            exit;
+        }
+    }
+
+    /**
      * Menampilkan daftar koleksi template tanda tangan milik pengguna aktif
      */
     public function index()
     {
+        $this->requireSignerRole();
+
         $signatures = $this->signatureModel->getByUserId($this->userId);
         $defaultSig = $this->signatureModel->getDefaultByUserId($this->userId);
 
@@ -63,6 +83,8 @@ class UserSignatures
      */
     public function create()
     {
+        $this->requireSignerRole();
+
         $existingCount = $this->signatureModel->countByUserId($this->userId);
 
         $this->load->view('views/user-signatures/form.php', [
@@ -83,6 +105,8 @@ class UserSignatures
      */
     public function store()
     {
+        $this->requireSignerRole();
+
         $label       = isset($_POST['label']) && is_string($_POST['label']) ? trim($_POST['label']) : '';
         $isDefault   = !empty($_POST['is_default']) ? 1 : 0;
         $inputMethod = isset($_POST['input_method']) && is_string($_POST['input_method']) ? trim($_POST['input_method']) : 'canvas';
@@ -184,6 +208,8 @@ class UserSignatures
      */
     public function update($id)
     {
+        $this->requireSignerRole();
+
         $target = $this->signatureModel->getById($id, $this->userId);
         if (!$target) {
             http_response_code(404);
@@ -242,6 +268,8 @@ class UserSignatures
      */
     public function delete($id)
     {
+        $this->requireSignerRole();
+
         $target = $this->signatureModel->getById($id, $this->userId);
         if (!$target) {
             http_response_code(404);
@@ -286,8 +314,7 @@ class UserSignatures
             exit('Gambar tanda tangan tidak ditemukan.');
         }
 
-        $isAdmin = (($_SESSION['user']['role'] ?? '') === 'admin');
-        if ($signature['user_id'] !== $this->userId && !$isAdmin) {
+        if ($signature['user_id'] !== $this->userId && !$this->isAdmin) {
             http_response_code(403);
             exit('Akses ditolak: Anda tidak memiliki izin untuk melihat tanda tangan ini.');
         }

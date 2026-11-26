@@ -417,6 +417,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs (created_at);
 CREATE TABLE IF NOT EXISTS document_templates (
     id                 CHAR(36)      NOT NULL,
     name               VARCHAR(200)  NOT NULL,
+    category           VARCHAR(50)   NOT NULL DEFAULT 'lainnya'
+                           CONSTRAINT chk_document_templates_category
+                           CHECK (category IN ('surat', 'akademik', 'lainnya')),
     description        TEXT          DEFAULT NULL,
     file_name_original VARCHAR(255)  NOT NULL,
     file_path          VARCHAR(500)  NOT NULL,
@@ -434,7 +437,42 @@ CREATE TABLE IF NOT EXISTS document_templates (
         ON DELETE SET NULL ON UPDATE CASCADE
 );
 
+-- Migrasi idempoten kolom category untuk tabel document_templates yang sudah ada
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'document_templates'
+          AND column_name = 'category'
+    ) THEN
+        ALTER TABLE document_templates
+            ADD COLUMN category VARCHAR(50) NOT NULL DEFAULT 'lainnya';
+
+        -- Klasifikasi awal satu kali bagi template eksisting sebelum fitur kategori tersedia
+        -- (setelah migrasi, Admin bebas mengubah kategori masing-masing melalui form Ubah)
+        UPDATE document_templates
+        SET category = CASE
+            WHEN LOWER(COALESCE(name, '') || ' ' || COALESCE(description, '')) ~ '(skripsi|tugas akhir|\mta\M|\mkrs\M|akademik|magang|\mpkl\M|seminar|wisuda|yudisium|transkrip|nilai)'
+                THEN 'akademik'
+            WHEN LOWER(COALESCE(name, '') || ' ' || COALESCE(description, '')) ~ '(surat|izin|permohonan|pengantar|keterangan|rekomendasi|edaran|undangan)'
+                THEN 'surat'
+            ELSE 'lainnya'
+        END;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_document_templates_category'
+    ) THEN
+        ALTER TABLE document_templates
+            ADD CONSTRAINT chk_document_templates_category
+            CHECK (category IN ('surat', 'akademik', 'lainnya'));
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_document_templates_name_lower ON document_templates (LOWER(name));
+CREATE INDEX IF NOT EXISTS idx_document_templates_category ON document_templates (category);
 CREATE INDEX IF NOT EXISTS idx_document_templates_updated_at ON document_templates (updated_at);
 
 DROP TRIGGER IF EXISTS trg_document_templates_updated_at ON document_templates;

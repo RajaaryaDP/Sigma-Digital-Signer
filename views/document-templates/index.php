@@ -10,6 +10,43 @@ $formatBytes = static function (int $bytes): string {
     }
     return $bytes . ' B';
 };
+
+$activeCategory = $activeCategory ?? 'all';
+$categories     = $categories ?? DocumentTemplatesModel::getCategories();
+$categoryCounts = $categoryCounts ?? ['all' => count($templates)];
+
+$categoryMeta = [
+    'surat' => [
+        'label' => $categories['surat'] ?? 'Surat & Permohonan',
+        'icon'  => 'bi-envelope-paper',
+        'bg'    => '#f3f0ff',
+        'color' => '#5b21b6',
+    ],
+    'akademik' => [
+        'label' => $categories['akademik'] ?? 'Akademik & Tugas Akhir',
+        'icon'  => 'bi-mortarboard',
+        'bg'    => '#ecfdf5',
+        'color' => '#047857',
+    ],
+    'lainnya' => [
+        'label' => $categories['lainnya'] ?? 'Administrasi Lainnya',
+        'icon'  => 'bi-folder2-open',
+        'bg'    => '#f1f5f9',
+        'color' => '#475569',
+    ],
+];
+
+$buildFilterUrl = static function (string $catKey) use ($search): string {
+    $params = [];
+    if ($search !== '') {
+        $params['q'] = $search;
+    }
+    if ($catKey !== 'all') {
+        $params['category'] = $catKey;
+    }
+    $qs = http_build_query($params);
+    return BASE_URL . '/document-templates' . ($qs !== '' ? '?' . $qs : '');
+};
 ?>
 
 <!-- Page Header & Action Bar -->
@@ -80,6 +117,9 @@ $formatBytes = static function (int $bytes): string {
 <div class="card-sigma mb-4">
     <div class="card-sigma-body p-3">
         <form action="<?= BASE_URL ?>/document-templates" method="GET" class="row g-2 align-items-center mb-3">
+            <?php if ($activeCategory !== 'all'): ?>
+                <input type="hidden" name="category" value="<?= htmlspecialchars($activeCategory) ?>">
+            <?php endif; ?>
             <div class="col-lg-6">
                 <div class="sigma-search-box">
                     <i class="bi bi-search sigma-search-icon"></i>
@@ -93,8 +133,8 @@ $formatBytes = static function (int $bytes): string {
             </div>
             <div class="col-auto d-flex align-items-center gap-2">
                 <button type="submit" class="btn-sigma-navy btn-sigma-sm px-3">Cari</button>
-                <?php if ($search !== ''): ?>
-                    <a href="<?= BASE_URL ?>/document-templates" class="btn-sigma-outline btn-sigma-sm text-decoration-none" title="Reset pencarian">
+                <?php if ($search !== '' || $activeCategory !== 'all'): ?>
+                    <a href="<?= BASE_URL ?>/document-templates" class="btn-sigma-outline btn-sigma-sm text-decoration-none" title="Reset pencarian dan kategori">
                         <i class="bi bi-x-lg"></i> Reset
                     </a>
                 <?php endif; ?>
@@ -110,17 +150,23 @@ $formatBytes = static function (int $bytes): string {
         </form>
 
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top" style="border-color: var(--border-subtle) !important;">
-            <div class="filter-chips-sigma" id="templateFilterChips">
-                <button type="button" class="filter-chip-sigma active" data-filter="all">Semua Template</button>
-                <button type="button" class="filter-chip-sigma" data-filter="surat">Surat &amp; Permohonan</button>
-                <button type="button" class="filter-chip-sigma" data-filter="akademik">Akademik &amp; Tugas Akhir</button>
-                <button type="button" class="filter-chip-sigma" data-filter="lainnya">Administrasi Lainnya</button>
+            <div class="filter-chips-sigma" id="templateFilterChips" role="navigation" aria-label="Filter kategori template dokumen">
+                <a href="<?= htmlspecialchars($buildFilterUrl('all')) ?>"
+                   class="filter-chip-sigma text-decoration-none <?= $activeCategory === 'all' ? 'active' : '' ?>">
+                    Semua Template <span class="ms-1 opacity-75">(<?= (int) ($categoryCounts['all'] ?? 0) ?>)</span>
+                </a>
+                <?php foreach ($categories as $catKey => $catLabel): ?>
+                    <a href="<?= htmlspecialchars($buildFilterUrl($catKey)) ?>"
+                       class="filter-chip-sigma text-decoration-none <?= $activeCategory === $catKey ? 'active' : '' ?>">
+                        <?= htmlspecialchars($catLabel) ?> <span class="ms-1 opacity-75">(<?= (int) ($categoryCounts[$catKey] ?? 0) ?>)</span>
+                    </a>
+                <?php endforeach; ?>
             </div>
 
             <div class="d-flex align-items-center gap-2">
                 <span class="badge-sigma badge-sigma-purple" id="templateCountBadge">
                     <i class="bi bi-collection"></i>
-                    <span id="templateVisibleCount"><?= count($templates) ?></span> Template <?= $search !== '' ? 'Ditemukan' : 'Tersedia' ?>
+                    <span id="templateVisibleCount"><?= count($templates) ?></span> Template <?= ($search !== '' || $activeCategory !== 'all') ? 'Ditemukan' : 'Tersedia' ?>
                 </span>
                 <?php if ($search !== ''): ?>
                     <span class="small text-truncate" style="color: var(--text-muted); max-width: 220px;">
@@ -134,17 +180,22 @@ $formatBytes = static function (int $bytes): string {
 
 <!-- Templates Grid / Empty State -->
 <?php if (empty($templates)): ?>
+    <?php $hasActiveFilter = ($search !== '' || $activeCategory !== 'all'); ?>
     <div class="card-sigma p-5 text-center my-4">
         <div class="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3"
              style="width: 72px; height: 72px; background: var(--sigma-tint-100); color: var(--sigma-purple-700); font-size: 2rem;">
-            <i class="bi <?= $search !== '' ? 'bi-search' : 'bi-file-earmark-word' ?>"></i>
+            <i class="bi <?= $hasActiveFilter ? 'bi-search' : 'bi-file-earmark-word' ?>"></i>
         </div>
         <h5 class="fw-bold mb-2" style="color: var(--text-heading);">
-            <?= $search !== '' ? 'Template Dokumen Tidak Ditemukan' : 'Belum Ada Template Dokumen' ?>
+            <?= $hasActiveFilter ? 'Template Dokumen Tidak Ditemukan' : 'Belum Ada Template Dokumen' ?>
         </h5>
         <p class="small mx-auto mb-4" style="max-width: 520px; color: var(--text-muted);">
-            <?php if ($search !== ''): ?>
+            <?php if ($search !== '' && $activeCategory !== 'all'): ?>
+                Tidak ada template pada kategori <strong><?= htmlspecialchars($categories[$activeCategory] ?? $activeCategory) ?></strong> dengan nama yang mengandung <strong>"<?= htmlspecialchars($search) ?>"</strong>.
+            <?php elseif ($search !== ''): ?>
                 Tidak ada template dokumen dengan nama yang mengandung <strong>"<?= htmlspecialchars($search) ?>"</strong>. Coba kata kunci lain atau tampilkan semua template.
+            <?php elseif ($activeCategory !== 'all'): ?>
+                Belum ada template dokumen pada kategori <strong><?= htmlspecialchars($categories[$activeCategory] ?? $activeCategory) ?></strong> saat ini.
             <?php elseif (!empty($isAdmin)): ?>
                 Belum ada contoh template dokumen yang diunggah. Tambahkan berkas Word (.docx) pertama agar civitas kampus dapat mengunduh format surat resmi dengan mudah.
             <?php else: ?>
@@ -152,7 +203,7 @@ $formatBytes = static function (int $bytes): string {
             <?php endif; ?>
         </p>
         <div>
-            <?php if ($search !== ''): ?>
+            <?php if ($hasActiveFilter): ?>
                 <a href="<?= BASE_URL ?>/document-templates" class="btn-sigma-outline px-4 py-2 text-decoration-none">
                     <i class="bi bi-arrow-counterclockwise"></i> Tampilkan Semua Template
                 </a>
@@ -167,29 +218,29 @@ $formatBytes = static function (int $bytes): string {
     <div class="row g-4" id="templateCardsGrid">
         <?php foreach ($templates as $idx => $tpl): ?>
             <?php
-                $haystack = mb_strtolower(($tpl['name'] ?? '') . ' ' . ($tpl['description'] ?? ''));
-                $uiCat = 'lainnya';
-                if (preg_match('/(skripsi|tugas akhir|ta|krs|akademik|magang|pkl|seminar|wisuda|yudisium|transkrip|nilai)/i', $haystack)) {
-                    $uiCat = 'akademik';
-                } elseif (preg_match('/(surat|izin|permohonan|pengantar|keterangan|rekomendasi|edaran|undangan)/i', $haystack)) {
-                    $uiCat = 'surat';
-                }
+                $tplCat    = isset($tpl['category'], $categoryMeta[$tpl['category']]) ? $tpl['category'] : 'lainnya';
+                $catStyle  = $categoryMeta[$tplCat];
                 $updatedTs = strtotime($tpl['updated_at'] ?? 'now') ?: 0;
             ?>
             <div class="col-md-6 col-lg-4 template-grid-item"
-                 data-category="<?= htmlspecialchars($uiCat) ?>"
+                 data-category="<?= htmlspecialchars($tplCat) ?>"
                  data-name="<?= htmlspecialchars(mb_strtolower($tpl['name'] ?? '')) ?>"
                  data-updated="<?= (int) $updatedTs ?>"
                  data-size="<?= (int) ($tpl['file_size'] ?? 0) ?>">
                 <div class="template-card-sigma h-100">
                     <!-- Top Card Badges -->
-                    <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-                        <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
                             <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
                                  style="width: 38px; height: 38px; background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe;">
                                 <i class="bi bi-file-earmark-word-fill fs-5"></i>
                             </div>
                             <span class="badge-sigma" style="background: #eff6ff; color: #1d4ed8;">DOCX</span>
+                            <span class="badge-sigma"
+                                  style="background: <?= $catStyle['bg'] ?>; color: <?= $catStyle['color'] ?>;">
+                                <i class="bi <?= $catStyle['icon'] ?>"></i>
+                                <?= htmlspecialchars($catStyle['label']) ?>
+                            </span>
                         </div>
                         <span class="badge-sigma badge-sigma-neutral">
                             <?= htmlspecialchars($formatBytes((int) ($tpl['file_size'] ?? 0))) ?>
@@ -257,31 +308,15 @@ $formatBytes = static function (int $bytes): string {
         <?php endforeach; ?>
     </div>
 
-    <!-- Empty Client Filter State -->
-    <div id="templateFilterEmpty" class="card-sigma p-4 text-center my-3 d-none">
-        <p class="small mb-3" style="color: var(--text-muted);">Tidak ada template pada kategori tampilan ini.</p>
-        <div>
-            <button type="button" id="btnResetUiFilter" class="btn-sigma-outline btn-sigma-sm">
-                <i class="bi bi-arrow-counterclockwise"></i> Tampilkan Semua Kategori
-            </button>
-        </div>
-    </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const grid = document.getElementById('templateCardsGrid');
-            const chips = document.querySelectorAll('#templateFilterChips .filter-chip-sigma');
             const sortSelect = document.getElementById('templateSortSelect');
-            const visibleCountEl = document.getElementById('templateVisibleCount');
-            const emptyBox = document.getElementById('templateFilterEmpty');
-            const resetBtn = document.getElementById('btnResetUiFilter');
 
-            let activeFilter = 'all';
-
-            function applyFilterAndSort() {
-                if (!grid) return;
+            function applySort() {
+                if (!grid || !sortSelect) return;
                 const items = Array.from(grid.querySelectorAll('.template-grid-item'));
-                const sortVal = sortSelect ? sortSelect.value : 'updated';
+                const sortVal = sortSelect.value || 'updated';
 
                 items.sort(function (a, b) {
                     if (sortVal === 'name_asc') {
@@ -293,36 +328,13 @@ $formatBytes = static function (int $bytes): string {
                     return (parseInt(b.dataset.updated || '0', 10)) - (parseInt(a.dataset.updated || '0', 10));
                 });
 
-                let visible = 0;
                 items.forEach(function (item) {
                     grid.appendChild(item);
-                    const match = (activeFilter === 'all') || (item.dataset.category === activeFilter);
-                    item.classList.toggle('d-none', !match);
-                    if (match) visible++;
                 });
-
-                if (visibleCountEl) visibleCountEl.textContent = visible;
-                if (emptyBox) emptyBox.classList.toggle('d-none', visible > 0);
             }
-
-            chips.forEach(function (chip) {
-                chip.addEventListener('click', function () {
-                    chips.forEach(function (c) { c.classList.remove('active'); });
-                    chip.classList.add('active');
-                    activeFilter = chip.getAttribute('data-filter') || 'all';
-                    applyFilterAndSort();
-                });
-            });
 
             if (sortSelect) {
-                sortSelect.addEventListener('change', applyFilterAndSort);
-            }
-
-            if (resetBtn) {
-                resetBtn.addEventListener('click', function () {
-                    const allChip = document.querySelector('#templateFilterChips .filter-chip-sigma[data-filter="all"]');
-                    if (allChip) allChip.click();
-                });
+                sortSelect.addEventListener('change', applySort);
             }
         });
     </script>

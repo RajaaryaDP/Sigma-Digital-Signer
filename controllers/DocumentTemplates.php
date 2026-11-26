@@ -57,7 +57,7 @@ class DocumentTemplates
     }
 
     /**
-     * GET /document-templates — Daftar & pencarian template berdasarkan nama
+     * GET /document-templates — Daftar, filter kategori, & pencarian template berdasarkan nama
      */
     public function index()
     {
@@ -66,13 +66,20 @@ class DocumentTemplates
             $search = mb_substr($search, 0, 200);
         }
 
-        $templates = $this->model->getAll($search);
+        $rawCategory    = isset($_GET['category']) && is_string($_GET['category']) ? trim($_GET['category']) : '';
+        $activeCategory = DocumentTemplatesModel::isValidCategory($rawCategory) ? $rawCategory : 'all';
+
+        $templates      = $this->model->getAll($search, $activeCategory === 'all' ? null : $activeCategory);
+        $categoryCounts = $this->model->countByCategory($search);
 
         $this->load->view('views/document-templates/index.php', [
-            'title'     => 'Template Dokumen — SIGMA',
-            'templates' => $templates,
-            'search'    => $search,
-            'isAdmin'   => $this->isAdmin,
+            'title'          => 'Template Dokumen — SIGMA',
+            'templates'      => $templates,
+            'search'         => $search,
+            'activeCategory' => $activeCategory,
+            'categories'     => DocumentTemplatesModel::getCategories(),
+            'categoryCounts' => $categoryCounts,
+            'isAdmin'        => $this->isAdmin,
         ]);
     }
 
@@ -98,14 +105,16 @@ class DocumentTemplates
         $this->requireAdmin();
 
         $this->load->view('views/document-templates/form.php', [
-            'title'    => 'Tambah Template Dokumen — SIGMA',
-            'isEdit'   => false,
-            'template' => null,
-            'values'   => [
+            'title'      => 'Tambah Template Dokumen — SIGMA',
+            'isEdit'     => false,
+            'template'   => null,
+            'categories' => DocumentTemplatesModel::getCategories(),
+            'values'     => [
                 'name'        => '',
+                'category'    => '',
                 'description' => '',
             ],
-            'errors'   => [],
+            'errors'     => [],
         ]);
     }
 
@@ -117,22 +126,25 @@ class DocumentTemplates
         $this->requireAdmin();
 
         $name        = isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '';
+        $category    = isset($_POST['category']) && is_string($_POST['category']) ? trim($_POST['category']) : '';
         $description = isset($_POST['description']) && is_string($_POST['description']) ? trim($_POST['description']) : '';
         $errors      = [];
 
-        $this->validateMetadata($name, $description, $errors);
+        $this->validateMetadata($name, $category, $description, $errors);
         $validFile = $this->validateDocxUpload($_FILES['docx_file'] ?? null, true, $errors);
 
         if (!empty($errors)) {
             $this->load->view('views/document-templates/form.php', [
-                'title'    => 'Tambah Template Dokumen — SIGMA',
-                'isEdit'   => false,
-                'template' => null,
-                'values'   => [
+                'title'      => 'Tambah Template Dokumen — SIGMA',
+                'isEdit'     => false,
+                'template'   => null,
+                'categories' => DocumentTemplatesModel::getCategories(),
+                'values'     => [
                     'name'        => $name,
+                    'category'    => $category,
                     'description' => $description,
                 ],
-                'errors'   => $errors,
+                'errors'     => $errors,
             ]);
             return;
         }
@@ -141,14 +153,16 @@ class DocumentTemplates
         if (!$storedFile) {
             $errors['docx_file'] = 'Gagal menyimpan berkas template (.docx) ke penyimpanan server.';
             $this->load->view('views/document-templates/form.php', [
-                'title'    => 'Tambah Template Dokumen — SIGMA',
-                'isEdit'   => false,
-                'template' => null,
-                'values'   => [
+                'title'      => 'Tambah Template Dokumen — SIGMA',
+                'isEdit'     => false,
+                'template'   => null,
+                'categories' => DocumentTemplatesModel::getCategories(),
+                'values'     => [
                     'name'        => $name,
+                    'category'    => $category,
                     'description' => $description,
                 ],
-                'errors'   => $errors,
+                'errors'     => $errors,
             ]);
             return;
         }
@@ -156,6 +170,7 @@ class DocumentTemplates
         try {
             $id = $this->model->create([
                 'name'               => $name,
+                'category'           => $category,
                 'description'        => $description !== '' ? $description : null,
                 'file_name_original' => $storedFile['original_name'],
                 'file_path'          => $storedFile['relative_path'],
@@ -167,6 +182,7 @@ class DocumentTemplates
             $this->auditModel->log($this->userId, 'document_template.create', [
                 'template_id' => $id,
                 'name'        => $name,
+                'category'    => $category,
                 'file_name'   => $storedFile['original_name'],
                 'file_size'   => $storedFile['size'],
             ], null);
@@ -183,14 +199,16 @@ class DocumentTemplates
 
             $errors['general'] = 'Terjadi kesalahan saat menyimpan template dokumen ke basis data.';
             $this->load->view('views/document-templates/form.php', [
-                'title'    => 'Tambah Template Dokumen — SIGMA',
-                'isEdit'   => false,
-                'template' => null,
-                'values'   => [
+                'title'      => 'Tambah Template Dokumen — SIGMA',
+                'isEdit'     => false,
+                'template'   => null,
+                'categories' => DocumentTemplatesModel::getCategories(),
+                'values'     => [
                     'name'        => $name,
+                    'category'    => $category,
                     'description' => $description,
                 ],
-                'errors'   => $errors,
+                'errors'     => $errors,
             ]);
         }
     }
@@ -208,14 +226,16 @@ class DocumentTemplates
         }
 
         $this->load->view('views/document-templates/form.php', [
-            'title'    => 'Ubah Template Dokumen — SIGMA',
-            'isEdit'   => true,
-            'template' => $template,
-            'values'   => [
+            'title'      => 'Ubah Template Dokumen — SIGMA',
+            'isEdit'     => true,
+            'template'   => $template,
+            'categories' => DocumentTemplatesModel::getCategories(),
+            'values'     => [
                 'name'        => $template['name'],
+                'category'    => $template['category'] ?? 'lainnya',
                 'description' => $template['description'] ?? '',
             ],
-            'errors'   => [],
+            'errors'     => [],
         ]);
     }
 
@@ -232,22 +252,25 @@ class DocumentTemplates
         }
 
         $name        = isset($_POST['name']) && is_string($_POST['name']) ? trim($_POST['name']) : '';
+        $category    = isset($_POST['category']) && is_string($_POST['category']) ? trim($_POST['category']) : '';
         $description = isset($_POST['description']) && is_string($_POST['description']) ? trim($_POST['description']) : '';
         $errors      = [];
 
-        $this->validateMetadata($name, $description, $errors);
+        $this->validateMetadata($name, $category, $description, $errors);
         $validFile = $this->validateDocxUpload($_FILES['docx_file'] ?? null, false, $errors);
 
         if (!empty($errors)) {
             $this->load->view('views/document-templates/form.php', [
-                'title'    => 'Ubah Template Dokumen — SIGMA',
-                'isEdit'   => true,
-                'template' => $template,
-                'values'   => [
+                'title'      => 'Ubah Template Dokumen — SIGMA',
+                'isEdit'     => true,
+                'template'   => $template,
+                'categories' => DocumentTemplatesModel::getCategories(),
+                'values'     => [
                     'name'        => $name,
+                    'category'    => $category,
                     'description' => $description,
                 ],
-                'errors'   => $errors,
+                'errors'     => $errors,
             ]);
             return;
         }
@@ -258,14 +281,16 @@ class DocumentTemplates
             if (!$newStoredFile) {
                 $errors['docx_file'] = 'Gagal menyimpan berkas pengganti (.docx) ke penyimpanan server.';
                 $this->load->view('views/document-templates/form.php', [
-                    'title'    => 'Ubah Template Dokumen — SIGMA',
-                    'isEdit'   => true,
-                    'template' => $template,
-                    'values'   => [
+                    'title'      => 'Ubah Template Dokumen — SIGMA',
+                    'isEdit'     => true,
+                    'template'   => $template,
+                    'categories' => DocumentTemplatesModel::getCategories(),
+                    'values'     => [
                         'name'        => $name,
+                        'category'    => $category,
                         'description' => $description,
                     ],
-                    'errors'   => $errors,
+                    'errors'     => $errors,
                 ]);
                 return;
             }
@@ -276,6 +301,7 @@ class DocumentTemplates
         try {
             $payload = [
                 'name'        => $name,
+                'category'    => $category,
                 'description' => $description !== '' ? $description : null,
                 'updated_by'  => $this->userId,
             ];
@@ -299,6 +325,8 @@ class DocumentTemplates
                 'template_id'   => $template['id'],
                 'old_name'      => $template['name'],
                 'new_name'      => $name,
+                'old_category'  => $template['category'] ?? 'lainnya',
+                'new_category'  => $category,
                 'file_replaced' => ($newStoredFile !== null),
                 'file_name'     => $newStoredFile !== null ? $newStoredFile['original_name'] : $template['file_name_original'],
             ], null);
@@ -317,14 +345,16 @@ class DocumentTemplates
 
             $errors['general'] = 'Terjadi kesalahan saat memperbarui template dokumen.';
             $this->load->view('views/document-templates/form.php', [
-                'title'    => 'Ubah Template Dokumen — SIGMA',
-                'isEdit'   => true,
-                'template' => $template,
-                'values'   => [
+                'title'      => 'Ubah Template Dokumen — SIGMA',
+                'isEdit'     => true,
+                'template'   => $template,
+                'categories' => DocumentTemplatesModel::getCategories(),
+                'values'     => [
                     'name'        => $name,
+                    'category'    => $category,
                     'description' => $description,
                 ],
-                'errors'   => $errors,
+                'errors'     => $errors,
             ]);
         }
     }
@@ -435,14 +465,20 @@ class DocumentTemplates
     }
 
     /**
-     * Validasi nama dan deskripsi template
+     * Validasi nama, kategori, dan deskripsi template
      */
-    private function validateMetadata(string $name, string $description, array &$errors): void
+    private function validateMetadata(string $name, string $category, string $description, array &$errors): void
     {
         if ($name === '') {
             $errors['name'] = 'Nama template wajib diisi.';
         } elseif (mb_strlen($name) > 200) {
             $errors['name'] = 'Nama template maksimal 200 karakter.';
+        }
+
+        if ($category === '') {
+            $errors['category'] = 'Kategori template dokumen wajib dipilih.';
+        } elseif (!DocumentTemplatesModel::isValidCategory($category)) {
+            $errors['category'] = 'Kategori template dokumen tidak valid.';
         }
 
         if ($description !== '' && mb_strlen($description) > 2000) {
