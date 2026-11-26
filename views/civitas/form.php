@@ -40,7 +40,7 @@ require_once __DIR__ . '/../layout/header.php';
                     </div>
                     <div>
                         <h5 class="fw-bold mb-0" style="color: var(--text-heading);"><?= $isEdit ? 'Ubah Data Civitas' : 'Tambah Civitas Kampus' ?></h5>
-                        <small style="color: var(--text-muted);">Isi informasi identitas resmi civitas untuk keperluan tanda tangan digital</small>
+                        
                     </div>
                 </div>
             </div>
@@ -83,7 +83,7 @@ require_once __DIR__ . '/../layout/header.php';
                                 <label class="sigma-form-label">Nama Lengkap &amp; Gelar Resmi <span class="text-danger">*</span></label>
                                 <input type="text" name="name"
                                        class="form-control sigma-input <?= isset($errors['name']) ? 'is-invalid' : '' ?>"
-                                       placeholder="Contoh: Prof. Dr. Ir. Siti Aminah, M.Sc. atau Ahmad Fauzi"
+                                       placeholder="Nama lengkap beserta gelar"
                                        value="<?= htmlspecialchars($values['name'] ?? '') ?>" required>
                                 <?php if (isset($errors['name'])): ?>
                                     <div class="invalid-feedback small"><?= htmlspecialchars($errors['name']) ?></div>
@@ -142,10 +142,10 @@ require_once __DIR__ . '/../layout/header.php';
                                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                                         <div>
                                             <label class="sigma-form-label mb-0">
-                                                Program Studi (Prodi) yang Diampu / Diikuti
+                                                Program Studi
                                             </label>
                                             <div class="small" style="color: var(--text-muted);" id="prodiHelpText">
-                                                Untuk <strong>Dosen</strong>, dapat mencentang <strong>lebih dari 1 Program Studi</strong> tempat mengajar.
+                                                Dosen boleh memilih lebih dari 1 prodi.
                                             </div>
                                         </div>
                                         <span class="badge-sigma badge-sigma-purple" id="selectedProdiCountBadge">
@@ -318,11 +318,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateProdiHintByType() {
         if (!typeSelect || !prodiHelp) return;
         if (typeSelect.value === 'dosen') {
-            prodiHelp.innerHTML = 'Untuk <strong>Dosen</strong>, Anda dapat mencentang <strong>lebih dari 1 Program Studi</strong> tempat mengajar.';
+            prodiHelp.innerHTML = 'Dosen boleh memilih lebih dari 1 prodi.';
         } else if (typeSelect.value === 'mahasiswa') {
-            prodiHelp.innerHTML = 'Pilih Program Studi asal <strong>Mahasiswa</strong>.';
+            prodiHelp.innerHTML = 'Pilih prodi mahasiswa.';
         } else {
-            prodiHelp.innerHTML = 'Opsional untuk <strong>Tenaga Kependidikan</strong> jika ditugaskan pada program studi tertentu.';
+            prodiHelp.innerHTML = 'Opsional untuk tendik.';
         }
     }
 

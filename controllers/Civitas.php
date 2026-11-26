@@ -22,7 +22,7 @@ class Civitas
         if (empty($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'admin') {
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Akses ditolak: Hanya Administrator yang berwenang mengelola Master Data Civitas.'
+                'message' => 'Akses ditolak: khusus Administrator.'
             ];
             header('Location: ' . BASE_URL . '/documents');
             exit;
@@ -163,7 +163,7 @@ class Civitas
             error_log('[Civitas::store] ' . $e->getMessage());
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal menyimpan data civitas karena kendala pada basis data. Pastikan NIM/NIP dan Email belum terdaftar.'
+                'message' => 'Gagal menyimpan data. Pastikan NIM/NIP dan email belum terdaftar.'
             ];
         }
 
@@ -290,7 +290,7 @@ class Civitas
             error_log('[Civitas::update] ' . $e->getMessage());
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal memperbarui data civitas karena kendala pada basis data.'
+                'message' => 'Gagal memperbarui data civitas.'
             ];
         }
 
@@ -348,7 +348,7 @@ class Civitas
             error_log('[Civitas::delete] ' . $e->getMessage());
             $_SESSION['flash'] = [
                 'type'    => 'danger',
-                'message' => 'Gagal menghapus data civitas karena kendala pada basis data.'
+                'message' => 'Gagal menghapus data civitas.'
             ];
         }
 
@@ -440,7 +440,7 @@ class Civitas
             unset($_SESSION['civitas_import_preview']);
             $_SESSION['flash'] = [
                 'type'    => 'info',
-                'message' => 'Pratinjau import CSV telah dibatalkan. Tidak ada perubahan pada database.'
+                'message' => 'Import CSV dibatalkan.'
             ];
             header('Location: ' . BASE_URL . '/civitas/import');
             exit;
@@ -451,7 +451,7 @@ class Civitas
             if (empty($preview) || !isset($preview['all_rows']) || !is_array($preview['all_rows'])) {
                 $_SESSION['flash'] = [
                     'type'    => 'warning',
-                    'message' => 'Sesi pratinjau CSV tidak ditemukan atau sudah kedaluwarsa. Silakan unggah ulang berkas CSV Anda.'
+                    'message' => 'Sesi pratinjau kedaluwarsa. Silakan unggah ulang CSV.'
                 ];
                 header('Location: ' . BASE_URL . '/civitas/import');
                 exit;
@@ -479,7 +479,7 @@ class Civitas
 
                 if ($insertedCount > 0) {
                     $msg = sprintf(
-                        'Import massal CSV berhasil: %d data civitas baru telah disimpan ke database.',
+                        '%d data civitas berhasil diimpor.',
                         $insertedCount
                     );
                     if ($skippedCount > 0) {
@@ -502,7 +502,7 @@ class Civitas
                 error_log('[Civitas::import commit] ' . $e->getMessage());
                 $_SESSION['flash'] = [
                     'type'    => 'danger',
-                    'message' => 'Terjadi kegagalan saat menyimpan data import CSV. Transaksi telah dibatalkan otomatis (rollback) sehingga database tetap bersih.'
+                    'message' => 'Gagal menyimpan data import CSV. Tidak ada data yang tersimpan.'
                 ];
             }
 

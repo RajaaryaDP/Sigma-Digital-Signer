@@ -66,7 +66,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
             </div>
             <div class="flex-shrink-0 border rounded-3 p-3" style="min-width: 260px; background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                 <div class="small text-uppercase fw-bold mb-1" style="font-size: 0.68rem; letter-spacing: 0.05em; color: var(--sigma-purple-700);">
-                    Identitas Penandatangan (Biodata Resmi)
+                    Penandatangan
                 </div>
                 <div class="fw-bold small" style="color: var(--text-heading);"><?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?></div>
                 <div class="small" style="color: var(--text-muted);"><?= htmlspecialchars($profileIdLabel . ': ' . $profileIdent, ENT_QUOTES, 'UTF-8') ?></div>
@@ -88,9 +88,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
 <div class="sigma-guide-banner py-2 px-3 mb-4 d-flex align-items-start gap-2">
     <i class="bi bi-lock-fill text-sigma-purple mt-1 fs-5 flex-shrink-0"></i>
     <div class="small" style="color: var(--sigma-navy);">
-        <strong>Slot Tanda Tangan Terkunci (ADR-08):</strong> Posisi slot telah ditetapkan pengaju.
-        Pilih format pengesahan dan metode tanda tangan di panel kanan — pratinjau langsung tampil di kotak slot Anda.
-        Setelah dikonfirmasi, tanda tangan bersifat permanen dan QR verifikasi akan dibubuhkan otomatis.
+        Posisi slot sudah ditetapkan pengaju. Pilih format dan metode tanda tangan di panel kanan.
     </div>
 </div>
 
@@ -142,14 +140,14 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                     <!-- Alert Fallback jika PDF.js gagal atau offline -->
                     <div id="pdfFallbackAlert" class="alert alert-warning alert-sigma py-2 px-3 small d-none text-start mb-3">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                        Pratinjau PDF langsung tidak dapat dimuat melalui peramban. Anda tetap dapat melihat slot tanda tangan pada representasi lembar di bawah ini.
+                        Pratinjau PDF gagal dimuat. Posisi slot tetap ditampilkan di bawah.
                     </div>
 
                     <!-- Notifikasi Cepat jika Penandatangan Sedang Membaca Halaman Lain -->
                     <div id="slotPageNotice" class="alert alert-warning alert-sigma border py-2 px-3 small d-none text-start mb-2 align-items-center justify-content-between flex-wrap gap-2">
                         <span>
                             <i class="bi bi-info-circle-fill text-warning me-1"></i>
-                            Slot tanda tangan Anda yang telah dikunci berada di <strong>Halaman <span id="slotCurrentPageNotice"><?= $pageNo ?></span></strong>.
+                            Slot Anda ada di <strong>Halaman <span id="slotCurrentPageNotice"><?= $pageNo ?></span></strong>.
                         </span>
                         <div class="d-flex align-items-center gap-2">
                             <button type="button" class="btn-sigma-navy btn-sigma-sm" id="btnJumpToSlotPage">
@@ -368,7 +366,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                     <div class="mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2 px-1" style="font-size: 0.75rem; color: var(--text-muted);">
                         <span>
                             <i class="bi bi-lock-fill me-1 text-sigma-purple"></i>
-                            Posisi slot dikunci oleh Pengaju di <strong>Halaman <?= $pageNo ?></strong>. Gunakan navigasi di atas untuk meninjau halaman lain.
+                            Slot Anda ada di <strong>Halaman <?= $pageNo ?></strong>.
                         </span>
                         <span class="badge-sigma badge-sigma-purple">
                             <i class="bi bi-layers"></i> Halaman: <strong id="activePageBadge"><?= $pageNo ?></strong>
@@ -384,7 +382,6 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                 <div class="card-sigma-header">
                     <div>
                         <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">Format &amp; Metode Tanda Tangan</h2>
-                        <small style="color: var(--text-muted);">Pilih jenis tampilan pengesahan dan sumber tanda tangan</small>
                     </div>
                 </div>
                 <div class="card-sigma-body p-3">
@@ -393,7 +390,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                     <div class="mb-3">
                         <label class="sigma-form-label mb-2 d-flex align-items-center gap-2">
                             <i class="bi bi-ui-radios-grid text-sigma-purple"></i>
-                            <span>Pilih Format Tampilan (ADR-10):</span>
+                            <span>Format Tampilan:</span>
                         </label>
                         <input type="hidden" name="signature_format" id="signatureFormatInput" value="qr_and_signature">
                         <div class="row g-2">
@@ -407,7 +404,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                     </div>
                                     <div class="fw-bold small" style="font-size: 0.78rem; color: var(--text-heading);">QR + TTD + Nama</div>
                                     <div class="mt-1" style="font-size: 0.66rem; line-height: 1.25; color: var(--text-muted);">
-                                        Coretan tanda tangan, nama resmi, dan kode QR
+                                        Coretan, nama, dan QR
                                     </div>
                                 </div>
                             </div>
@@ -419,7 +416,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                     </div>
                                     <div class="fw-bold small" style="font-size: 0.78rem; color: var(--text-heading);">Hanya Kode QR</div>
                                     <div class="mt-1" style="font-size: 0.66rem; line-height: 1.25; color: var(--text-muted);">
-                                        Kode QR, nama resmi, dan <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?> tanpa coretan
+                                        Tanpa coretan
                                     </div>
                                 </div>
                             </div>
@@ -431,7 +428,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                         <div class="border-top pt-3 mb-2" style="border-color: var(--border-subtle) !important;">
                             <div class="small fw-bold mb-2 d-flex align-items-center gap-2" style="color: var(--text-heading);">
                                 <i class="bi bi-palette text-sigma-purple"></i>
-                                <span>Pilih Sumber Goresan Tanda Tangan:</span>
+                                <span>Sumber Tanda Tangan:</span>
                             </div>
                         </div>
 
@@ -464,16 +461,15 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                     <div class="alert alert-warning alert-sigma py-2 px-3 small d-flex align-items-start gap-2 mb-0">
                                         <i class="bi bi-exclamation-circle-fill mt-1"></i>
                                         <div>
-                                            <strong>Anda belum memiliki template tanda tangan (BUG-08).</strong><br>
-                                            Silakan gunakan tab <em>"Kanvas"</em> atau <em>"Upload PNG"</em>, atau buat template di menu
-                                            <a href="<?= BASE_URL ?>/user-signatures/create" target="_blank" class="fw-semibold" style="color: var(--sigma-purple-700);">Template TTD</a>.
+                                            Belum ada template. Gunakan Kanvas/Upload PNG, atau
+                                            <a href="<?= BASE_URL ?>/user-signatures/create" target="_blank" class="fw-semibold" style="color: var(--sigma-purple-700);">buat template</a>.
                                         </div>
                                     </div>
                                 <?php else: ?>
                                     <?php if (!$defaultTemplateId): ?>
                                         <div class="sigma-guide-banner py-2 px-3 small mb-2 d-flex align-items-center gap-2">
                                             <i class="bi bi-info-circle-fill text-sigma-purple"></i>
-                                            <span>Tidak ada template default — pilih salah satu di bawah atau gunakan metode lain.</span>
+                                            <span>Pilih salah satu template.</span>
                                         </div>
                                     <?php endif; ?>
                                     <div class="row g-2">
@@ -530,9 +526,6 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                         <span>Garis Dasar</span>
                                     </div>
                                 </div>
-                                <div class="form-text mt-1" style="font-size: 0.72rem; color: var(--text-muted);">
-                                    <i class="bi bi-info-circle me-1"></i>Mendukung sentuhan layar HP/tablet. Goresan diproses dengan latar belakang transparan.
-                                </div>
                             </div>
 
                             <!-- TAB 3: Upload PNG Transparan -->
@@ -557,9 +550,6 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-text mt-1" style="font-size: 0.72rem; color: var(--text-muted);">
-                                    <i class="bi bi-lightbulb me-1"></i>Gunakan gambar berlatar transparan agar menyatu dengan lembar PDF tanpa menutupi teks.
-                                </div>
                             </div>
                         </div>
                     </div> <!-- end scribbleMethodSection -->
@@ -569,9 +559,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-info-circle-fill text-sigma-purple fs-5 mt-1"></i>
                             <div class="small" style="color: var(--sigma-navy);">
-                                <strong>Format Hanya Kode QR (Dilengkapi Nama &amp; <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?>) Aktif:</strong><br>
-                                Dokumen disahkan secara elektronik dengan menampilkan <strong>Nama Resmi</strong>, garis pemisah, dan <strong><?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?></strong> di sisi kiri serta stempel <strong>Kode QR</strong> verifikasi SIGMA di sisi kanan slot Anda.<br>
-                                <span class="mt-1 d-block" style="color: var(--text-muted);">Klik tombol <strong>Tanda Tangani &amp; Terbitkan</strong> di bawah untuk langsung memproses pengesahan.</span>
+                                Slot akan berisi nama, <?= htmlspecialchars($profileIdLabel, ENT_QUOTES, 'UTF-8') ?>, dan kode QR verifikasi.
                             </div>
                         </div>
                     </div>
@@ -617,11 +605,6 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                         <button type="button" class="btn-sigma-outline w-100 py-2 text-danger" data-bs-toggle="modal" data-bs-target="#modalDecline">
                             <i class="bi bi-x-circle"></i> Tolak Berkas
                         </button>
-                    </div>
-                    <div class="text-center mt-2">
-                        <small style="font-size: 0.72rem; color: var(--text-muted);">
-                            <i class="bi bi-shield-lock me-1"></i>Setelah dikonfirmasi, tanda tangan bersifat permanen dan tidak dapat ditarik kembali.
-                        </small>
                     </div>
                 </div>
             </div>
@@ -705,8 +688,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                     <div class="alert alert-warning alert-sigma py-2 px-3 small mb-0 d-flex align-items-start gap-2">
                         <i class="bi bi-exclamation-triangle-fill mt-1"></i>
                         <div>
-                            Tindakan ini <strong>tidak dapat dibatalkan</strong>. Pengesahan dokumen beserta stempel QR verifikasi
-                            identitas Anda akan tercatat permanen pada jejak audit dokumen.
+                            Tanda tangan bersifat permanen dan <strong>tidak dapat dibatalkan</strong>.
                         </div>
                     </div>
                 </div>
@@ -738,8 +720,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                              style="background: var(--sigma-danger-bg); border-color: #fecaca; color: var(--sigma-danger-text-dark);">
                             <i class="bi bi-exclamation-triangle-fill mt-1"></i>
                             <div>
-                                <strong>Kebijakan Kampus (ADR-08):</strong> Penolakan satu pihak
-                                <strong>membatalkan seluruh dokumen</strong> menjadi Arsip Batal Permanen. Proses tidak dapat diulang.
+                                Penolakan akan <strong>membatalkan seluruh dokumen</strong> secara permanen.
                             </div>
                         </div>
                         <div class="mb-2">
@@ -747,7 +728,7 @@ $profileIdLabel = (($userProfile['civitas_type'] ?? '') === 'mahasiswa') ? 'NIM'
                                 Alasan Penolakan <span class="text-danger">*</span> <span class="fw-normal" style="color: var(--text-muted);">(minimal 10 karakter)</span>
                             </label>
                             <textarea class="form-control sigma-input" id="decline_reason" name="decline_reason" rows="4"
-                                      placeholder="Jelaskan alasan Anda menolak berkas ini, misalnya: Berkas lampiran tidak lengkap..." required></textarea>
+                                      placeholder="Contoh: lampiran belum lengkap" required></textarea>
                             <div class="form-text text-end" id="declineCounter" style="font-size: 0.72rem; color: var(--text-muted);">0 / minimal 10 karakter</div>
                         </div>
                     </div>
@@ -1433,7 +1414,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleFileSelect(file) {
         if (!file) return;
         if (file.type !== 'image/png') {
-            alert('Peringatan: Berkas harus berformat gambar PNG (.png) dengan latar belakang transparan.');
+            alert('Berkas harus berformat PNG.');
             fileInput.value = '';
             return;
         }

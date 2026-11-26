@@ -28,7 +28,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                     </div>
                     <div>
                         <h1 class="h5 fw-bold mb-0" style="color: var(--text-heading);">Ajukan Dokumen Baru</h1>
-                        <small style="color: var(--text-muted);">Unggah dokumen PDF dan tentukan alur penandatanganan berjenjang kampus</small>
+                        <small style="color: var(--text-muted);">Unggah PDF dan tentukan penandatangan</small>
                     </div>
                 </div>
             </div>
@@ -60,7 +60,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                 <label class="sigma-form-label d-block">Deskripsi / Catatan Tambahan <span class="fw-normal" style="color: var(--text-muted);">(Opsional)</span></label>
                                 <textarea name="description" rows="2"
                                           class="form-control sigma-input"
-                                          placeholder="Keterangan singkat mengenai keperluan dokumen atau pesan pengantar"><?= htmlspecialchars($values['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                          placeholder="Keperluan dokumen (opsional)"><?= htmlspecialchars($values['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                             </div>
 
                             <div class="col-md-6">
@@ -68,14 +68,14 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                 <select name="signature_type" id="signatureType"
                                         class="form-select sigma-input <?= isset($errors['signature_type']) ? 'is-invalid' : '' ?>" required>
                                     <option value="sequential" <?= $curType === 'sequential' ? 'selected' : '' ?>>
-                                        Tanda Tangan Berjenjang (Sequential)
+                                        Berjenjang
                                     </option>
                                     <option value="single" <?= $curType === 'single' ? 'selected' : '' ?>>
-                                        Tanda Tangan Mandiri (Single-Sign)
+                                        Mandiri
                                     </option>
                                 </select>
                                 <div class="form-text small" id="sigTypeHelp" style="color: var(--text-muted);">
-                                    Berjenjang: melalui verifikasi Admin lalu ditandatangani sesuai urutan jenjang jabatan.
+                                    Direview Admin, lalu ditandatangani berurutan.
                                 </div>
                             </div>
 
@@ -85,7 +85,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                        class="form-control sigma-input <?= isset($errors['pdf_file']) ? 'is-invalid' : '' ?>"
                                        accept=".pdf,application/pdf" required>
                                 <div class="form-text small" style="color: var(--text-muted);">
-                                    Hanya berkas PDF (.pdf) dengan ukuran maksimum 10 MB.
+                                    PDF, maks. 10 MB.
                                 </div>
                                 <?php if (isset($errors['pdf_file'])): ?>
                                     <div class="invalid-feedback small d-block"><?= htmlspecialchars($errors['pdf_file'], ENT_QUOTES, 'UTF-8') ?></div>
@@ -98,17 +98,13 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                     <div id="sequentialSection" class="mb-4 <?= $curType === 'single' ? 'd-none' : '' ?>" style="<?= $curType === 'single' ? 'display: none;' : '' ?>">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-subtle) !important;">
                             <div class="fw-bold small text-uppercase" style="letter-spacing: 0.05em; color: var(--sigma-navy);">
-                                2. Susunan Penandatangan Berjenjang
+                                2. Urutan Penandatangan
                             </div>
                             <button type="button" id="btnAddSigner" class="btn-sigma-outline btn-sigma-sm">
                                 <i class="bi bi-person-plus text-sigma-purple"></i> Tambah Penandatangan
                             </button>
                         </div>
 
-                        <p class="small mb-3" style="color: var(--text-muted);">
-                            Tentukan urutan hierarki penandatangan (dimulai dari urutan ke-1). Setelah disetujui Admin,
-                            dokumen akan diteruskan secara bergiliran.
-                        </p>
 
                         <!-- Filter Daftar Penandatangan per Jurusan / Prodi -->
                         <?php
@@ -118,7 +114,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                         <div class="rounded-3 border p-3 mb-3" style="background: var(--sigma-tint-50); border-color: var(--border-subtle) !important;">
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                                 <span class="small fw-semibold" style="color: var(--text-heading);">
-                                    <i class="bi bi-funnel me-1 text-sigma-purple"></i> Filter Nama Penandatangan / Dosen
+                                    <i class="bi bi-funnel me-1 text-sigma-purple"></i> Filter Penandatangan
                                 </span>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="badge-sigma badge-sigma-purple" id="signerFilterCountBadge">
@@ -143,7 +139,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="filterStudyProgram" class="form-label small mb-1" style="color: var(--text-muted);">Program Studi (Prodi)</label>
+                                    <label for="filterStudyProgram" class="form-label small mb-1" style="color: var(--text-muted);">Prodi</label>
                                     <select id="filterStudyProgram" class="form-select form-select-sm sigma-input">
                                         <option value="">Semua Prodi</option>
                                         <?php foreach ($prodiList as $pr): ?>
@@ -164,13 +160,10 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="filterSignerSearch" class="form-label small mb-1" style="color: var(--text-muted);">Cari Nama / NIP</label>
+                                    <label for="filterSignerSearch" class="form-label small mb-1" style="color: var(--text-muted);">Cari</label>
                                     <input type="text" id="filterSignerSearch" class="form-control form-control-sm sigma-input"
-                                           placeholder="Ketik nama atau NIP...">
+                                           placeholder="Nama atau NIM/NIP...">
                                 </div>
-                            </div>
-                            <div class="form-text small mt-2 mb-0" style="color: var(--text-muted);">
-                                Dosen yang mengampu lebih dari 1 prodi otomatis tampil di masing-masing prodi maupun jurusan terkait. Pilihan yang sudah dipilih di baris tabel tidak akan terhapus saat filter diganti.
                             </div>
                         </div>
 
@@ -222,7 +215,7 @@ $signersData = !empty($postedSigners) ? $postedSigners : [
                                         <td>
                                             <input type="text" name="signer_role_title[]"
                                                    class="form-control form-control-sm sigma-input signer-role-input"
-                                                   placeholder="Contoh: Dosen Pembimbing I / Ketua Jurusan"
+                                                   placeholder="Contoh: Dosen Pembimbing I"
                                                    maxlength="150"
                                                    value="<?= htmlspecialchars($s['role_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                    <?= $curType === 'single' ? 'disabled' : '' ?>>
@@ -503,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (isSingle) {
             seqSection.style.display = 'none';
             seqSection.classList.add('d-none');
-            sigTypeHelp.textContent = 'Mandiri: Anda menandatangani sendiri berkas ini tanpa review Admin dan langsung selesai.';
+            sigTypeHelp.textContent = 'Anda tanda tangani sendiri, tanpa review Admin.';
             submitBtnText.textContent = 'Unggah & Atur Slot Mandiri';
             // Reset pilihan civitas/baris penandatangan dan nonaktifkan input sequential
             // agar tidak ikut terkirim maupun memicu validasi saat mode mandiri dipilih
@@ -515,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             seqSection.style.display = 'block';
             seqSection.classList.remove('d-none');
-            sigTypeHelp.textContent = 'Berjenjang: melalui verifikasi Admin lalu ditandatangani sesuai urutan jenjang jabatan.';
+            sigTypeHelp.textContent = 'Direview Admin, lalu ditandatangani berurutan.';
             submitBtnText.textContent = 'Unggah & Atur Slot Tanda Tangan';
             seqSection.querySelectorAll('input, select, button').forEach(el => {
                 el.disabled = false;
@@ -603,7 +596,7 @@ document.addEventListener('DOMContentLoaded', function () {
         roleInput.type = 'text';
         roleInput.name = 'signer_role_title[]';
         roleInput.className = 'form-control form-control-sm sigma-input signer-role-input';
-        roleInput.placeholder = 'Contoh: Dosen Pembimbing I / Ketua Jurusan';
+        roleInput.placeholder = 'Contoh: Dosen Pembimbing I';
         roleInput.maxLength = 150;
         tdRole.appendChild(roleInput);
 
@@ -662,7 +655,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (sel.value) {
                     if (userIds.includes(sel.value)) {
                         e.preventDefault();
-                        alert('Terdapat penandatangan yang dipilih lebih dari satu kali. Mohon pastikan setiap penandatangan unik.');
+                        alert('Ada penandatangan yang dipilih lebih dari sekali.');
                         sel.focus();
                         return;
                     }

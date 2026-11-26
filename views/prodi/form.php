@@ -29,7 +29,7 @@
                     </div>
                     <div>
                         <h5 class="fw-bold mb-0" style="color: var(--text-heading);"><?= $isEdit ? 'Ubah Program Studi' : 'Tambah Program Studi Baru' ?></h5>
-                        <small style="color: var(--text-muted);">Program Studi berada di bawah Jurusan dan dapat diampu oleh lebih dari satu Dosen</small>
+                        
                     </div>
                 </div>
             </div>

@@ -50,9 +50,6 @@ $actionUrl = $isEdit
                         <h5 class="fw-bold mb-0" style="color: var(--text-heading);">
                             <?= $isEdit ? 'Ubah Template Dokumen' : 'Tambah Template Dokumen Baru' ?>
                         </h5>
-                        <small style="color: var(--text-muted);">
-                            Unggah contoh berkas Word (.docx) agar civitas kampus dapat mengunduh format surat yang baku
-                        </small>
                     </div>
                 </div>
             </div>
@@ -74,7 +71,7 @@ $actionUrl = $isEdit
                                placeholder="Contoh: Template Surat Permohonan Izin Magang / PKL"
                                value="<?= htmlspecialchars($values['name'] ?? '') ?>">
                         <div class="form-text small" style="color: var(--text-muted);">
-                            Gunakan nama yang jelas dan spesifik agar mudah ditemukan pengguna melalui pencarian. Maksimal 200 karakter.
+                            Maks. 200 karakter.
                         </div>
                         <?php if (isset($errors['name'])): ?>
                             <div class="invalid-feedback small"><?= htmlspecialchars($errors['name']) ?></div>
@@ -119,7 +116,7 @@ $actionUrl = $isEdit
                                   rows="3"
                                   maxlength="2000"
                                   class="form-control sigma-input <?= isset($errors['description']) ? 'is-invalid' : '' ?>"
-                                  placeholder="Jelaskan kegunaan template, syarat penggunaan, atau pihak penandatangan yang disarankan..."><?= htmlspecialchars($values['description'] ?? '') ?></textarea>
+                                  placeholder="Kegunaan template"><?= htmlspecialchars($values['description'] ?? '') ?></textarea>
                         <?php if (isset($errors['description'])): ?>
                             <div class="invalid-feedback small"><?= htmlspecialchars($errors['description']) ?></div>
                         <?php endif; ?>
@@ -164,9 +161,9 @@ $actionUrl = $isEdit
                                <?= !$isEdit ? 'required' : '' ?>>
                         <div class="form-text small" id="docxFileHelp" style="color: var(--text-muted);">
                             <?php if ($isEdit): ?>
-                                Biarkan kosong jika tidak ingin mengganti berkas <code>.docx</code>. Jika mengganti, berkas lama akan dihapus permanen. Maksimal 10 MB.
+                                Kosongkan jika tidak diganti. Maks. 10 MB.
                             <?php else: ?>
-                                Hanya menerima berkas Microsoft Word berformat <strong>.docx</strong> dengan ukuran maksimal <strong>10 MB</strong>.
+                                Format .docx, maks. 10 MB.
                             <?php endif; ?>
                         </div>
                         <div class="text-danger small mt-1 d-none" id="docxClientError"></div>

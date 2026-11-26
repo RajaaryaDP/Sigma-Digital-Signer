@@ -48,7 +48,7 @@
             <div class="footer-meta-row">
                 <p class="footer-copyright">
                     <span aria-hidden="true">&copy;</span>
-                    <span>2026 - Kelompok DPR - Politeknik Negeri Jakarta</span>
+                    <span>Kelompok DPR — TI 3C</span>
                 </p>
                 <p class="footer-version">Version 1.0.0</p>
             </div>

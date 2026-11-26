@@ -59,7 +59,7 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
             <i class="bi bi-file-earmark-word me-2 text-sigma-purple"></i>Template Dokumen Resmi
         </h4>
         <p class="small mb-0" style="color: var(--text-muted);">
-            Unduh contoh format dokumen resmi kampus (<strong>.docx</strong>) untuk disesuaikan di perangkat Anda sebelum diajukan tanda tangan digital.
+            Unduh format .docx, isi, ekspor ke PDF, lalu ajukan.
         </p>
     </div>
     <?php if (!empty($isAdmin)): ?>
@@ -70,47 +70,6 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
             </a>
         </div>
     <?php endif; ?>
-</div>
-
-<!-- 3-Step Guide Banner -->
-<div class="sigma-guide-banner mb-4">
-    <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-lightbulb-fill text-sigma-purple"></i>
-        <span class="fw-bold small" style="color: var(--text-heading);">
-            <?= !empty($isAdmin) ? 'Panduan Pengelolaan & Alur Template Dokumen (.docx)' : '3 Langkah Menggunakan Template Dokumen (.docx)' ?>
-        </span>
-    </div>
-    <div class="row g-3">
-        <div class="col-md-4">
-            <div class="d-flex align-items-start gap-2">
-                <span class="badge-sigma badge-sigma-purple flex-shrink-0">1</span>
-                <div class="small" style="color: var(--text-body); line-height: 1.5;">
-                    <?php if (!empty($isAdmin)): ?>
-                        <strong style="color: var(--text-heading);">Unggah .docx Baku</strong> — Tambahkan atau perbarui template format Microsoft Word resmi kampus.
-                    <?php else: ?>
-                        <strong style="color: var(--text-heading);">Unduh Format .docx</strong> — Pilih kartu template sesuai kebutuhan surat lalu klik tombol Unduh.
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="d-flex align-items-start gap-2">
-                <span class="badge-sigma badge-sigma-purple flex-shrink-0">2</span>
-                <div class="small" style="color: var(--text-body); line-height: 1.5;">
-                    <strong style="color: var(--text-heading);">Lengkapi &amp; Ekspor PDF</strong> — Isi biodata dan konten surat secara lokal, lalu simpan/ekspor ke format <strong>PDF</strong>.
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="d-flex align-items-start gap-2">
-                <span class="badge-sigma badge-sigma-purple flex-shrink-0">3</span>
-                <div class="small" style="color: var(--text-body); line-height: 1.5;">
-                    <strong style="color: var(--text-heading);">Ajukan Tanda Tangan</strong> — Unggah berkas PDF melalui menu
-                    <a href="<?= BASE_URL ?>/documents/create" class="fw-semibold text-decoration-none" style="color: var(--sigma-violet-600);">Ajukan Dokumen</a>.
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Search, UI Filter Chips, & Sort Bar -->
@@ -191,15 +150,15 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
         </h5>
         <p class="small mx-auto mb-4" style="max-width: 520px; color: var(--text-muted);">
             <?php if ($search !== '' && $activeCategory !== 'all'): ?>
-                Tidak ada template pada kategori <strong><?= htmlspecialchars($categories[$activeCategory] ?? $activeCategory) ?></strong> dengan nama yang mengandung <strong>"<?= htmlspecialchars($search) ?>"</strong>.
+                Tidak ada hasil di kategori <strong><?= htmlspecialchars($categories[$activeCategory] ?? $activeCategory) ?></strong> untuk <strong>"<?= htmlspecialchars($search) ?>"</strong>.
             <?php elseif ($search !== ''): ?>
-                Tidak ada template dokumen dengan nama yang mengandung <strong>"<?= htmlspecialchars($search) ?>"</strong>. Coba kata kunci lain atau tampilkan semua template.
+                Tidak ada hasil untuk <strong>"<?= htmlspecialchars($search) ?>"</strong>.
             <?php elseif ($activeCategory !== 'all'): ?>
-                Belum ada template dokumen pada kategori <strong><?= htmlspecialchars($categories[$activeCategory] ?? $activeCategory) ?></strong> saat ini.
+                Belum ada template pada kategori <strong><?= htmlspecialchars($categories[$activeCategory] ?? $activeCategory) ?></strong>.
             <?php elseif (!empty($isAdmin)): ?>
-                Belum ada contoh template dokumen yang diunggah. Tambahkan berkas Word (.docx) pertama agar civitas kampus dapat mengunduh format surat resmi dengan mudah.
+                Tambahkan template .docx pertama.
             <?php else: ?>
-                Administrator belum menambahkan template dokumen resmi saat ini. Silakan periksa kembali nanti.
+                Belum ada template dari Administrator.
             <?php endif; ?>
         </p>
         <div>
@@ -255,10 +214,6 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
                         <?php if (!empty($tpl['description'])): ?>
                             <p class="small mb-3" style="color: var(--text-muted); line-height: 1.55;">
                                 <?= nl2br(htmlspecialchars($tpl['description'])) ?>
-                            </p>
-                        <?php else: ?>
-                            <p class="small mb-3 fst-italic" style="color: var(--text-muted);">
-                                Format resmi siap pakai untuk disesuaikan sebelum ekspor PDF.
                             </p>
                         <?php endif; ?>
                     </div>
@@ -354,11 +309,11 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
                 </div>
                 <div class="modal-body p-4">
                     <p class="mb-2" style="color: var(--text-heading);">
-                        Apakah Anda yakin ingin menghapus template dokumen <strong id="deleteTemplateNameText"></strong>?
+                        Hapus template <strong id="deleteTemplateNameText"></strong>?
                     </p>
                     <div class="alert alert-danger border-0 py-2 px-3 small mb-0">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        Penghapusan bersifat <strong>permanen (hard delete)</strong>: data template serta berkas fisik <code>.docx</code> akan dihapus dari server dan tidak dapat dikembalikan.
+                        Template akan dihapus <strong>permanen</strong>.
                     </div>
                 </div>
                 <div class="modal-footer py-2 px-4">

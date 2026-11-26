@@ -12,9 +12,9 @@ require_once __DIR__ . '/../layout/header.php';
             <span style="color: var(--text-muted);">/</span>
             <span class="fw-semibold" style="color: var(--sigma-purple-600);">Import Massal CSV</span>
         </div>
-        <h4 class="fw-bold mb-1" style="color: var(--text-heading);">Import Massal Master Data Civitas (CSV)</h4>
+        <h4 class="fw-bold mb-1" style="color: var(--text-heading);">Import Civitas (CSV)</h4>
         <p class="small mb-0" style="color: var(--text-muted);">
-            Unggah berkas CSV resmi untuk menambahkan banyak data Dosen, Mahasiswa, dan Tenaga Kependidikan sekaligus dengan pratinjau terverifikasi.
+            Tambah banyak data civitas sekaligus dari berkas CSV.
         </p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
@@ -76,7 +76,7 @@ require_once __DIR__ . '/../layout/header.php';
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2">
                         <div class="small" style="color: var(--text-muted);">
                             <i class="bi bi-shield-check text-sigma-purple me-1"></i>
-                            Data belum akan disimpan ke database sebelum Anda menekan tombol konfirmasi pada tahap pratinjau.
+                            Data baru disimpan setelah Anda konfirmasi di pratinjau.
                         </div>
                         <button type="submit" class="btn-sigma-navy" id="btnPreviewCsv">
                             <i class="bi bi-eye"></i>
@@ -93,12 +93,12 @@ require_once __DIR__ . '/../layout/header.php';
         <div class="card-sigma h-100">
             <div class="card-sigma-header">
                 <span class="fw-semibold" style="color: var(--text-heading);">
-                    <i class="bi bi-table me-2 text-sigma-purple"></i>Struktur Header Wajib (Anti-Wrong-File)
+                    <i class="bi bi-table me-2 text-sigma-purple"></i>Format Header CSV
                 </span>
             </div>
             <div class="card-sigma-body p-4">
                 <p class="small mb-2" style="color: var(--text-muted);">
-                    Baris pertama berkas CSV wajib memuat 7 nama kolom berikut secara lengkap:
+                    Baris pertama wajib berisi kolom berikut:
                 </p>
                 <div class="p-2 rounded-2 mb-3 font-mono-hash small" style="background: var(--sigma-tint-50); border: 1px solid var(--border-subtle); color: var(--text-heading); word-break: break-all;">
                     identifier,name,email,type,department,position,phone
@@ -177,9 +177,9 @@ require_once __DIR__ . '/../layout/header.php';
             <!-- Tabel Sampel 10 Baris Teratas -->
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                 <h6 class="fw-bold mb-0" style="color: var(--text-heading);">
-                    Sampel Pratinjau Baris Teratas (Menampilkan <?= count($sampleRows) ?> dari <?= $totalRows ?> baris)
+                    Pratinjau (<?= count($sampleRows) ?> dari <?= $totalRows ?> baris)
                 </h6>
-                <span class="small" style="color: var(--text-muted);">Periksa kesesuaian pemetaan kolom sebelum konfirmasi simpan</span>
+                
             </div>
 
             <div class="table-responsive border rounded-3 mb-4" style="border-color: var(--border-subtle) !important;">
@@ -247,7 +247,7 @@ require_once __DIR__ . '/../layout/header.php';
                 <div class="p-3 rounded-3 mb-4" style="background: var(--sigma-warning-bg); border: 1px solid #fde68a;">
                     <div class="fw-semibold small mb-2" style="color: var(--sigma-warning-text);">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        Rincian Baris yang Akan Dilewati Otomatis (Duplikat / Tidak Valid):
+                        Baris yang dilewati (duplikat/tidak valid):
                     </div>
                     <ul class="small mb-0 ps-3" style="color: var(--sigma-warning-text);">
                         <?php foreach ($issueRows as $ir): ?>
@@ -280,7 +280,7 @@ require_once __DIR__ . '/../layout/header.php';
                             id="btnCommitCsv"
                             <?= $validCount <= 0 ? 'disabled' : '' ?>>
                         <i class="bi bi-database-fill-check"></i>
-                        <span>Konfirmasi &amp; Simpan <?= $validCount ?> Data Civitas ke Database</span>
+                        <span>Simpan <?= $validCount ?> Data</span>
                     </button>
                 </form>
             </div>
