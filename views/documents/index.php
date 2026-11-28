@@ -2,9 +2,6 @@
 require_once __DIR__ . '/../layout/header.php';
 
 $isAdmin = (($user['role'] ?? '') === 'admin');
-$isKajur = $isKajur ?? UsersModel::isKajur($user);
-$activeScope = $activeScope ?? ($isAdmin ? 'campus' : ((($_GET['view'] ?? '') === 'all' || ($_GET['scope'] ?? '') === 'campus') ? 'campus' : 'mine'));
-$isCampusScope = ($isAdmin || ($isKajur && $activeScope === 'campus'));
 $statusFilter = $statusFilter ?? null;
 $focusQueue = (!$isAdmin && (($_GET['view'] ?? '') === 'queue'));
 
@@ -61,8 +58,6 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
         <h1 class="h4 fw-bold mb-1" style="color: var(--text-heading);">
             <?php if ($isAdmin): ?>
                 <?= $statusFilter === 'pending_review' ? 'Antrean Review Dokumen' : 'Dashboard Dokumen' ?>
-            <?php elseif ($isKajur && $isCampusScope): ?>
-                Daftar Seluruh Dokumen Kampus
             <?php else: ?>
                 <?= $focusQueue ? 'Antrean Tanda Tangan Anda' : 'Dashboard' ?>
             <?php endif; ?>
@@ -70,8 +65,6 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
         <p class="small mb-0" style="color: var(--text-muted);">
             <?php if ($isAdmin): ?>
                 Pantau pengajuan dan antrean review.
-            <?php elseif ($isKajur && $isCampusScope): ?>
-                Memantau seluruh dokumen yang diajukan di lingkungan kampus.
             <?php else: ?>
                 Halo, <strong style="color: var(--text-heading);"><?= htmlspecialchars($user['name'] ?? 'Pengguna', ENT_QUOTES, 'UTF-8') ?></strong>
             <?php endif; ?>
@@ -145,88 +138,6 @@ $renderSignerBadge = static function (string $myStatus, bool $isMyTurn): string 
             </div>
         </div>
     </div>
-
-<?php elseif ($isKajur && $isCampusScope): ?>
-    <!-- Stat Cards Kajur (Lingkup Seluruh Kampus) -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma">
-                <div>
-                    <div class="stat-val"><?= (int)($docCounts['pending_review'] ?? 0) ?></div>
-                    <div class="stat-label">Menunggu Review</div>
-                </div>
-                <div class="stat-icon" style="background: var(--sigma-warning-bg); color: var(--sigma-warning-text);">
-                    <i class="bi bi-hourglass-split"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma">
-                <div>
-                    <div class="stat-val"><?= (int)($docCounts['signing'] ?? 0) ?></div>
-                    <div class="stat-label">Proses Tanda Tangan</div>
-                </div>
-                <div class="stat-icon" style="background: var(--sigma-tint-pill); color: var(--sigma-purple-700);">
-                    <i class="bi bi-pen"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma">
-                <div>
-                    <div class="stat-val"><?= (int)($docCounts['completed'] ?? 0) ?></div>
-                    <div class="stat-label">Dokumen Selesai</div>
-                </div>
-                <div class="stat-icon" style="background: var(--sigma-success-bg); color: var(--sigma-success-text);">
-                    <i class="bi bi-patch-check-fill"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-xl-3">
-            <div class="stat-card-sigma">
-                <div>
-                    <div class="stat-val"><?= (int)($docCounts['total'] ?? 0) ?></div>
-                    <div class="stat-label">Total Dokumen Kampus</div>
-                </div>
-                <div class="stat-icon" style="background: var(--sigma-tint-100); color: var(--sigma-navy);">
-                    <i class="bi bi-files"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <?php if (!$focusQueue && !empty($pendingSignDocs)): ?>
-        <div class="card-sigma mb-4" style="border-color: #d8cceb; background: var(--sigma-tint-50);">
-            <div class="card-sigma-body py-3">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge-sigma badge-sigma-warning"><i class="bi bi-bell-fill"></i> Giliran Anda</span>
-                        <span class="fw-bold small" style="color: var(--text-heading);">
-                            <?= count($pendingSignDocs) ?> dokumen menunggu tanda tangan Anda
-                        </span>
-                    </div>
-                    <?php if (!$focusQueue): ?>
-                        <a href="<?= BASE_URL ?>/documents?view=queue" class="small fw-semibold text-decoration-none" style="color: var(--sigma-purple-700);">
-                            Lihat semua antrean <i class="bi bi-chevron-right"></i>
-                        </a>
-                    <?php endif; ?>
-                </div>
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    <?php foreach (array_slice($pendingSignDocs, 0, 4) as $pDoc): ?>
-                        <div class="d-flex align-items-center justify-content-between gap-3 bg-white border rounded-3 px-3 py-2 flex-grow-1" style="border-color: var(--border-subtle) !important; min-width: 240px;">
-                            <div class="text-truncate small fw-semibold" style="color: var(--text-heading);" title="<?= htmlspecialchars($pDoc['title'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                                <i class="bi bi-file-earmark-pdf text-danger me-1"></i>
-                                <?= htmlspecialchars($pDoc['title'] ?? 'Dokumen', ENT_QUOTES, 'UTF-8') ?>
-                            </div>
-                            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($pDoc['id'], ENT_QUOTES, 'UTF-8') ?>/sign" class="btn-sigma-navy btn-sigma-sm flex-shrink-0">
-                                <i class="bi bi-pen"></i> Tanda Tangani
-                            </a>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
 
 <?php else: ?>
     <?php
@@ -450,58 +361,29 @@ $renderAssignedQueueBlock = function () use ($user, $assignedDocs, $renderDocSta
     <?php
 };
 
-// Fungsi render tabel utama Dokumen (Pengajuan User / Manajemen Admin / Kajur)
-$renderMainDocumentsBlock = function () use ($isAdmin, $isKajur, $isCampusScope, $activeScope, $documents, $docCounts, $statusFilter, $renderDocStatusBadge, $user): void {
+// Fungsi render tabel utama Dokumen (Pengajuan User / Manajemen Admin)
+$renderMainDocumentsBlock = function () use ($isAdmin, $documents, $docCounts, $statusFilter, $renderDocStatusBadge): void {
     $docList = $documents ?? [];
-    $buildTabUrl = function (?string $stKey) use ($isAdmin, $isKajur, $isCampusScope, $activeScope): string {
-        $params = [];
-        if (!$isAdmin && $isKajur && $isCampusScope) {
-            $params['view'] = 'all';
-        } elseif (!$isAdmin && $isKajur && $activeScope === 'mine') {
-            $params['scope'] = 'mine';
-        }
-        if ($stKey !== null) {
-            $params['status'] = $stKey;
-        }
-        $qs = http_build_query($params);
-        return BASE_URL . '/documents' . ($qs !== '' ? '?' . $qs : '');
-    };
     $tabs = [
-        ['key' => null, 'label' => 'Semua', 'count' => (int)($docCounts['total'] ?? 0), 'url' => $buildTabUrl(null)],
-        ['key' => 'pending_review', 'label' => 'Menunggu Review', 'count' => (int)($docCounts['pending_review'] ?? 0), 'url' => $buildTabUrl('pending_review')],
-        ['key' => 'signing', 'label' => 'Sedang TTD', 'count' => (int)($docCounts['signing'] ?? 0), 'url' => $buildTabUrl('signing')],
-        ['key' => 'completed', 'label' => 'Selesai', 'count' => (int)($docCounts['completed'] ?? 0), 'url' => $buildTabUrl('completed')],
-        ['key' => 'draft', 'label' => 'Draft', 'count' => (int)($docCounts['draft'] ?? 0), 'url' => $buildTabUrl('draft')],
-        ['key' => 'rejected', 'label' => 'Ditolak', 'count' => (int)($docCounts['rejected'] ?? 0), 'url' => $buildTabUrl('rejected')],
+        ['key' => null, 'label' => 'Semua', 'count' => (int)($docCounts['total'] ?? 0), 'url' => BASE_URL . '/documents'],
+        ['key' => 'pending_review', 'label' => 'Menunggu Review', 'count' => (int)($docCounts['pending_review'] ?? 0), 'url' => BASE_URL . '/documents?status=pending_review'],
+        ['key' => 'signing', 'label' => 'Sedang TTD', 'count' => (int)($docCounts['signing'] ?? 0), 'url' => BASE_URL . '/documents?status=signing'],
+        ['key' => 'completed', 'label' => 'Selesai', 'count' => (int)($docCounts['completed'] ?? 0), 'url' => BASE_URL . '/documents?status=completed'],
+        ['key' => 'draft', 'label' => 'Draft', 'count' => (int)($docCounts['draft'] ?? 0), 'url' => BASE_URL . '/documents?status=draft'],
+        ['key' => 'rejected', 'label' => 'Ditolak', 'count' => (int)($docCounts['rejected'] ?? 0), 'url' => BASE_URL . '/documents?status=rejected'],
     ];
     ?>
     <div class="card-sigma mb-4">
-        <div class="card-sigma-header flex-wrap gap-2">
+        <div class="card-sigma-header flex-wrap">
             <div>
                 <h2 class="h6 fw-bold mb-0" style="color: var(--text-heading);">
                     <i class="bi bi-files me-1 text-sigma-purple"></i>
-                    <?= $isCampusScope ? 'Daftar Seluruh Dokumen Kampus' : 'Dokumen Pengajuan Saya' ?>
+                    <?= $isAdmin ? 'Daftar Seluruh Dokumen Kampus' : 'Dokumen Pengajuan Saya' ?>
                 </h2>
             </div>
-
-            <?php if ($isKajur): ?>
-                <div class="d-flex align-items-center gap-1 bg-light p-1 rounded-2 border" style="border-color: var(--border-subtle) !important;">
-                    <a href="<?= BASE_URL ?>/documents?scope=mine<?= $statusFilter ? '&status=' . urlencode($statusFilter) : '' ?>"
-                       class="btn-sigma-sm text-decoration-none px-3 py-1 rounded-2 <?= !$isCampusScope ? 'btn-sigma-navy' : 'text-muted' ?>"
-                       style="font-size: 0.78rem;">
-                        <i class="bi bi-person me-1"></i> Pengajuan Saya
-                    </a>
-                    <a href="<?= BASE_URL ?>/documents?view=all<?= $statusFilter ? '&status=' . urlencode($statusFilter) : '' ?>"
-                       class="btn-sigma-sm text-decoration-none px-3 py-1 rounded-2 <?= $isCampusScope ? 'btn-sigma-navy' : 'text-muted' ?>"
-                       style="font-size: 0.78rem;">
-                        <i class="bi bi-buildings me-1"></i> Seluruh Kampus
-                    </a>
-                </div>
-            <?php endif; ?>
-
-            <div class="sigma-search-box ms-md-auto" style="min-width: 240px;">
+            <div class="sigma-search-box" style="min-width: 240px;">
                 <i class="bi bi-search sigma-search-icon"></i>
-                <input type="search" id="docTableSearchInput" class="form-control form-control-sm sigma-input" placeholder="Cari judul, file, atau pengaju..." aria-label="Cari dokumen">
+                <input type="search" id="docTableSearchInput" class="form-control form-control-sm sigma-input" placeholder="Cari judul atau nama file..." aria-label="Cari dokumen">
             </div>
         </div>
 
@@ -531,7 +413,7 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $isKajur, $isCampusScope,
                 </div>
                 <h3 class="h6 fw-bold mb-1" style="color: var(--text-heading);">Tidak Ada Dokumen</h3>
                 <p class="small mb-3" style="color: var(--text-muted);">
-                    <?= $statusFilter ? 'Belum ada dokumen dengan status filter ini.' : ($isCampusScope ? 'Belum ada pengajuan dokumen yang masuk ke sistem.' : 'Mulai dengan mengunggah berkas PDF pertama Anda.') ?>
+                    <?= $statusFilter ? 'Belum ada dokumen dengan status filter ini.' : ($isAdmin ? 'Belum ada pengajuan dokumen yang masuk ke sistem.' : 'Mulai dengan mengunggah berkas PDF pertama Anda.') ?>
                 </p>
                 <?php if (!$isAdmin): ?>
                     <a href="<?= BASE_URL ?>/documents/create" class="btn-sigma-navy btn-sigma-sm">
@@ -545,7 +427,7 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $isKajur, $isCampusScope,
                     <thead>
                         <tr>
                             <th>Judul & Berkas PDF</th>
-                            <?php if ($isAdmin || $isCampusScope): ?>
+                            <?php if ($isAdmin): ?>
                                 <th>Pengaju</th>
                             <?php endif; ?>
                             <th>Jenis Alur</th>
@@ -573,7 +455,7 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $isKajur, $isCampusScope,
                                         <?= htmlspecialchars($doc['file_name_original'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
                                     </div>
                                 </td>
-                                <?php if ($isAdmin || $isCampusScope): ?>
+                                <?php if ($isAdmin): ?>
                                     <td>
                                         <div class="fw-medium"><?= htmlspecialchars($doc['uploader_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
                                     </td>
@@ -603,15 +485,6 @@ $renderMainDocumentsBlock = function () use ($isAdmin, $isKajur, $isCampusScope,
                                             <?php else: ?>
                                                 <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>" class="btn-sigma-outline btn-sigma-sm">
                                                     Detail
-                                                </a>
-                                            <?php endif; ?>
-                                        <?php elseif ($isCampusScope): ?>
-                                            <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>" class="btn-sigma-outline btn-sigma-sm">
-                                                Detail
-                                            </a>
-                                            <?php if (($doc['uploader_id'] ?? '') === ($user['id'] ?? '') && $docStatus === 'draft'): ?>
-                                                <a href="<?= BASE_URL ?>/documents/<?= htmlspecialchars($docId, ENT_QUOTES, 'UTF-8') ?>/arrange" class="btn-sigma-navy btn-sigma-sm">
-                                                    <i class="bi bi-bounding-box"></i> Atur Slot
                                                 </a>
                                             <?php endif; ?>
                                         <?php else: ?>

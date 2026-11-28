@@ -5,9 +5,7 @@
  */
 $currentStatus = $_GET['status'] ?? '';
 $currentView   = $_GET['view'] ?? '';
-$currentScope  = $_GET['scope'] ?? '';
 $currentAction = $action ?? 'index';
-$isKajur       = UsersModel::isKajur($currentUser);
 $userInitial   = strtoupper(mb_substr($currentUser['name'] ?? 'U', 0, 1, 'UTF-8'));
 $roleLabel     = $isAdmin
     ? 'Administrator'
@@ -69,24 +67,13 @@ $roleLabel     = $isAdmin
         <?php else: ?>
             <li>
                 <a href="<?= BASE_URL ?>/documents"
-                   class="sigma-sidebar-link <?= ($page === 'documents' && $currentAction === 'index' && $currentView !== 'queue' && $currentView !== 'all' && $currentScope !== 'campus') ? 'active' : '' ?>">
+                   class="sigma-sidebar-link <?= ($page === 'documents' && $currentAction === 'index' && $currentView !== 'queue') ? 'active' : '' ?>">
                     <span class="sigma-sidebar-link-main">
                         <i class="bi bi-grid-1x2"></i>
                         <span>Dashboard</span>
                     </span>
                 </a>
             </li>
-            <?php if ($isKajur): ?>
-                <li>
-                    <a href="<?= BASE_URL ?>/documents?view=all"
-                       class="sigma-sidebar-link <?= ($page === 'documents' && ($currentView === 'all' || $currentScope === 'campus')) ? 'active' : '' ?>">
-                        <span class="sigma-sidebar-link-main">
-                            <i class="bi bi-files"></i>
-                            <span>Dokumen Kampus</span>
-                        </span>
-                    </a>
-                </li>
-            <?php endif; ?>
             <li>
                 <a href="<?= BASE_URL ?>/documents/create"
                    class="sigma-sidebar-link <?= ($page === 'documents' && $currentAction === 'create') ? 'active' : '' ?>">
