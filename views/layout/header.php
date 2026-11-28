@@ -2,6 +2,7 @@
 global $page, $action, $conn;
 $currentUser   = $_SESSION['user'] ?? null;
 $isAdmin       = ($currentUser['role'] ?? '') === 'admin';
+$isKajur       = UsersModel::isKajur($currentUser);
 $civitasType   = $currentUser['civitas_type'] ?? 'civitas';
 $currentAction = $action ?? 'index';
 $isFocusMode   = ($currentUser && $page === 'documents' && in_array($currentAction, ['arrange', 'sign'], true));
@@ -37,7 +38,13 @@ $breadcrumbMap = [
         'detail'  => 'Detail & Pratinjau Dokumen',
         'arrange' => 'Tata Letak Slot Tanda Tangan',
         'sign'    => 'Penandatanganan Dokumen',
-        default   => (($_GET['status'] ?? '') === 'pending_review' ? 'Antrean Review Admin' : (($_GET['view'] ?? '') === 'queue' ? 'Antrean Tanda Tangan' : ($isAdmin ? 'Ringkasan Dokumen' : 'Dashboard Dokumen'))),
+        default   => (($_GET['status'] ?? '') === 'pending_review'
+            ? 'Antrean Review Admin'
+            : (($_GET['view'] ?? '') === 'queue'
+                ? 'Antrean Tanda Tangan'
+                : (($_GET['view'] ?? '') === 'all' || ($_GET['scope'] ?? '') === 'campus'
+                    ? 'Daftar Seluruh Dokumen Kampus'
+                    : ($isAdmin ? 'Ringkasan Dokumen' : 'Dashboard Dokumen')))),
     },
     'civitas' => match ($currentAction) {
         'create' => 'Tambah Data Civitas',

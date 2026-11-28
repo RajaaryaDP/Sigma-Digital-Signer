@@ -881,6 +881,7 @@ body.sigma-focus-mode .sigma-workspace-content {
     height: 100%;
     display: flex;
     flex-direction: column;
+    padding: 1.25rem;
 }
 
 .template-card-sigma:hover {

@@ -88,6 +88,25 @@ class UsersModel
     }
 
     /**
+     * Memeriksa apakah user memiliki peran struktural sebagai Ketua Jurusan (Kajur).
+     * Teridentifikasi melalui jabatan civitas (position), email, atau nama akun.
+     */
+    public static function isKajur(?array $user): bool
+    {
+        if (empty($user)) {
+            return false;
+        }
+        $pos   = mb_strtolower((string)($user['position'] ?? $user['civitas_position'] ?? ''));
+        $email = mb_strtolower((string)($user['email'] ?? ''));
+        $name  = mb_strtolower((string)($user['name'] ?? $user['civitas_name'] ?? ''));
+
+        return str_contains($pos, 'ketua jurusan')
+            || str_contains($pos, 'kajur')
+            || str_starts_with($email, 'kajur@')
+            || str_contains($name, '(kajur)');
+    }
+
+    /**
      * Mengambil user aktif berdasarkan civitas_id (Pintu Filter 4: Proteksi Akun Ganda Task 11)
      */
     public function getByCivitasId(string $civitasId): ?array

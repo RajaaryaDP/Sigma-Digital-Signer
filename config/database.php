@@ -5,7 +5,7 @@ date_default_timezone_set('Asia/Jakarta');
 $driver  = 'pgsql';
 $host    = 'localhost';
 $port    = 5432;
-$db_name = 'pbl_ti_2025_a_raja';
+$db_name = 'pbl_ti_2025_c_denidwiprasetya';
 
 // Akun aplikasi non-superuser (Least Privilege — is_superuser = off, VULN-05).
 // Kredensial superuser bootstrap & provisioning DDL dipisahkan khusus ke CLI (tools/migrate.php).

@@ -186,7 +186,7 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
                  data-name="<?= htmlspecialchars(mb_strtolower($tpl['name'] ?? '')) ?>"
                  data-updated="<?= (int) $updatedTs ?>"
                  data-size="<?= (int) ($tpl['file_size'] ?? 0) ?>">
-                <div class="template-card-sigma h-100">
+                <div class="template-card-sigma h-100 p-3 p-sm-4">
                     <!-- Top Card Badges -->
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                         <div class="d-flex flex-wrap align-items-center gap-2">
@@ -208,7 +208,7 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
 
                     <!-- Title & Description -->
                     <div class="flex-grow-1">
-                        <h6 class="fw-bold mb-2" style="color: var(--text-heading); line-height: 1.4;">
+                        <h6 class="fw-bold mb-2" style="color: var(--text-heading); font-size: 1.05rem; line-height: 1.4; word-break: break-word;">
                             <?= htmlspecialchars($tpl['name']) ?>
                         </h6>
                         <?php if (!empty($tpl['description'])): ?>
@@ -219,15 +219,18 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
                     </div>
 
                     <!-- File Meta -->
-                    <div class="pt-3 mt-2 border-top mb-3" style="border-color: var(--border-subtle) !important;">
-                        <div class="small text-truncate mb-1" style="font-size: 0.76rem; color: var(--text-body);" title="<?= htmlspecialchars($tpl['file_name_original']) ?>">
-                            <i class="bi bi-paperclip me-1 text-sigma-purple"></i><?= htmlspecialchars($tpl['file_name_original']) ?>
+                    <div class="pt-3 mt-auto border-top mb-3" style="border-color: var(--border-subtle) !important;">
+                        <div class="small text-truncate mb-1 d-flex align-items-center gap-1" style="font-size: 0.78rem; color: var(--text-body);" title="<?= htmlspecialchars($tpl['file_name_original']) ?>">
+                            <i class="bi bi-paperclip text-sigma-purple flex-shrink-0"></i>
+                            <span class="text-truncate"><?= htmlspecialchars($tpl['file_name_original']) ?></span>
                         </div>
-                        <div class="small" style="font-size: 0.74rem; color: var(--text-muted);">
-                            <i class="bi bi-clock-history me-1"></i>Diperbarui: <?= date('d M Y, H:i', strtotime($tpl['updated_at'])) ?> WIB
+                        <div class="small d-flex align-items-center gap-1 text-truncate" style="font-size: 0.74rem; color: var(--text-muted);">
+                            <i class="bi bi-clock-history flex-shrink-0"></i>
+                            <span class="text-truncate">Diperbarui: <?= date('d M Y, H:i', strtotime($tpl['updated_at'])) ?> WIB
                             <?php if (!empty($tpl['updated_by_name'])): ?>
                                 &bull; <?= htmlspecialchars($tpl['updated_by_name']) ?>
                             <?php endif; ?>
+                            </span>
                         </div>
                     </div>
 

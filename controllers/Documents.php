@@ -43,6 +43,7 @@ class Documents
     private $userId;
     private $user;
     private $isAdmin;
+    private $isKajur;
     private $storageDir;
 
     /** Batas ukuran upload PDF: 10 MB */
@@ -77,6 +78,7 @@ class Documents
         $this->user           = $_SESSION['user'];
         $this->userId         = $_SESSION['user']['id'];
         $this->isAdmin        = ($_SESSION['user']['role'] ?? '') === 'admin';
+        $this->isKajur        = UsersModel::isKajur($_SESSION['user'] ?? null);
         $this->storageDir     = __DIR__ . '/../storage';
 
         // Pastikan direktori storage/documents/ ada
@@ -116,32 +118,61 @@ class Documents
                 'docCounts'    => $docCounts,
                 'civitasCount' => $civitasCounts['total'] ?? 0,
                 'statusFilter' => $statusFilter,
+                'isAdmin'      => true,
+                'isKajur'      => false,
+                'activeScope'  => 'campus',
             ]);
         } else {
-            // User biasa: dokumen milik sendiri + dokumen yang perlu ditandatangani
+            // User biasa atau Kajur
             $statusFilter = $_GET['status'] ?? null;
             $allowedStatuses = ['draft', 'pending_review', 'approved', 'signing', 'completed', 'rejected'];
             if ($statusFilter !== null && !in_array($statusFilter, $allowedStatuses, true)) {
                 $statusFilter = null;
             }
 
+            $isKajur     = $this->isKajur;
+            $currentView = $_GET['view'] ?? '';
+            // Default scope: 'mine' (Pengajuan Saya) terlebih dahulu, kecuali jika membuka view=all atau scope=campus
+            $activeScope = $_GET['scope'] ?? (($currentView === 'all') ? 'campus' : 'mine');
+
             $myDocuments      = $this->model->getByUploaderId($this->userId, $statusFilter);
             $assignedDocs     = $this->model->getAssignedSignForUser($this->userId, $statusFilter);
-            $docCounts        = $this->model->countByStatusForUser($this->userId);
+            $myDocCounts      = $this->model->countByStatusForUser($this->userId);
             $pendingSignCount = $this->model->countPendingSignForUser($this->userId);
             $pendingSignDocs  = $this->model->getPendingSignForUser($this->userId);
             $waitingSignDocs  = $this->model->getWaitingSignForUser($this->userId);
 
+            $campusDocuments  = [];
+            $campusDocCounts  = [];
+            $civitasCount     = 0;
+            if ($isKajur) {
+                $campusDocuments = $this->model->getAll($statusFilter);
+                $campusDocCounts = $this->model->countByStatusAll();
+                $civitasCounts   = $this->civitasModel->countByType();
+                $civitasCount    = $civitasCounts['total'] ?? 0;
+            }
+
+            $activeDocuments = ($isKajur && $activeScope === 'campus') ? $campusDocuments : $myDocuments;
+            $activeDocCounts = ($isKajur && $activeScope === 'campus') ? $campusDocCounts : $myDocCounts;
+
             $this->load->view('views/documents/index.php', [
-                'title'            => 'Dokumen Digital Saya',
+                'title'            => $isKajur ? ($activeScope === 'campus' ? 'Dashboard Dokumen — Ketua Jurusan' : 'Dokumen Pengajuan Saya') : 'Dokumen Digital Saya',
                 'user'             => $this->user,
-                'documents'        => $myDocuments,
+                'documents'        => $activeDocuments,
+                'myDocuments'      => $myDocuments,
+                'campusDocuments'  => $campusDocuments,
                 'assignedDocs'     => $assignedDocs,
-                'docCounts'        => $docCounts,
+                'docCounts'        => $activeDocCounts,
+                'myDocCounts'      => $myDocCounts,
+                'campusDocCounts'  => $campusDocCounts,
+                'civitasCount'     => $civitasCount,
                 'pendingSignCount' => $pendingSignCount,
                 'pendingSignDocs'  => $pendingSignDocs,
                 'waitingSignDocs'  => $waitingSignDocs,
                 'statusFilter'     => $statusFilter,
+                'isKajur'          => $isKajur,
+                'isAdmin'          => false,
+                'activeScope'      => $activeScope,
             ]);
         }
     }
@@ -455,10 +486,9 @@ class Documents
             return;
         }
 
-        // Akses: admin bisa lihat semua, user hanya milik sendiri atau yang mengundangnya
-        $mySigner = null;
-        if (!$this->isAdmin) {
-            $mySigner = $this->model->getSignerByDocAndUser($id, $this->userId);
+        // Akses: admin & kajur bisa lihat semua, user hanya milik sendiri atau yang mengundangnya
+        $mySigner = $this->model->getSignerByDocAndUser($id, $this->userId);
+        if (!$this->isAdmin && !$this->isKajur) {
             if ($doc['uploader_id'] !== $this->userId && !$mySigner) {
                 http_response_code(403);
                 echo '<h1>403 — Akses Ditolak</h1><p>Anda tidak memiliki akses ke dokumen ini.</p>';
@@ -1387,22 +1417,20 @@ class Documents
             exit('Dokumen tidak ditemukan.');
         }
 
-        // Akses: admin, pengaju, atau penandatangan
-        if (!$this->isAdmin && $doc['uploader_id'] !== $this->userId) {
-            $signer = $this->model->getSignerByDocAndUser($id, $this->userId);
-            if (!$signer) {
-                http_response_code(403);
-                exit('Akses ditolak.');
-            }
+        // Akses: admin, kajur, pengaju, atau penandatangan
+        $signer = $this->model->getSignerByDocAndUser($id, $this->userId);
+        if (!$this->isAdmin && !$this->isKajur && $doc['uploader_id'] !== $this->userId && !$signer) {
+            http_response_code(403);
+            exit('Akses ditolak.');
+        }
 
-            // Catat read_at jika belum pernah dibaca oleh penandatangan ini
-            if (empty($signer['read_at'])) {
-                global $conn;
-                $stmt = $conn->prepare(
-                    "UPDATE document_signers SET read_at = NOW() WHERE id = ? AND read_at IS NULL"
-                );
-                $stmt->execute([$signer['id']]);
-            }
+        // Catat read_at jika belum pernah dibaca oleh penandatangan ini
+        if ($signer && empty($signer['read_at'])) {
+            global $conn;
+            $stmt = $conn->prepare(
+                "UPDATE document_signers SET read_at = NOW() WHERE id = ? AND read_at IS NULL"
+            );
+            $stmt->execute([$signer['id']]);
         }
 
         $targetFileRel = $doc['file_path'];
@@ -1459,8 +1487,8 @@ class Documents
             exit('Dokumen tidak ditemukan.');
         }
 
-        // Akses: admin, pengaju, atau penandatangan
-        if (!$this->isAdmin && $doc['uploader_id'] !== $this->userId) {
+        // Akses: admin, kajur, pengaju, atau penandatangan
+        if (!$this->isAdmin && !$this->isKajur && $doc['uploader_id'] !== $this->userId) {
             $signer = $this->model->getSignerByDocAndUser($id, $this->userId);
             if (!$signer) {
                 http_response_code(403);
