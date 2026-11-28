@@ -106,7 +106,7 @@ require_once __DIR__ . '/../layout/header.php';
                 <ul class="small mb-0 ps-3" style="line-height: 1.6; color: var(--text-muted);">
                     <li><code>identifier</code>: NIM Mahasiswa atau NIP/NIDN Pegawai (Unik).</li>
                     <li><code>name</code>: Nama lengkap beserta gelar akademik resmi.</li>
-                    <li><code>email</code>: Email institusi resmi (Unik, cth: <code>@stu.pnj.ac.id</code> / <code>@pnj.ac.id</code>).</li>
+                    <li><code>email</code>: Email aktif (Unik, domain: <code>@stu.pnj.ac.id</code>, <code>@pnj.ac.id</code>, <code>@gmail.com</code>, atau <code>@sigma.local</code>).</li>
                     <li><code>type</code>: Wajib bernilai <code>mahasiswa</code>, <code>dosen</code>, atau <code>tendik</code>.</li>
                     <li><code>department</code>: Nama Jurusan / Program Studi / Unit Kerja.</li>
                     <li><code>position</code>: Jabatan / Peran resmi civitas.</li>

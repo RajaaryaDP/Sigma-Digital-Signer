@@ -543,13 +543,13 @@
                     </div>
 
                     <div class="field">
-                        <label for="inputEmail">Email Resmi Kampus</label>
+                        <label for="inputEmail">Email Civitas</label>
                         <div class="field-control <?= isset($errors['email']) ? 'has-error' : '' ?>">
                             <input
                                 type="email"
                                 id="inputEmail"
                                 name="email"
-                                placeholder="nama@stu.pnj.ac.id atau nama@pnj.ac.id"
+                                placeholder="nama@stu.pnj.ac.id, nama@pnj.ac.id, atau nama@gmail.com"
                                 value="<?= htmlspecialchars($old['email'] ?? '') ?>"
                                 maxlength="255"
                                 autocomplete="email"

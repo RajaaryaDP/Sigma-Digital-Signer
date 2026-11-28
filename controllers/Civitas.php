@@ -689,6 +689,12 @@ class Civitas
                 $rowErrors[] = 'Email kosong';
             } elseif (mb_strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $rowErrors[] = 'Format email tidak valid';
+            } else {
+                $validTypeForDomain = in_array($type, ['dosen', 'mahasiswa', 'tendik'], true) ? $type : null;
+                $domainErr          = CivitasModel::validateEmailDomain($email, $validTypeForDomain);
+                if ($domainErr !== null) {
+                    $rowErrors[] = $domainErr;
+                }
             }
 
             if (!in_array($type, ['dosen', 'mahasiswa', 'tendik'], true)) {
@@ -846,19 +852,27 @@ class Civitas
             $errors['position'] = 'Panjang jabatan / peran resmi maksimal 150 karakter.';
         }
 
-        // 6. Validasi Email Institusi — VARCHAR(255)
+        // 6. Validasi Email Civitas — VARCHAR(255)
         if (empty($data['email'])) {
-            $errors['email'] = 'Alamat email institusi wajib diisi.';
+            $errors['email'] = 'Alamat email wajib diisi.';
         } elseif (mb_strlen($data['email']) > 255) {
             $errors['email'] = 'Panjang alamat email maksimal 255 karakter.';
         } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Format email tidak valid.';
         } else {
-            $existingEmail = $this->civitasModel->getByEmail($data['email'], $excludeId);
-            if ($existingEmail) {
-                $errors['email'] = 'Email "' . $data['email'] . '" sudah digunakan oleh civitas lain.';
-            } elseif ($this->civitasModel->isEmailUsedByOtherActiveUser($data['email'], $excludeId)) {
-                $errors['email'] = 'Email "' . $data['email'] . '" sudah digunakan oleh akun pengguna aktif lain.';
+            $validTypeForDomain = in_array($data['type'] ?? '', ['dosen', 'mahasiswa', 'tendik'], true)
+                ? (string) $data['type']
+                : null;
+            $domainErr = CivitasModel::validateEmailDomain($data['email'], $validTypeForDomain);
+            if ($domainErr !== null) {
+                $errors['email'] = $domainErr;
+            } else {
+                $existingEmail = $this->civitasModel->getByEmail($data['email'], $excludeId);
+                if ($existingEmail) {
+                    $errors['email'] = 'Email "' . $data['email'] . '" sudah digunakan oleh civitas lain.';
+                } elseif ($this->civitasModel->isEmailUsedByOtherActiveUser($data['email'], $excludeId)) {
+                    $errors['email'] = 'Email "' . $data['email'] . '" sudah digunakan oleh akun pengguna aktif lain.';
+                }
             }
         }
 

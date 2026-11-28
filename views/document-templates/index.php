@@ -220,9 +220,6 @@ $buildFilterUrl = static function (string $catKey) use ($search): string {
 
                     <!-- File Meta -->
                     <div class="pt-3 mt-2 border-top mb-3" style="border-color: var(--border-subtle) !important;">
-                        <div class="small text-truncate mb-1" style="font-size: 0.76rem; color: var(--text-body);" title="<?= htmlspecialchars($tpl['file_name_original']) ?>">
-                            <i class="bi bi-paperclip me-1 text-sigma-purple"></i><?= htmlspecialchars($tpl['file_name_original']) ?>
-                        </div>
                         <div class="small" style="font-size: 0.74rem; color: var(--text-muted);">
                             <i class="bi bi-clock-history me-1"></i>Diperbarui: <?= date('d M Y, H:i', strtotime($tpl['updated_at'])) ?> WIB
                             <?php if (!empty($tpl['updated_by_name'])): ?>

@@ -877,6 +877,7 @@ body.sigma-focus-mode .sigma-workspace-content {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
+    padding: 1.25rem 1.35rem;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     height: 100%;
     display: flex;

@@ -7,12 +7,46 @@ use Ramsey\Uuid\Uuid;
 
 class CivitasModel
 {
+    /** Daftar domain email yang diizinkan untuk Master Civitas & Registrasi Mandiri */
+    public const ALLOWED_EMAIL_DOMAINS = [
+        'stu.pnj.ac.id',
+        'pnj.ac.id',
+        'gmail.com',
+        'sigma.local',
+    ];
+
     private $db;
 
     public function __construct()
     {
         global $conn;
         $this->db = $conn;
+    }
+
+    /**
+     * Memvalidasi domain email terhadap daftar domain yang diizinkan serta
+     * kesesuaian domain kampus dengan kategori civitas (jika `$civitasType` diisi).
+     * Mengembalikan pesan error ramah atau `null` bila valid.
+     */
+    public static function validateEmailDomain(string $email, ?string $civitasType = null): ?string
+    {
+        $atPos  = strrpos($email, '@');
+        $domain = ($atPos !== false) ? strtolower(trim(substr($email, $atPos + 1))) : '';
+
+        if ($domain === '' || !in_array($domain, self::ALLOWED_EMAIL_DOMAINS, true)) {
+            return 'Domain email tidak didukung. Gunakan domain @stu.pnj.ac.id (Mahasiswa), @pnj.ac.id (Dosen/Tendik), @gmail.com, atau @sigma.local.';
+        }
+
+        if ($civitasType !== null && $civitasType !== '') {
+            if ($domain === 'stu.pnj.ac.id' && $civitasType !== 'mahasiswa') {
+                return 'Domain @stu.pnj.ac.id hanya diperuntukkan bagi civitas berkategori Mahasiswa.';
+            }
+            if ($domain === 'pnj.ac.id' && !in_array($civitasType, ['dosen', 'tendik'], true)) {
+                return 'Domain @pnj.ac.id hanya diperuntukkan bagi civitas berkategori Dosen atau Tendik.';
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -223,11 +223,14 @@ require_once __DIR__ . '/../layout/header.php';
 
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="sigma-form-label">Alamat Email Institusi <span class="text-danger">*</span></label>
+                                <label class="sigma-form-label">Alamat Email <span class="text-danger">*</span></label>
                                 <input type="email" name="email"
                                        class="form-control sigma-input <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
-                                       placeholder="nama@sigma.local atau nama@pnj.ac.id"
+                                       placeholder="nama@stu.pnj.ac.id, nama@pnj.ac.id, atau nama@gmail.com"
                                        value="<?= htmlspecialchars($values['email'] ?? '') ?>" required>
+                                <div class="form-text small" style="color: var(--text-muted);">
+                                    Domain: <code>@stu.pnj.ac.id</code>, <code>@pnj.ac.id</code>, <code>@gmail.com</code>, atau <code>@sigma.local</code>.
+                                </div>
                                 <?php if (isset($errors['email'])): ?>
                                     <div class="invalid-feedback small"><?= htmlspecialchars($errors['email']) ?></div>
                                 <?php endif; ?>

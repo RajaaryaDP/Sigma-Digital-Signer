@@ -197,7 +197,7 @@ class Auth
     /**
      * Menampilkan formulir registrasi mandiri (GET) atau memproses aktivasi akun civitas (POST)
      * Dilengkapi 4 Pintu Filter Keamanan (Task 11):
-     *  1. Validasi Domain Email Resmi (@stu.pnj.ac.id, @pnj.ac.id, @sigma.local)
+     *  1. Validasi Domain Email Diizinkan (@stu.pnj.ac.id, @pnj.ac.id, @gmail.com, @sigma.local)
      *  2. Whitelist Match Gate (Pencocokan Ganda NIM/NIP + Email terhadap Master Data Civitas)
      *  3. Anti-Impersonation Lock (Nama, Kategori, Jurusan, Jabatan, & Peran dikunci dari Master Civitas)
      *  4. Proteksi Akun Ganda (Menolak jika civitas_id atau email sudah terdaftar di tabel users)
@@ -270,20 +270,15 @@ class Auth
                 $errors['name'] = 'Panjang nama lengkap maksimal 255 karakter.';
             }
 
-            // Pintu Filter 1: Validasi Format & Domain Email Resmi Kampus
-            $allowedDomains = ['stu.pnj.ac.id', 'pnj.ac.id', 'sigma.local'];
-            $emailDomain    = '';
-
+            // Pintu Filter 1: Validasi Format & Domain Email yang Diizinkan
             if ($email === '') {
-                $errors['email'] = 'Alamat email resmi kampus wajib diisi.';
+                $errors['email'] = 'Alamat email wajib diisi.';
             } elseif (mb_strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors['email'] = 'Format alamat email tidak valid.';
             } else {
-                $atPos       = strrpos($email, '@');
-                $emailDomain = ($atPos !== false) ? strtolower(substr($email, $atPos + 1)) : '';
-
-                if (!in_array($emailDomain, $allowedDomains, true)) {
-                    $errors['email'] = 'Domain email ditolak. Gunakan email resmi kampus (@stu.pnj.ac.id untuk Mahasiswa, @pnj.ac.id untuk Dosen/Tendik, atau @sigma.local). Email publik (@gmail.com, @yahoo.com, dll) tidak diizinkan.';
+                $domainErr = CivitasModel::validateEmailDomain($email);
+                if ($domainErr !== null) {
+                    $errors['email'] = $domainErr;
                 }
             }
 
@@ -337,13 +332,11 @@ class Auth
 
                 $errors['general'] = 'Verifikasi gagal: Kombinasi NIM/NIP dan Email tidak ditemukan atau tidak cocok pada Master Data Civitas Kampus. Pastikan NIM/NIP dan Email sesuai dengan data yang terdaftar di Admin.';
             } else {
-                // Validasi kesesuaian domain dengan kategori civitas
-                if ($emailDomain === 'stu.pnj.ac.id' && $matchedCivitas['type'] !== 'mahasiswa') {
+                // Validasi kesesuaian domain kampus dengan kategori civitas (@gmail.com & @sigma.local bebas semua kategori)
+                $typeDomainErr = CivitasModel::validateEmailDomain($email, (string) ($matchedCivitas['type'] ?? ''));
+                if ($typeDomainErr !== null) {
                     $recordThrottle  = true;
-                    $errors['email'] = 'Domain @stu.pnj.ac.id hanya diperuntukkan bagi civitas berkategori Mahasiswa.';
-                } elseif ($emailDomain === 'pnj.ac.id' && !in_array($matchedCivitas['type'], ['dosen', 'tendik'], true)) {
-                    $recordThrottle  = true;
-                    $errors['email'] = 'Civitas Mahasiswa wajib menggunakan domain @stu.pnj.ac.id.';
+                    $errors['email'] = $typeDomainErr;
                 }
             }
 
